@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Rules for companies collection and subcollections
+    match /companies/{companyId} {
+      allow read, write: if request.auth != null && (
+        request.auth.token.role == 'super_admin' || 
+        request.auth.token.companyId == companyId
+      );
+      
+      match /{document=**} {
+        allow read, write: if request.auth != null && (
+          request.auth.token.role == 'super_admin' || 
+          request.auth.token.companyId == companyId
+        );
+      }
+    }
+  }
+}
