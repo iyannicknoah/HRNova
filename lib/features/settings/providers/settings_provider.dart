@@ -1,57 +1,43 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/services/firebase_service.dart';
+import '../../../core/constants/app_constants.dart';
 import '../models/company_settings_model.dart';
 
-final settingsProvider = StreamProvider<CompanySettings?>((ref) {
-  final companyId = ref.watch(companyIdProvider);
-  if (companyId == null) {
-    return Stream.value(null);
-  }
-  
-  return FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default')
-      .collection('companies')
-      .doc(companyId)
-      .collection('settings')
-      .doc('config')
-      .snapshots()
-      .map((snapshot) {
-        if (!snapshot.exists) {
-          return const CompanySettings();
-        }
-        return CompanySettings.fromFirestore(snapshot);
-      });
+// ── Full company settings stream ───────────────────────────────────────────
+final companySettingsProvider =
+    StreamProvider.autoDispose<CompanySettingsModel?>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return const Stream.empty();
+
+  return FirebaseService.settingsRef(companyId).snapshots().map((doc) {
+    if (!doc.exists || doc.data() == null) return null;
+    return CompanySettingsModel.fromMap(companyId, doc.data()!);
+  });
 });
 
-class SettingsNotifier extends StateNotifier<AsyncValue<void>> {
-  final Ref _ref;
+// ── Company suspension status ──────────────────────────────────────────────
+final companyStatusProvider = StreamProvider.autoDispose<String?>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value(null);
 
-  SettingsNotifier(this._ref) : super(const AsyncData(null));
+  return FirebaseFirestore.instance
+      .collection('companies')
+      .doc(companyId)
+      .snapshots()
+      .map((doc) => doc.data()?['status'] as String?);
+});
 
-  Future<void> updateSettings(CompanySettings settings) async {
-    final companyId = _ref.read(companyIdProvider);
-    if (companyId == null) {
-      state = AsyncValue.error('No authenticated company found.', StackTrace.current);
-      return;
-    }
+// ── Onboarding complete check (hr_admin only) ─────────────────────────────
+final isOnboardingCompleteProvider = StreamProvider.autoDispose<bool>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  final role = ref.watch(currentUserRoleProvider);
 
-    state = const AsyncLoading();
-    try {
-      await FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: 'default')
-          .collection('companies')
-          .doc(companyId)
-          .collection('settings')
-          .doc('config')
-          .set(settings.toFirestore(), SetOptions(merge: true));
-      
-      state = const AsyncData(null);
-    } catch (e, stack) {
-      state = AsyncValue.error('Failed to save settings: $e', stack);
-    }
-  }
-}
+  if (companyId == null) return Stream.value(true);
+  if (role != AppConstants.roleHrAdmin) return Stream.value(true);
 
-final settingsNotifierProvider = StateNotifierProvider<SettingsNotifier, AsyncValue<void>>((ref) {
-  return SettingsNotifier(ref);
+  return FirebaseService.settingsRef(companyId)
+      .snapshots()
+      .map((doc) => doc.data()?['isOnboardingComplete'] as bool? ?? false);
 });

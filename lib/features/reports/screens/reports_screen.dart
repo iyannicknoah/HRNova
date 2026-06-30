@@ -1,46 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Reports'),
-      ),
+    return const Scaffold(
+      backgroundColor: AppColors.backgroundBlue,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'HR',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.darkNavy,
-                  ),
-                ),
-                const Text(
-                  'Nova',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryGreen,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Reports Screen Placeholder',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-            ),
+            Icon(Icons.bar_chart_rounded, size: 48, color: AppColors.primaryBlue),
+            SizedBox(height: 16),
+            Text('Reports', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+            SizedBox(height: 8),
+            Text('AI Reports — Part 9', style: TextStyle(color: AppColors.textSecondary)),
           ],
         ),
       ),

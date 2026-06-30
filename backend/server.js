@@ -1,56 +1,65 @@
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-const { initializeApp, cert } = require('firebase-admin/app');
+const { initializeApp, cert, applicationDefault, getApps } = require('firebase-admin/app');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use((req, res, next) => {
-  console.log(`[HTTP] ${req.method} ${req.url} - Body:`, JSON.stringify(req.body));
-  next();
-});
+// ── Firebase Admin init ──────────────────────────────────────────────────────
+const serviceAccountPath = path.join(__dirname, process.env.FIREBASE_PRIVATE_KEY_PATH || './hrnova-6b7d8-firebase-adminsdk-fbsvc-75268fae3e.json');
 
-// Initialize Firebase Admin SDK
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './serviceAccount.json';
-const resolvedPath = path.resolve(__dirname, serviceAccountPath);
-
-if (fs.existsSync(resolvedPath)) {
-  try {
+if (!getApps().length) {
+  if (fs.existsSync(serviceAccountPath)) {
     initializeApp({
-      credential: cert(require(resolvedPath)),
+      credential: cert(require(serviceAccountPath)),
     });
-    console.log('Firebase Admin SDK initialized successfully.');
-  } catch (error) {
-    console.error('Error initializing Firebase Admin SDK:', error.message);
+  } else {
+    initializeApp({
+      credential: applicationDefault(),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+    });
   }
-} else {
-  console.error(`CRITICAL: Firebase Service Account file not found at ${resolvedPath}`);
 }
 
-// Routes
-const authRouter = require('./routes/auth');
-app.use('/api/auth', authRouter);
+// ── Middleware ───────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-const storageRoutes = require('./routes/storage');
-app.use('/api/storage', storageRoutes);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
+// ── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/auth',      require('./routes/auth'));
+app.use('/api/storage',   require('./routes/storage'));
+app.use('/api/companies', require('./routes/companies'));
+
+// ── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'HRNova API' });
 });
 
-// Root route
-app.get('/', (req, res) => {
-  res.send('HRNova Express Backend is Running!');
+// ── 404 handler ───────────────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
-// Start Server
+// ── Error handler ─────────────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
+// ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`HRNova API running on http://localhost:${PORT}`);
+  console.log(`Health: http://localhost:${PORT}/api/health`);
 });
+
+module.exports = app;

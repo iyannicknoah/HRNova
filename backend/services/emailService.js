@@ -1,40 +1,28 @@
-/**
- * Email Service
- * Handles sending email notifications (e.g. leave requests, reports) using Nodemailer.
- */
+// Brevo email service — cloud only (9,000/month free tier)
+// Full implementation in Part 9
 
-const nodemailer = require('nodemailer');
-
-// Configure the transporter with environment variables (will be configured in next stages)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-  port: parseInt(process.env.SMTP_PORT || '2525', 10),
-  auth: {
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '',
-  },
-});
-
-/**
- * Sends an email message.
- * @param {string} to - Recipient email.
- * @param {string} subject - Email subject line.
- * @param {string} text - Plain text body.
- * @param {string} html - HTML body content.
- * @returns {Promise<object>} The nodemailer send result.
- */
-async function sendEmail({ to, subject, text, html }) {
-  // Implementation stub for later use
-  console.log(`Sending email to ${to}: "${subject}"`);
-  
-  // Return a mock result
-  return {
-    messageId: `mock-email-id-${Date.now()}`,
-    accepted: [to],
-  };
+async function sendEmail({ to, subject, htmlContent, textContent }) {
+  // Scaffold — implemented in Part 9
+  console.log(`[EmailService] Would send to ${to}: ${subject}`);
+  return { messageId: 'scaffold' };
 }
 
-module.exports = {
-  sendEmail,
-  transporter,
-};
+async function sendLeaveNotification({ employeeEmail, managerEmail, employeeName, leaveType, startDate, endDate, status }) {
+  // Scaffold
+  return sendEmail({
+    to: managerEmail,
+    subject: `Leave ${status}: ${employeeName}`,
+    htmlContent: `<p>${employeeName} has requested ${leaveType} leave from ${startDate} to ${endDate}.</p>`,
+  });
+}
+
+async function sendPayslipEmail({ employeeEmail, employeeName, payrollMonth, payslipUrl }) {
+  // Scaffold
+  return sendEmail({
+    to: employeeEmail,
+    subject: `Your payslip for ${payrollMonth}`,
+    htmlContent: `<p>Dear ${employeeName}, your payslip for ${payrollMonth} is ready.</p>`,
+  });
+}
+
+module.exports = { sendEmail, sendLeaveNotification, sendPayslipEmail };

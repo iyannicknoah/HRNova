@@ -1,110 +1,139 @@
-import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+// ── Auth state stream ──────────────────────────────────────────────────────
 final authStateProvider = StreamProvider<User?>((ref) {
   return FirebaseAuth.instance.authStateChanges();
 });
 
-final currentUserProvider = Provider<User?>((ref) {
-  // Watch authStateProvider to automatically update current user on auth changes
-  ref.watch(authStateProvider);
-  return FirebaseAuth.instance.currentUser;
+// ── User claims ────────────────────────────────────────────────────────────
+final userClaimsProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return null;
+  try {
+    final result = await user.getIdTokenResult();
+    return result.claims;
+  } catch (_) {
+    // Cached token may be stale — force a refresh.
+    final result = await user.getIdTokenResult(true);
+    return result.claims;
+  }
 });
 
-class AuthNotifier extends AsyncNotifier<void> {
-  @override
-  FutureOr<void> build() {
-    // Initial state is void/idle
+// ── Derived claim providers ────────────────────────────────────────────────
+final currentCompanyIdProvider = Provider<String?>((ref) {
+  return ref.watch(userClaimsProvider).value?['companyId'] as String?;
+});
+
+final currentUserRoleProvider = Provider<String?>((ref) {
+  return ref.watch(userClaimsProvider).value?['role'] as String?;
+});
+
+final currentBranchIdProvider = Provider<String?>((ref) {
+  return ref.watch(userClaimsProvider).value?['branchId'] as String?;
+});
+
+final currentCompanyTypeProvider = Provider<String?>((ref) {
+  return ref.watch(userClaimsProvider).value?['companyType'] as String?;
+});
+
+// ── Theme notifier — persists in SharedPreferences ─────────────────────────
+class ThemeNotifier extends StateNotifier<ThemeMode> {
+  ThemeNotifier(super.initialMode);
+
+  Future<void> toggle() async {
+    state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme_mode', state.name);
   }
 
+  Future<void> setMode(ThemeMode mode) async {
+    state = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme_mode', mode.name);
+  }
+}
+
+final themeNotifierProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>(
+  (ref) => ThemeNotifier(ThemeMode.light),
+);
+
+// ── Auth actions notifier ──────────────────────────────────────────────────
+class AuthNotifier extends StateNotifier<AsyncValue<void>> {
+  AuthNotifier() : super(const AsyncValue.data(null));
+
   Future<void> signIn(String email, String password) async {
-    state = const AsyncLoading();
+    state = const AsyncValue.loading();
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
-      state = const AsyncData(null);
-    } catch (e) {
-      state = AsyncValue.error('Invalid email or password. Please try again.', StackTrace.current);
-      throw 'Invalid email or password. Please try again.';
+      state = const AsyncValue.data(null);
+    } on FirebaseAuthException catch (e, st) {
+      state = AsyncValue.error(_friendlyError(e.code), st);
+    } catch (e, st) {
+      state = AsyncValue.error('Something went wrong. Please try again.', st);
     }
   }
 
   Future<void> signOut() async {
-    state = const AsyncLoading();
-    try {
-      await FirebaseAuth.instance.signOut();
-      state = const AsyncData(null);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-    }
-  }
-
-  Future<String?> getUserRole() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final tokenResult = await user.getIdTokenResult(true);
-    return tokenResult.claims?['role'] as String?;
-  }
-
-  Future<String?> getCompanyId() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final tokenResult = await user.getIdTokenResult(true);
-    return tokenResult.claims?['companyId'] as String?;
+    await FirebaseAuth.instance.signOut();
+    state = const AsyncValue.data(null);
   }
 
   Future<Map<String, dynamic>?> getUserClaims() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
-    final tokenResult = await user.getIdTokenResult(true);
-    return tokenResult.claims;
+    final result = await user.getIdTokenResult();
+    return result.claims;
+  }
+
+  Future<String?> getUserRole() async {
+    final claims = await getUserClaims();
+    return claims?['role'] as String?;
+  }
+
+  Future<String?> getCompanyId() async {
+    final claims = await getUserClaims();
+    return claims?['companyId'] as String?;
+  }
+
+  Future<String?> getBranchId() async {
+    final claims = await getUserClaims();
+    return claims?['branchId'] as String?;
+  }
+
+  Future<String?> getCompanyType() async {
+    final claims = await getUserClaims();
+    return claims?['companyType'] as String?;
+  }
+
+  static String _friendlyError(String code) {
+    return switch (code) {
+      'user-not-found' ||
+      'wrong-password' ||
+      'invalid-credential' ||
+      'INVALID_LOGIN_CREDENTIALS' =>
+        "That email and password don't match. Double-check and try again.",
+      'too-many-requests' =>
+        "Too many failed attempts. Please wait a few minutes before trying again.",
+      'user-disabled' =>
+        "This account has been disabled. Please contact your HR admin.",
+      'network-request-failed' =>
+        "No internet connection. Please check your network and try again.",
+      'invalid-email' =>
+        "That doesn't look like a valid email address.",
+      'email-already-in-use' =>
+        "This email is already registered. Try signing in instead.",
+      _ =>
+        "Something went wrong. Please try again.",
+    };
   }
 }
 
-final authNotifierProvider = AsyncNotifierProvider<AuthNotifier, void>(() {
-  return AuthNotifier();
-});
-
-final userClaimsProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return null;
-  // Fetch token result (forceRefresh: true on auth changes is already handled elsewhere, but normal get is sufficient here)
-  final tokenResult = await user.getIdTokenResult();
-  return tokenResult.claims;
-});
-
-final companyIdProvider = Provider<String?>((ref) {
-  final claimsAsync = ref.watch(userClaimsProvider);
-  return claimsAsync.maybeWhen(
-    data: (claims) => claims?['companyId'] as String?,
-    orElse: () => null,
-  );
-});
-
-final userRoleProvider = Provider<String?>((ref) {
-  final claimsAsync = ref.watch(userClaimsProvider);
-  return claimsAsync.maybeWhen(
-    data: (claims) => claims?['role'] as String?,
-    orElse: () => null,
-  );
-});
-
-final companyNameProvider = FutureProvider<String>((ref) async {
-  final companyId = ref.watch(companyIdProvider);
-  if (companyId == null) return 'HRNova';
-
-  try {
-    final doc = await FirebaseFirestore.instanceFor(
-      app: Firebase.app(),
-      databaseId: 'default',
-    ).collection('companies').doc(companyId).get();
-    return doc.data()?['name'] as String? ?? 'HRNova';
-  } catch (_) {
-    return 'HRNova';
-  }
-});
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AsyncValue<void>>(
+  (ref) => AuthNotifier(),
+);

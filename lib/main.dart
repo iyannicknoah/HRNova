@@ -1,48 +1,62 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'core/theme/app_theme.dart';
-import 'core/router/app_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+import 'features/auth/providers/auth_provider.dart';
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  await runZonedGuarded(_boot, (error, stack) {
+    debugPrint('Unhandled error: $error\n$stack');
+  });
+}
+
+Future<void> _boot() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  FlutterError.onError = (details) {
-    debugPrint('FLUTTER ERROR: ${details.exception}');
-    debugPrint('FLUTTER STACK: ${details.stack}');
-  };
-  
+
   try {
-    // Initialize Firebase using auto-generated options
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e, stack) {
-    debugPrint('FIREBASE INIT ERROR: $e');
-    debugPrint('FIREBASE INIT STACK: $stack');
+  } catch (e) {
+    debugPrint('Firebase init error: $e');
   }
-  
+
+  // Load persisted theme before first frame
+  final prefs = await SharedPreferences.getInstance();
+  final themeStr = prefs.getString('theme_mode');
+  final initialTheme = themeStr == 'dark' ? ThemeMode.dark : ThemeMode.light;
+
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      overrides: [
+        themeNotifierProvider
+            .overrideWith((ref) => ThemeNotifier(initialTheme)),
+      ],
+      child: const HRNovaApp(),
     ),
   );
 }
 
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+class HRNovaApp extends ConsumerWidget {
+  const HRNovaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(routerProvider);
-    
+    final themeMode = ref.watch(themeNotifierProvider);
+    final router = ref.watch(appRouterProvider);
+
     return MaterialApp.router(
       title: 'HRNova',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: router,
     );
   }

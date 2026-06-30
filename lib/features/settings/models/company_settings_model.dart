@@ -1,115 +1,121 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-class CompanySettings {
-  final String workStartTime;
-  final String workEndTime;
-  final int gracePeriodMinutes;
-  final int annualLeaveDays;
-  final int sickLeaveDays;
-  final int lateDeductionPerHourRwf;
-  final int maxLateBeforeWarning;
-  final String notificationMethod;
-  final bool isOnboardingComplete;
-  final List<String> workingDays;
-  final List<String> departments;
-  final String managerPhone;
-  final String hrAdminPhone;
-  final String managerEmail;
-  final String hrAdminEmail;
-
-  const CompanySettings({
+class CompanySettingsModel {
+  const CompanySettingsModel({
+    required this.companyId,
+    required this.companyName,
+    this.industry = '',
+    this.companyType = 'single',
+    this.rraTinNumber,
+    this.rssbNumber,
+    this.logoUrl,
+    this.primaryColor,
+    this.companySlug,
     this.workStartTime = '08:00',
     this.workEndTime = '17:00',
-    this.gracePeriodMinutes = 10,
-    this.annualLeaveDays = 18,
-    this.sickLeaveDays = 10,
-    this.lateDeductionPerHourRwf = 500,
-    this.maxLateBeforeWarning = 3,
-    this.notificationMethod = 'both',
-    this.isOnboardingComplete = false,
-    this.workingDays = const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    this.departments = const [],
-    this.managerPhone = '',
-    this.hrAdminPhone = '',
-    this.managerEmail = '',
-    this.hrAdminEmail = '',
+    this.lateThresholdMinutes = 15,
+    this.workingDaysPerWeek = 5,
+    this.timezone = 'Africa/Kigali',
+    this.currency = 'RWF',
+    this.country = 'Rwanda',
+    this.phone,
+    this.email,
+    this.address,
+    this.website,
+    this.brevoApiKey,
+    this.openRouterApiKey,
+    this.monthlyPrice = 0,
+    this.status = 'active',
+    this.enableWhatsappLeave = false,
+    this.enableSelfieAttendance = false,
+    this.enableAiReports = true,
   });
 
-  factory CompanySettings.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
-    
-    return CompanySettings(
-      workStartTime: data['workStartTime'] as String? ?? '08:00',
-      workEndTime: data['workEndTime'] as String? ?? '17:00',
-      gracePeriodMinutes: data['gracePeriodMinutes'] as int? ?? 10,
-      annualLeaveDays: data['annualLeaveDays'] as int? ?? 18,
-      sickLeaveDays: data['sickLeaveDays'] as int? ?? 10,
-      lateDeductionPerHourRwf: data['lateDeductionPerHourRwf'] as int? ?? 500,
-      maxLateBeforeWarning: data['maxLateBeforeWarning'] as int? ?? 3,
-      notificationMethod: data['notificationMethod'] as String? ?? 'both',
-      isOnboardingComplete: data['isOnboardingComplete'] as bool? ?? false,
-      workingDays: List<String>.from(data['workingDays'] ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
-      departments: List<String>.from(data['departments'] ?? []),
-      managerPhone: data['managerPhone'] as String? ?? '',
-      hrAdminPhone: data['hrAdminPhone'] as String? ?? '',
-      managerEmail: data['managerEmail'] as String? ?? '',
-      hrAdminEmail: data['hrAdminEmail'] as String? ?? '',
+  final String companyId;
+  final String companyName;
+  final String industry;
+  final String companyType;
+  final String? rraTinNumber;
+  final String? rssbNumber;
+  final String? logoUrl;
+  final String? primaryColor;
+  final String? companySlug;
+  final String workStartTime;
+  final String workEndTime;
+  final int lateThresholdMinutes;
+  final int workingDaysPerWeek;
+  final String timezone;
+  final String currency;
+  final String country;
+  final String? phone;
+  final String? email;
+  final String? address;
+  final String? website;
+  final String? brevoApiKey;
+  final String? openRouterApiKey;
+  final double monthlyPrice;
+  final String status;
+  final bool enableWhatsappLeave;
+  final bool enableSelfieAttendance;
+  final bool enableAiReports;
+
+  factory CompanySettingsModel.fromMap(String companyId, Map<String, dynamic> map) {
+    return CompanySettingsModel(
+      companyId: companyId,
+      companyName: map['companyName'] as String? ?? '',
+      industry: map['industry'] as String? ?? '',
+      companyType: map['companyType'] as String? ?? 'single',
+      rraTinNumber: map['rraTinNumber'] as String?,
+      rssbNumber: map['rssbNumber'] as String?,
+      logoUrl: map['logoUrl'] as String?,
+      primaryColor: map['primaryColor'] as String?,
+      companySlug: map['companySlug'] as String?,
+      workStartTime: map['workStartTime'] as String? ?? '08:00',
+      workEndTime: map['workEndTime'] as String? ?? '17:00',
+      lateThresholdMinutes: map['lateThresholdMinutes'] as int? ?? 15,
+      workingDaysPerWeek: map['workingDaysPerWeek'] as int? ?? 5,
+      timezone: map['timezone'] as String? ?? 'Africa/Kigali',
+      currency: map['currency'] as String? ?? 'RWF',
+      country: map['country'] as String? ?? 'Rwanda',
+      phone: map['phone'] as String?,
+      email: map['email'] as String?,
+      address: map['address'] as String?,
+      website: map['website'] as String?,
+      brevoApiKey: map['brevoApiKey'] as String?,
+      openRouterApiKey: map['openRouterApiKey'] as String?,
+      monthlyPrice: (map['monthlyPrice'] as num?)?.toDouble() ?? 0,
+      status: map['status'] as String? ?? 'active',
+      enableWhatsappLeave: map['enableWhatsappLeave'] as bool? ?? false,
+      enableSelfieAttendance: map['enableSelfieAttendance'] as bool? ?? false,
+      enableAiReports: map['enableAiReports'] as bool? ?? true,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'companyId': companyId,
+      'companyName': companyName,
+      'industry': industry,
+      'companyType': companyType,
+      if (rraTinNumber != null) 'rraTinNumber': rraTinNumber,
+      if (rssbNumber != null) 'rssbNumber': rssbNumber,
+      if (logoUrl != null) 'logoUrl': logoUrl,
+      if (primaryColor != null) 'primaryColor': primaryColor,
+      if (companySlug != null) 'companySlug': companySlug,
       'workStartTime': workStartTime,
       'workEndTime': workEndTime,
-      'gracePeriodMinutes': gracePeriodMinutes,
-      'annualLeaveDays': annualLeaveDays,
-      'sickLeaveDays': sickLeaveDays,
-      'lateDeductionPerHourRwf': lateDeductionPerHourRwf,
-      'maxLateBeforeWarning': maxLateBeforeWarning,
-      'notificationMethod': notificationMethod,
-      'isOnboardingComplete': isOnboardingComplete,
-      'workingDays': workingDays,
-      'departments': departments,
-      'managerPhone': managerPhone,
-      'hrAdminPhone': hrAdminPhone,
-      'managerEmail': managerEmail,
-      'hrAdminEmail': hrAdminEmail,
+      'lateThresholdMinutes': lateThresholdMinutes,
+      'workingDaysPerWeek': workingDaysPerWeek,
+      'timezone': timezone,
+      'currency': currency,
+      'country': country,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (address != null) 'address': address,
+      if (website != null) 'website': website,
+      'monthlyPrice': monthlyPrice,
+      'status': status,
+      'enableWhatsappLeave': enableWhatsappLeave,
+      'enableSelfieAttendance': enableSelfieAttendance,
+      'enableAiReports': enableAiReports,
     };
-  }
-
-  CompanySettings copyWith({
-    String? workStartTime,
-    String? workEndTime,
-    int? gracePeriodMinutes,
-    int? annualLeaveDays,
-    int? sickLeaveDays,
-    int? lateDeductionPerHourRwf,
-    int? maxLateBeforeWarning,
-    String? notificationMethod,
-    bool? isOnboardingComplete,
-    List<String>? workingDays,
-    List<String>? departments,
-    String? managerPhone,
-    String? hrAdminPhone,
-    String? managerEmail,
-    String? hrAdminEmail,
-  }) {
-    return CompanySettings(
-      workStartTime: workStartTime ?? this.workStartTime,
-      workEndTime: workEndTime ?? this.workEndTime,
-      gracePeriodMinutes: gracePeriodMinutes ?? this.gracePeriodMinutes,
-      annualLeaveDays: annualLeaveDays ?? this.annualLeaveDays,
-      sickLeaveDays: sickLeaveDays ?? this.sickLeaveDays,
-      lateDeductionPerHourRwf: lateDeductionPerHourRwf ?? this.lateDeductionPerHourRwf,
-      maxLateBeforeWarning: maxLateBeforeWarning ?? this.maxLateBeforeWarning,
-      notificationMethod: notificationMethod ?? this.notificationMethod,
-      isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
-      workingDays: workingDays ?? this.workingDays,
-      departments: departments ?? this.departments,
-      managerPhone: managerPhone ?? this.managerPhone,
-      hrAdminPhone: hrAdminPhone ?? this.hrAdminPhone,
-      managerEmail: managerEmail ?? this.managerEmail,
-      hrAdminEmail: hrAdminEmail ?? this.hrAdminEmail,
-    );
   }
 }

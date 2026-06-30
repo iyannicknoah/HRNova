@@ -1,117 +1,119 @@
 const express = require('express');
 const router = express.Router();
 const { getAuth } = require('firebase-admin/auth');
-const { getApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken, requireRole } = require('../middleware/verifyToken');
 
-// POST /api/auth/set-claims
-// Only works if the calling user is a super admin
-router.post('/set-claims', verifyToken, async (req, res) => {
-  const { uid, role, companyId, isSuperAdmin } = req.body;
-
-  if (!uid || !role) {
-    return res.status(400).json({ error: 'Missing required parameters: uid, role' });
-  }
-
-  // Authorize check: caller must be a super_admin OR the bootstrapping initial admin
-  const callerClaims = req.user;
-  const isInitialAdminBootstrap = callerClaims.email === 'admin@hrnova.rw' && uid === callerClaims.uid;
-  
-  if (!callerClaims.isSuperAdmin && callerClaims.role !== 'super_admin' && !isInitialAdminBootstrap) {
-    return res.status(403).json({ error: 'Forbidden: Only Super Admins can set user claims' });
-  }
-
+// ── POST /api/auth/set-claims ──────────────────────────────────────────────
+// Sets Firebase Auth custom claims for a user.
+// Accessible by super_admin or via X-Setup-Key header for initial setup.
+router.post('/set-claims', async (req, res) => {
   try {
-    const claims = { role, companyId };
-    if (isSuperAdmin !== undefined) {
-      claims.isSuperAdmin = isSuperAdmin;
+    // Allow initial setup via secret key
+    const setupKey = req.headers['x-setup-key'];
+    const isSetupKey = setupKey && setupKey === (process.env.SETUP_KEY || 'hrnova-setup-2026');
+
+    if (!isSetupKey) {
+      // Must be authenticated super_admin
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+      }
+      const token = authHeader.split('Bearer ')[1];
+      const decoded = await getAuth().verifyIdToken(token);
+      if (!decoded.isSuperAdmin && decoded.role !== 'super_admin') {
+        return res.status(403).json({ error: 'Super admin access required' });
+      }
     }
 
+    const { uid, role, companyId, branchId, companyType, isSuperAdmin, displayName } = req.body;
+
+    if (!uid || !role) {
+      return res.status(400).json({ error: 'uid and role are required' });
+    }
+
+    const claims = { role };
+    if (companyId) claims.companyId = companyId;
+    if (branchId) claims.branchId = branchId;
+    if (companyType) claims.companyType = companyType;
+    if (isSuperAdmin) claims.isSuperAdmin = true;
+    if (displayName) claims.displayName = displayName;
+
     await getAuth().setCustomUserClaims(uid, claims);
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error('Error setting custom claims:', error.message);
-    return res.status(500).json({ error: 'Failed to set user claims: ' + error.message });
+
+    // Force token refresh on next sign-in by revoking existing sessions
+    await getAuth().revokeRefreshTokens(uid);
+
+    console.log(`[Auth] Claims set for ${uid}: ${JSON.stringify(claims)}`);
+    res.json({ success: true, uid, claims });
+  } catch (err) {
+    console.error('[Auth] set-claims error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/auth/create-user
-// Creates a Firebase Auth user and sets their custom claims immediately
-// Also provisions the company document in Firestore atomically if details are provided
-router.post('/create-user', async (req, res) => {
-  const {
-    email,
-    password,
-    role,
-    companyId,
-    displayName,
-    companyName,
-    industry,
-    address,
-    hrAdminPhone,
-    employeeCount,
-    monthlyPrice
-  } = req.body;
-
-  if (!email || !password || !role) {
-    return res.status(400).json({ error: 'Missing required parameters: email, password, role' });
-  }
-
+// ── POST /api/auth/create-user ─────────────────────────────────────────────
+// Creates a Firebase Auth user and sets custom claims.
+// Callable by hr_admin, branch_hr_admin, group_hr_admin, super_admin.
+router.post('/create-user', verifyToken, async (req, res) => {
   try {
-    const db = getFirestore(getApp(), 'default');
+    const { role: callerRole } = req;
+    const allowedCallers = ['super_admin', 'hr_admin', 'group_hr_admin', 'branch_hr_admin'];
 
-    // 1. If company details are provided, provision the company document first
-    if (companyName && companyId) {
-      console.log(`Provisioning company document for ${companyName} (${companyId})...`);
-      const companyRef = db.collection('companies').doc(companyId);
-      await companyRef.set({
-        name: companyName,
-        industry: industry || 'Factory',
-        address: address || '',
-        contactPerson: displayName || '',
-        hrAdminEmail: email,
-        hrAdminPhone: hrAdminPhone || '',
-        employeeCount: parseInt(employeeCount) || 0,
-        monthlyPrice: parseInt(monthlyPrice) || 0,
-        status: 'active',
-        createdAt: new Date(),
-      });
-      console.log(`Successfully provisioned company ${companyName}.`);
+    if (!allowedCallers.includes(callerRole)) {
+      return res.status(403).json({ error: 'Insufficient permissions to create users' });
     }
 
-    // 2. Create the user in Firebase Auth
+    const { email, password, role, companyId, branchId, companyType, displayName } = req.body;
+
+    if (!email || !password || !role || !companyId) {
+      return res.status(400).json({
+        error: 'email, password, role, and companyId are required',
+      });
+    }
+
+    // HR admin can only create users in their own company
+    if (callerRole !== 'super_admin' && req.companyId !== companyId) {
+      return res.status(403).json({ error: 'Cannot create users in another company' });
+    }
+
+    // Create Firebase Auth user
     const userRecord = await getAuth().createUser({
-      email,
+      email: email.trim().toLowerCase(),
       password,
-      displayName,
+      displayName: displayName || email.split('@')[0],
     });
 
-    // 3. Set custom claims immediately
+    // Set custom claims
     const claims = { role, companyId };
-    if (role === 'super_admin') {
-      claims.isSuperAdmin = true;
-    }
-    
+    if (branchId) claims.branchId = branchId;
+    if (companyType) claims.companyType = companyType;
+    if (displayName) claims.displayName = displayName;
+
     await getAuth().setCustomUserClaims(userRecord.uid, claims);
 
-    return res.status(201).json({
-      uid: userRecord.uid,
-      success: true,
-    });
-  } catch (error) {
-    console.error('Error creating user:', error);
-    // Attempt cleanup if company was created but user failed
-    if (companyName && companyId) {
-      try {
-        const db = getFirestore(getApp(), 'default');
-        await db.collection('companies').doc(companyId).delete();
-        console.log(`Cleaned up company ${companyId} due to user creation failure.`);
-      } catch (cleanupErr) {
-        console.error('Error during cleanup:', cleanupErr.message);
-      }
+    console.log(`[Auth] User created: ${userRecord.uid} (${email}) role=${role}`);
+    res.json({ success: true, uid: userRecord.uid, email: userRecord.email });
+  } catch (err) {
+    console.error('[Auth] create-user error:', err);
+
+    if (err.code === 'auth/email-already-exists') {
+      return res.status(409).json({ error: 'This email is already registered' });
     }
-    return res.status(500).json({ error: 'Failed to create user: ' + error.message });
+    if (err.code === 'auth/weak-password') {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/auth/refresh-claims ─────────────────────────────────────────
+// Forces a claims refresh for the calling user (call after role changes).
+router.post('/refresh-claims', verifyToken, async (req, res) => {
+  try {
+    await getAuth().revokeRefreshTokens(req.uid);
+    res.json({ success: true, message: 'Claims refresh scheduled. Re-sign in to apply.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

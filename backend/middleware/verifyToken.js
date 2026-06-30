@@ -1,22 +1,35 @@
 const { getAuth } = require('firebase-admin/auth');
 
-const verifyToken = async (req, res, next) => {
+async function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+    return res.status(401).json({ error: 'Missing or invalid authorization header' });
   }
 
   const token = authHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await getAuth().verifyIdToken(token);
-    req.user = decodedToken;
+    const decoded = await getAuth().verifyIdToken(token);
+    req.user = decoded;
+    req.uid = decoded.uid;
+    req.companyId = decoded.companyId;
+    req.role = decoded.role;
+    req.branchId = decoded.branchId;
     next();
-  } catch (error) {
-    console.error('Token verification failed:', error.message);
-    return res.status(401).json({ error: 'Unauthorized: Token verification failed' });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
-};
+}
 
-module.exports = verifyToken;
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    if (!roles.includes(req.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
+}
+
+module.exports = { verifyToken, requireRole };

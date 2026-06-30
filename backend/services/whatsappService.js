@@ -1,20 +1,16 @@
-/**
- * WhatsApp Service
- * Handles sending WhatsApp notifications to employees and managers.
- */
+// WhatsApp Leave Portal — scaffold for Part 6
+// Uses WhatsApp Cloud API via Meta
 
-/**
- * Sends a WhatsApp message.
- * @param {string} phoneNumber - Recipient phone number (with country code).
- * @param {string} message - Message body content.
- * @returns {Promise<boolean>} Resolves to true if message was sent successfully.
- */
-async function sendWhatsAppMessage(phoneNumber, message) {
-  // Implementation stub for later integration with WhatsApp API
-  console.log(`Sending WhatsApp message to ${phoneNumber}: "${message}"`);
-  return true;
+async function sendWhatsAppMessage(to, message) {
+  // Scaffold — implemented in Part 6
+  console.log(`[WhatsApp] Would send to ${to}: ${message}`);
+  return { status: 'scaffold' };
 }
 
-module.exports = {
-  sendWhatsAppMessage,
-};
+async function handleIncomingMessage(phoneNumber, messageText, companyId) {
+  // Scaffold — processes leave requests via WhatsApp
+  console.log(`[WhatsApp] Incoming from ${phoneNumber}: ${messageText}`);
+  return null;
+}
+
+module.exports = { sendWhatsAppMessage, handleIncomingMessage };

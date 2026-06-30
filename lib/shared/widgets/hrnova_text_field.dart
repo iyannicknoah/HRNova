@@ -2,91 +2,115 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class HRNovaTextField extends StatelessWidget {
-  final String label;
-  final String? hint;
-  final String? errorText;
-  final bool obscureText;
-  final TextEditingController? controller;
-  final Widget? suffixIcon;
-  final ValueChanged<String>? onChanged;
-  final TextInputType? keyboardType;
-
   const HRNovaTextField({
     super.key,
     required this.label,
     this.hint,
-    this.errorText,
-    this.obscureText = false,
     this.controller,
-    this.suffixIcon,
-    this.onChanged,
+    this.obscureText = false,
     this.keyboardType,
+    this.validator,
+    this.onChanged,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.enabled = true,
+    this.maxLines = 1,
+    this.minLines,
+    this.autofocus = false,
+    this.textInputAction,
+    this.onFieldSubmitted,
+    this.initialValue,
   });
+
+  final String label;
+  final String? hint;
+  final TextEditingController? controller;
+  final bool obscureText;
+  final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
+  final void Function(String)? onChanged;
+  final IconData? prefixIcon;
+  final Widget? suffixIcon;
+  final bool enabled;
+  final int maxLines;
+  final int? minLines;
+  final bool autofocus;
+  final TextInputAction? textInputAction;
+  final void Function(String)? onFieldSubmitted;
+  final String? initialValue;
+
+  static const _radius = 20.0;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white70 : AppColors.darkNavy.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 6),
-        TextField(
+        TextFormField(
           controller: controller,
+          initialValue: initialValue,
           obscureText: obscureText,
-          onChanged: onChanged,
           keyboardType: keyboardType,
-          style: TextStyle(
-            fontSize: 14,
-            color: isDark ? Colors.white : AppColors.darkNavy,
+          validator: validator,
+          onChanged: onChanged,
+          enabled: enabled,
+          maxLines: obscureText ? 1 : maxLines,
+          minLines: minLines,
+          autofocus: autofocus,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
+          style: const TextStyle(
+            fontSize: 15,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-            ),
-            errorText: errorText,
+            hintStyle: const TextStyle(
+                color: AppColors.textSecondary, fontWeight: FontWeight.w400),
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, color: AppColors.textSecondary, size: 20)
+                : null,
             suffixIcon: suffixIcon,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            filled: true,
+            fillColor: enabled ? AppColors.white : AppColors.lightBlue50,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: isDark ? const Color(0x3BFFFFFF) : AppColors.darkNavy.withOpacity(0.2),
-              ),
+              borderRadius: BorderRadius.circular(_radius),
+              borderSide: const BorderSide(color: AppColors.cardBorder),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: isDark ? const Color(0x1BFFFFFF) : AppColors.darkNavy.withOpacity(0.15),
-              ),
+              borderRadius: BorderRadius.circular(_radius),
+              borderSide: const BorderSide(color: AppColors.cardBorder),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AppColors.primaryGreen,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(_radius),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryBlue, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AppColors.errorRed,
-              ),
+              borderRadius: BorderRadius.circular(_radius),
+              borderSide: const BorderSide(color: AppColors.errorRed),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AppColors.errorRed,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(_radius),
+              borderSide:
+                  const BorderSide(color: AppColors.errorRed, width: 1.5),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(_radius),
+              borderSide: const BorderSide(color: AppColors.cardBorder),
             ),
           ),
         ),

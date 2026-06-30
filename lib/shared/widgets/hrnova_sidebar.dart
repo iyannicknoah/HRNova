@@ -1,201 +1,262 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
-import 'hrnova_logo.dart';
+import '../../core/constants/app_constants.dart';
+import 'employee_avatar.dart';
 
-class SidebarItem {
-  final IconData icon;
+class _NavItem {
+  const _NavItem({required this.label, required this.icon, required this.route, this.roles});
   final String label;
+  final IconData icon;
   final String route;
-  final int? badgeCount;
-
-  const SidebarItem({
-    required this.icon,
-    required this.label,
-    required this.route,
-    this.badgeCount,
-  });
+  final List<String>? roles;
 }
 
-class HRNovaSidebar extends StatelessWidget {
-  final String currentRoute;
-  final String companyName;
-  final String userName;
-  final String userRole;
-  final ValueChanged<String> onItemTapped;
-  final List<SidebarItem>? customItems;
+const _navItems = [
+  _NavItem(label: 'Dashboard', icon: Icons.dashboard_rounded, route: '/dashboard'),
+  _NavItem(label: 'Employees', icon: Icons.people_rounded, route: '/employees'),
+  _NavItem(label: 'Attendance', icon: Icons.fingerprint_rounded, route: '/attendance'),
+  _NavItem(label: 'Leave', icon: Icons.beach_access_rounded, route: '/leave'),
+  _NavItem(label: 'Payroll', icon: Icons.account_balance_wallet_rounded, route: '/payroll'),
+  _NavItem(label: 'Performance', icon: Icons.trending_up_rounded, route: '/performance'),
+  _NavItem(label: 'Reports', icon: Icons.bar_chart_rounded, route: '/reports'),
+  _NavItem(label: 'Nova AI', icon: Icons.auto_awesome_rounded, route: '/nova-ai'),
+  _NavItem(label: 'Recruitment', icon: Icons.work_rounded, route: '/recruitment'),
+  _NavItem(
+    label: 'Branches',
+    icon: Icons.business_rounded,
+    route: '/branches',
+    roles: [AppConstants.roleGroupHrAdmin, AppConstants.roleHrAdmin, AppConstants.roleSuperAdmin],
+  ),
+  _NavItem(label: 'Settings', icon: Icons.settings_rounded, route: '/settings'),
+];
 
+class HRNovaSidebar extends StatelessWidget {
   const HRNovaSidebar({
     super.key,
-    required this.currentRoute,
-    required this.companyName,
-    required this.userName,
-    required this.userRole,
-    required this.onItemTapped,
-    this.customItems,
+    this.userName = 'HR Admin',
+    this.userRole = 'hr_admin',
+    this.userPhotoUrl,
+    this.companyName = 'HRNova',
   });
+
+  final String userName;
+  final String userRole;
+  final String? userPhotoUrl;
+  final String companyName;
 
   @override
   Widget build(BuildContext context) {
-    // Default list of items if not provided
-    final items = customItems ?? const [
-      SidebarItem(icon: Icons.dashboard, label: 'Dashboard', route: '/dashboard'),
-      SidebarItem(icon: Icons.people, label: 'Employees', route: '/employees'),
-      SidebarItem(icon: Icons.access_time, label: 'Attendance', route: '/attendance'),
-      SidebarItem(icon: Icons.calendar_month, label: 'Leave', route: '/leave'),
-      SidebarItem(icon: Icons.analytics, label: 'Reports', route: '/reports'),
-      SidebarItem(icon: Icons.settings, label: 'Settings', route: '/settings'),
-    ];
-
-    // Helper to get initials
-    String getInitials(String name) {
-      if (name.isEmpty) return 'U';
-      final parts = name.trim().split(' ');
-      if (parts.length > 1) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-      }
-      return parts[0][0].toUpperCase();
-    }
+    final currentRoute = GoRouterState.of(context).uri.path;
 
     return Container(
-      width: 210,
-      color: AppColors.darkNavy, // Sidebar is ALWAYS darkNavy regardless of theme mode
+      width: 220,
+      color: AppColors.darkNavy,
       child: Column(
         children: [
-          // Top: Logo and Company Info
+          // Logo area
           Padding(
-            padding: const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 20),
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const HRNovaLogo(size: 24),
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primaryBlue, Color(0xFF0066CC)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.bolt_rounded, color: AppColors.white, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'HRNova',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
                   companyName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white60,
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          
-          const Divider(color: Color(0x13FFFFFF), height: 1),
-          const SizedBox(height: 16),
-          
-          // Navigation Items list
-          Expanded(
-            child: ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final isActive = currentRoute == item.route;
-                
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                  child: ListTile(
-                    onTap: () => onItemTapped(item.route),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    dense: true,
-                    selected: isActive,
-                    selectedTileColor: const Color(0x134ADE9A),
-                    leading: Icon(
-                      item.icon,
-                      color: isActive ? AppColors.lightGreen : Colors.white60,
-                      size: 20,
-                    ),
-                    title: Text(
-                      item.label,
-                      style: TextStyle(
-                        color: isActive ? AppColors.lightGreen : Colors.white70,
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 14,
-                      ),
-                    ),
-                    trailing: (item.badgeCount != null && item.badgeCount! > 0)
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.errorRed,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${item.badgeCount}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                        : null,
-                  ),
-                );
-              },
+          const SizedBox(height: 12),
+          // Blue separator line
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryBlue.withAlpha(0),
+                  AppColors.primaryBlue,
+                  AppColors.primaryBlue.withAlpha(0),
+                ],
+              ),
             ),
           ),
-          
-          // Bottom: Profile Section
-          const Divider(color: Color(0x13FFFFFF), height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const SizedBox(height: 16),
+          // Nav items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              children: _navItems.map((item) => _SidebarItem(
+                item: item,
+                isActive: currentRoute == item.route ||
+                    (currentRoute.startsWith(item.route) && item.route != '/dashboard'),
+              )).toList(),
+            ),
+          ),
+          // User info at bottom
+          Container(
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.white.withAlpha(8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.white.withAlpha(15), width: 0.5),
+            ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primaryGreen,
-                  child: Text(
-                    getInitials(userName),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                Stack(
+                  children: [
+                    EmployeeAvatar(
+                      name: userName,
+                      photoUrl: userPhotoUrl,
+                      size: 36,
                     ),
-                  ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.successGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.darkNavy, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         userName,
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
                       ),
                       Text(
-                        userRole,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        _roleLabel(userRole),
                         style: const TextStyle(
-                          color: Colors.white38,
+                          color: AppColors.textSecondary,
                           fontSize: 11,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: AppColors.errorRed, size: 18),
-                  tooltip: 'Logout',
-                  onPressed: () => onItemTapped('sign_out_action'),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  String _roleLabel(String role) {
+    return switch (role) {
+      AppConstants.roleHrAdmin => 'HR Admin',
+      AppConstants.roleGroupHrAdmin => 'Group HR Admin',
+      AppConstants.roleBranchHrAdmin => 'Branch HR Admin',
+      AppConstants.roleManager => 'Manager',
+      AppConstants.roleDirector => 'Director',
+      AppConstants.roleFinanceManager => 'Finance Manager',
+      AppConstants.roleSuperAdmin => 'Super Admin',
+      _ => role.replaceAll('_', ' '),
+    };
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  const _SidebarItem({required this.item, required this.isActive});
+
+  final _NavItem item;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => context.go(item.route),
+          hoverColor: AppColors.white.withAlpha(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.primaryBlue.withAlpha(30) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: isActive
+                  ? Border.all(color: AppColors.primaryBlue.withAlpha(60), width: 0.5)
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  item.icon,
+                  size: 18,
+                  color: isActive ? AppColors.primaryBlue : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  item.label,
+                  style: TextStyle(
+                    color: isActive ? AppColors.white : AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

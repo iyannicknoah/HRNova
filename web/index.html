@@ -1,35 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
+  <meta name="description" content="AI-powered HR Management for Rwanda">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="hrnova">
+  <meta name="apple-mobile-web-app-title" content="HRNova">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>hrnova</title>
+  <title>HRNova</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
@@ -37,16 +19,43 @@
 </head>
 <body>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('firebase_sw.js')
-        .then(function(reg) {
-          console.log('Firebase offline Service Worker registered successfully.');
+    // On localhost (dev): clear all stale service workers and caches, then load Flutter.
+    // This prevents the blank white screen caused by old SW versions serving stale JS.
+    // On production (non-localhost): Flutter's SW loads normally for offline caching.
+
+    function _loadFlutter() {
+      var s = document.createElement('script');
+      s.src = 'flutter_bootstrap.js';
+      document.body.appendChild(s);
+    }
+
+    var _isDev = (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    );
+
+    if (_isDev && 'serviceWorker' in navigator) {
+      // Prevent Flutter from re-registering a new SW this session — not needed in dev.
+      var _origRegister = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+      navigator.serviceWorker.register = function() { return Promise.resolve(); };
+
+      // Unregister every existing SW + wipe all caches, THEN load Flutter.
+      var _jobs = [
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          return Promise.all(regs.map(function(r) { return r.unregister(); }));
         })
-        .catch(function(err) {
-          console.error('Firebase offline Service Worker registration failed:', err);
-        });
+      ];
+      if ('caches' in window) {
+        _jobs.push(
+          caches.keys().then(function(keys) {
+            return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+          })
+        );
+      }
+      Promise.all(_jobs).then(_loadFlutter).catch(_loadFlutter);
+    } else {
+      _loadFlutter();
     }
   </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
