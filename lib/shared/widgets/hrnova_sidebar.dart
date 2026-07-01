@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import 'employee_avatar.dart';
 
 class _NavItem {
@@ -31,7 +33,7 @@ const _navItems = [
   _NavItem(label: 'Settings', icon: Icons.settings_rounded, route: '/settings'),
 ];
 
-class HRNovaSidebar extends StatelessWidget {
+class HRNovaSidebar extends ConsumerWidget {
   const HRNovaSidebar({
     super.key,
     this.userName = 'HR Admin',
@@ -46,7 +48,7 @@ class HRNovaSidebar extends StatelessWidget {
   final String companyName;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentRoute = GoRouterState.of(context).uri.path;
 
     return Container(
@@ -62,27 +64,17 @@ class HRNovaSidebar extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryBlue, Color(0xFF0066CC)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
                         ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.bolt_rounded, color: AppColors.white, size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'HRNova',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                        children: [
+                          TextSpan(text: 'HR', style: TextStyle(color: AppColors.white)),
+                          TextSpan(text: 'Nova', style: TextStyle(color: AppColors.primaryBlue)),
+                        ],
                       ),
                     ),
                   ],
@@ -130,7 +122,7 @@ class HRNovaSidebar extends StatelessWidget {
           ),
           // User info at bottom
           Container(
-            margin: const EdgeInsets.all(10),
+            margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.white.withAlpha(8),
@@ -189,6 +181,39 @@ class HRNovaSidebar extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          // Sign out pill button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(100),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(100),
+                hoverColor: AppColors.errorRed.withAlpha(15),
+                onTap: () => ref.read(authNotifierProvider.notifier).signOut(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withAlpha(6),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: AppColors.white.withAlpha(15), width: 0.5),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.logout_rounded, size: 15, color: AppColors.textSecondary),
+                      SizedBox(width: 8),
+                      Text('Sign Out', style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      )),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],

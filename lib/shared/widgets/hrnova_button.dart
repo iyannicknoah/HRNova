@@ -23,7 +23,7 @@ class HRNovaButton extends StatelessWidget {
   final IconData? icon;
   final bool outlined;
 
-  static const _radius = 20.0;
+  static const _radius = 100.0;
 
   @override
   Widget build(BuildContext context) {

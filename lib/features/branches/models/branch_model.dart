@@ -1,15 +1,17 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class BranchModel {
   const BranchModel({
     required this.id,
     required this.companyId,
     required this.name,
-    required this.location,
-    required this.branchCode,
+    this.location = '',
+    this.branchCode = '',
     this.branchHrAdminUid,
+    this.branchHrAdminEmail,
     this.employeeCount = 0,
     this.isActive = true,
-    this.phone,
-    this.email,
+    this.createdAt,
   });
 
   final String id;
@@ -18,37 +20,35 @@ class BranchModel {
   final String location;
   final String branchCode;
   final String? branchHrAdminUid;
+  final String? branchHrAdminEmail;
   final int employeeCount;
   final bool isActive;
-  final String? phone;
-  final String? email;
+  final DateTime? createdAt;
 
-  factory BranchModel.fromMap(String id, Map<String, dynamic> map) {
+  factory BranchModel.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data();
     return BranchModel(
-      id: id,
-      companyId: map['companyId'] as String? ?? '',
-      name: map['name'] as String? ?? '',
-      location: map['location'] as String? ?? '',
-      branchCode: map['branchCode'] as String? ?? '',
-      branchHrAdminUid: map['branchHrAdminUid'] as String?,
-      employeeCount: map['employeeCount'] as int? ?? 0,
-      isActive: map['isActive'] as bool? ?? true,
-      phone: map['phone'] as String?,
-      email: map['email'] as String?,
+      id: doc.id,
+      companyId: d['companyId'] as String? ?? '',
+      name: d['name'] as String? ?? '',
+      location: d['location'] as String? ?? '',
+      branchCode: d['branchCode'] as String? ?? '',
+      branchHrAdminUid: d['branchHrAdminUid'] as String?,
+      branchHrAdminEmail: d['branchHrAdminEmail'] as String?,
+      employeeCount: d['employeeCount'] as int? ?? 0,
+      isActive: d['isActive'] as bool? ?? true,
+      createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'companyId': companyId,
-      'name': name,
-      'location': location,
-      'branchCode': branchCode,
-      if (branchHrAdminUid != null) 'branchHrAdminUid': branchHrAdminUid,
-      'employeeCount': employeeCount,
-      'isActive': isActive,
-      if (phone != null) 'phone': phone,
-      if (email != null) 'email': email,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+    'companyId': companyId,
+    'name': name,
+    'location': location,
+    'branchCode': branchCode,
+    if (branchHrAdminUid != null) 'branchHrAdminUid': branchHrAdminUid,
+    if (branchHrAdminEmail != null) 'branchHrAdminEmail': branchHrAdminEmail,
+    'employeeCount': employeeCount,
+    'isActive': isActive,
+  };
 }

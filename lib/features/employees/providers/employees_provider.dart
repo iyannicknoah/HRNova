@@ -1,19 +1,38 @@
+import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/services/firebase_service.dart';
 import '../models/employee_model.dart';
+
+// ── Streams ───────────────────────────────────────────────────────────────────
 
 final employeesProvider = StreamProvider.autoDispose<List<EmployeeModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   if (companyId == null) return const Stream.empty();
 
-  return FirebaseService.employeesRef(companyId)
-      .where('status', whereNotIn: ['deleted'])
+  final role = ref.watch(currentUserRoleProvider);
+  final branchId = ref.watch(currentBranchIdProvider);
+
+  var query = FirebaseService.employeesRef(companyId)
+      .where('status', whereNotIn: ['deleted']);
+
+  // Branch HR admin only sees their own branch
+  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+    query = FirebaseService.employeesRef(companyId)
+        .where('status', whereNotIn: ['deleted'])
+        .where('branchId', isEqualTo: branchId);
+  }
+
+  return query
       .orderBy('firstName')
       .snapshots()
-      .map((snap) => snap.docs
-          .map((doc) => EmployeeModel.fromMap(doc.id, doc.data()))
-          .toList());
+      .map((s) => s.docs.map((d) => EmployeeModel.fromDoc(d)).toList());
 });
 
 final employeeByIdProvider =
@@ -24,11 +43,206 @@ final employeeByIdProvider =
   return FirebaseService.employeesRef(companyId)
       .doc(employeeId)
       .snapshots()
-      .map((doc) => doc.exists ? EmployeeModel.fromMap(doc.id, doc.data()!) : null);
+      .map((doc) => doc.exists ? EmployeeModel.fromDoc(doc) : null);
 });
 
 final activeEmployeesProvider = Provider.autoDispose<AsyncValue<List<EmployeeModel>>>((ref) {
   return ref.watch(employeesProvider).whenData(
-        (employees) => employees.where((e) => e.status == 'active').toList(),
+        (list) => list.where((e) => e.status == 'active').toList(),
       );
 });
+
+final employeeByQRProvider =
+    FutureProvider.autoDispose.family<EmployeeModel?, String>((ref, qrCode) async {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return null;
+
+  final snap = await FirebaseService.employeesRef(companyId)
+      .where('qrCode', isEqualTo: qrCode)
+      .limit(1)
+      .get();
+
+  if (snap.docs.isEmpty) return null;
+  return EmployeeModel.fromDoc(snap.docs.first);
+});
+
+// ── Notifier ──────────────────────────────────────────────────────────────────
+
+class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
+  EmployeesNotifier(this._ref) : super(const AsyncValue.data(null));
+  final Ref _ref;
+
+  String? get _companyId => _ref.read(currentCompanyIdProvider);
+
+  Future<String> addEmployee({
+    required Map<String, dynamic> data,
+    Uint8List? photoBytes,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+
+      final docRef = FirebaseService.employeesRef(companyId).doc();
+      final docId = docRef.id;
+      final qrCode = '${companyId}_$docId';
+
+      String? photoUrl;
+      if (photoBytes != null) {
+        photoUrl = await _uploadPhoto(companyId, docId, photoBytes);
+      }
+
+      final settingsDoc = await FirebaseService.settingsRef(companyId).get();
+      final settings = settingsDoc.data() ?? {};
+      final leaveBalances = {
+        'annual': (settings['annualLeaveDays'] as num?)?.toInt() ?? 18,
+        'sick': (settings['sickLeaveDays'] as num?)?.toInt() ?? 10,
+        'maternity': 84,
+        'paternity': 4,
+      };
+
+      await docRef.set({
+        ...data,
+        'companyId': companyId,
+        'qrCode': qrCode,
+        if (photoUrl != null) 'profilePhotoUrl': photoUrl,
+        'leaveBalances': leaveBalances,
+        'loans': [],
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // If role is manager, create auth account via backend
+      final role = data['role'] as String? ?? 'employee';
+      if ((role == 'manager' || role == 'hr_admin') &&
+          data['email'] != null &&
+          (data['email'] as String).isNotEmpty) {
+        await ApiService().post('/api/auth/create-user', data: {
+          'email': data['email'],
+          'password': '${companyId.substring(0, 4)}@${docId.substring(0, 6)}',
+          'displayName': '${data['firstName']} ${data['lastName']}',
+          'companyId': companyId,
+          'role': role,
+          'employeeId': docId,
+        });
+      }
+
+      state = const AsyncValue.data(null);
+      return docId;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> updateEmployee(String employeeId, Map<String, dynamic> data, {Uint8List? photoBytes}) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+
+      if (photoBytes != null) {
+        final url = await _uploadPhoto(companyId, employeeId, photoBytes);
+        data['profilePhotoUrl'] = url;
+      }
+
+      await FirebaseService.employeesRef(companyId)
+          .doc(employeeId)
+          .update(data);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> deactivate(String employeeId) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      await FirebaseService.employeesRef(companyId)
+          .doc(employeeId)
+          .update({'status': 'inactive'});
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> addLoan(String employeeId, Map<String, dynamic> loan) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      await FirebaseService.employeesRef(companyId)
+          .doc(employeeId)
+          .update({'loans': FieldValue.arrayUnion([loan])});
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> regenerateQR(String employeeId) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      final newQR = '${companyId}_${employeeId}_${DateTime.now().millisecondsSinceEpoch}';
+      await FirebaseService.employeesRef(companyId)
+          .doc(employeeId)
+          .update({'qrCode': newQR});
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<String> _uploadPhoto(String companyId, String employeeId, Uint8List bytes) async {
+    final compressed = _compress(bytes);
+    final formData = FormData.fromMap({
+      'photo': MultipartFile.fromBytes(
+        compressed,
+        filename: '$employeeId.jpg',
+        contentType: DioMediaType('image', 'jpeg'),
+      ),
+      'companyId': companyId,
+      'employeeId': employeeId,
+    });
+    final res = await ApiService().postMultipart('/api/storage/upload-photo', formData);
+    return res.data['url'] as String;
+  }
+
+  static Uint8List _compress(Uint8List bytes) {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return bytes;
+    // Resize if too large
+    final resized = decoded.width > 800
+        ? img.copyResize(decoded, width: 800)
+        : decoded;
+    // Encode as JPEG at quality 80, reduce until < 100KB
+    for (var quality = 80; quality > 20; quality -= 10) {
+      final encoded = img.encodeJpg(resized, quality: quality);
+      if (encoded.length <= 100 * 1024) return Uint8List.fromList(encoded);
+    }
+    return Uint8List.fromList(img.encodeJpg(resized, quality: 20));
+  }
+}
+
+final employeesNotifierProvider =
+    StateNotifierProvider<EmployeesNotifier, AsyncValue<void>>(
+  (ref) => EmployeesNotifier(ref),
+);
+
+// ── Photo picker helper ───────────────────────────────────────────────────────
+
+Future<Uint8List?> pickPhoto() async {
+  final picker = ImagePicker();
+  final picked = await picker.pickImage(source: ImageSource.gallery);
+  if (picked == null) return null;
+  return await picked.readAsBytes();
+}

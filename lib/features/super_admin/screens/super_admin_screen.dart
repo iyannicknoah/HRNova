@@ -1,12 +1,13 @@
-// Super Admin Screen — UI shell only (Part 3)
-// Backend wiring deferred — no Firestore, no API calls.
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../models/branch_model.dart';
+import '../models/company_model.dart';
+import '../providers/super_admin_provider.dart';
+import '../services/super_admin_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
@@ -53,80 +54,8 @@ class _P {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MOCK DATA
+// HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-class _Co {
-  final String id, name, type, industry, status, hrEmail, hrName, phone, address, tin;
-  final int price, employees;
-  final String added;
-  const _Co({
-    required this.id, required this.name, required this.type,
-    required this.industry, required this.status, required this.hrEmail,
-    required this.hrName, required this.phone, required this.address,
-    required this.tin, required this.price, required this.employees,
-    required this.added,
-  });
-  bool get isMulti  => type == 'multi_branch';
-  bool get isActive => status == 'active';
-}
-
-const _mock = <_Co>[
-  _Co(id: '1', name: 'Kigali Polytechnic',      type: 'multi_branch', industry: 'Polytechnic',  status: 'active',
-      hrEmail: 'hr@kigalipoly.rw',  hrName: 'Amina Uwase',              phone: '+250 788 111 222',
-      address: 'KN 5 Rd, Kigali',   tin: '100123456', price: 150000, employees: 320, added: 'Jun 10, 2025'),
-  _Co(id: '2', name: 'Rwanda Medical Centre',    type: 'single',       industry: 'Clinic',       status: 'active',
-      hrEmail: 'hr@rmc.rw',         hrName: 'Jean-Pierre Nkurunziza',   phone: '+250 789 333 444',
-      address: 'KG 11 Ave, Kigali', tin: '100234567', price: 80000,  employees: 45,  added: 'Jun 14, 2025'),
-  _Co(id: '3', name: 'Green Valley School',      type: 'single',       industry: 'School',       status: 'suspended',
-      hrEmail: 'hr@greenvalley.rw', hrName: 'Claudine Ingabire',        phone: '+250 782 555 666',
-      address: 'Musanze District',   tin: '100345678', price: 60000,  employees: 78,  added: 'Jun 20, 2025'),
-  _Co(id: '4', name: 'Horizon Construction Ltd', type: 'multi_branch', industry: 'Construction', status: 'active',
-      hrEmail: 'hr@horizoncon.rw',  hrName: 'Patrick Habimana',         phone: '+250 781 777 888',
-      address: 'Kicukiro, Kigali',  tin: '100456789', price: 200000, employees: 510, added: 'Jun 22, 2025'),
-  _Co(id: '5', name: 'Lake Hotel Kivu',          type: 'single',       industry: 'Hotel',        status: 'active',
-      hrEmail: 'hr@lakehotelkivu.rw', hrName: 'Solange Mukamana',       phone: '+250 783 999 000',
-      address: 'Rubavu District',   tin: '100567890', price: 95000,  employees: 130, added: 'Jun 25, 2025'),
-];
-
-// Branch data per company (key = companyId_branchIndex)
-const _branchDetail = <String, Map<String, String>>{
-  '1_0': {'name': 'Kigali HQ',      'location': 'KN 5 Rd, Kigali',  'code': 'KIG-01',
-          'manager': 'Eric Muhire',      'managerEmail': 'kig@kigalipoly.rw',
-          'phone': '+250 788 100 001',   'employees': '180', 'status': 'active', 'added': 'Jun 10, 2025'},
-  '1_1': {'name': 'Huye Campus',    'location': 'Huye District',     'code': 'HUY-01',
-          'manager': 'Diane Uwimana',    'managerEmail': 'huy@kigalipoly.rw',
-          'phone': '+250 788 100 002',   'employees': '85',  'status': 'active', 'added': 'Jun 10, 2025'},
-  '1_2': {'name': 'Musanze Branch', 'location': 'Musanze District',  'code': 'MUS-01',
-          'manager': 'James Nkusi',      'managerEmail': 'mus@kigalipoly.rw',
-          'phone': '+250 788 100 003',   'employees': '55',  'status': 'active', 'added': 'Jun 10, 2025'},
-  '4_0': {'name': 'Kigali Office',  'location': 'Kicukiro, Kigali', 'code': 'KIG-01',
-          'manager': 'Alice Ineza',      'managerEmail': 'kig@horizoncon.rw',
-          'phone': '+250 788 200 001',   'employees': '310', 'status': 'active', 'added': 'Jun 22, 2025'},
-  '4_1': {'name': 'Rubavu Site',    'location': 'Rubavu District',   'code': 'RUB-01',
-          'manager': 'Robert Habimana',  'managerEmail': 'rub@horizoncon.rw',
-          'phone': '+250 788 200 002',   'employees': '200', 'status': 'active', 'added': 'Jun 22, 2025'},
-};
-
-const _branchList = <String, List<Map<String, String>>>{
-  '1': [
-    {'name': 'Kigali HQ',      'location': 'KN 5 Rd, Kigali',  'code': 'KIG-01', 'key': '1_0'},
-    {'name': 'Huye Campus',    'location': 'Huye District',     'code': 'HUY-01', 'key': '1_1'},
-    {'name': 'Musanze Branch', 'location': 'Musanze District',  'code': 'MUS-01', 'key': '1_2'},
-  ],
-  '4': [
-    {'name': 'Kigali Office',  'location': 'Kicukiro, Kigali', 'code': 'KIG-01', 'key': '4_0'},
-    {'name': 'Rubavu Site',    'location': 'Rubavu District',   'code': 'RUB-01', 'key': '4_1'},
-  ],
-};
-
-const _recentPayments = <Map<String, dynamic>>[
-  {'date': 'Jun 2025', 'amount': 150000, 'method': 'Bank Transfer', 'ref': 'BNK-2025-06-001'},
-  {'date': 'May 2025', 'amount': 150000, 'method': 'Mobile Money',  'ref': 'MOM-2025-05-087'},
-  {'date': 'Apr 2025', 'amount': 140000, 'method': 'Bank Transfer', 'ref': 'BNK-2025-04-033'},
-];
-
-enum _PayStatus { paid, pending, notPaid }
-
 String _fmt(int n) {
   if (n == 0) return '—';
   final s = n.toString();
@@ -138,11 +67,93 @@ String _fmt(int n) {
   return 'RWF ${b.toString()}';
 }
 
+void _showErrorSnackbar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(message),
+    backgroundColor: AppColors.errorRed,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  ));
+}
+
+Future<void> _showSuccessDialog(BuildContext context, String message) {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withAlpha(80),
+    builder: (ctx) => _SuccessDialog(message: message),
+  );
+}
+
+class _SuccessDialog extends StatefulWidget {
+  final String message;
+  const _SuccessDialog({required this.message});
+  @override
+  State<_SuccessDialog> createState() => _SuccessDialogState();
+}
+
+class _SuccessDialogState extends State<_SuccessDialog> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) Navigator.pop(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _P.of(context);
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: 320,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+        decoration: BoxDecoration(
+          color: p.card,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(40),
+              blurRadius: 30, offset: const Offset(0, 10)),
+          ]),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(
+            width: 100, height: 100,
+            child: Stack(alignment: Alignment.center, children: [
+              Container(
+                width: 100, height: 100,
+                decoration: const BoxDecoration(
+                  color: Color(0x281E8CFF), shape: BoxShape.circle)),
+              Container(
+                width: 78, height: 78,
+                decoration: const BoxDecoration(
+                  color: Color(0x451E8CFF), shape: BoxShape.circle)),
+              Container(
+                width: 58, height: 58,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryBlue, shape: BoxShape.circle),
+                child: const Icon(Icons.check_rounded,
+                  color: Colors.white, size: 32)),
+            ])),
+          const SizedBox(height: 20),
+          Text(widget.message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+}
+
+enum _PayStatus { paid, pending, notPaid }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Primary button — pill shape (100px radius), consistent everywhere
 class _Btn extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
@@ -183,7 +194,7 @@ class _Btn extends StatelessWidget {
               ],
               Text(label, style: TextStyle(
                 color: outline ? c : Colors.white,
-                fontSize: 16, fontWeight: FontWeight.w700)),
+                fontSize: 14, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -192,7 +203,6 @@ class _Btn extends StatelessWidget {
   }
 }
 
-// KPI card — build() returns Container; caller wraps with Expanded
 class _KpiCard extends StatelessWidget {
   final String value, label;
   final IconData icon;
@@ -213,7 +223,7 @@ class _KpiCard extends StatelessWidget {
           children: [
             Text(label, style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 15, fontWeight: FontWeight.w500)),
+              fontSize: 12, fontWeight: FontWeight.w500)),
             Container(
               width: 46, height: 46,
               decoration: BoxDecoration(
@@ -244,7 +254,7 @@ class _TypeBadge extends StatelessWidget {
     child: Text(isMulti ? 'Multi-Branch' : 'Single',
       style: TextStyle(
         color: isMulti ? AppColors.primaryBlue : AppColors.textSecondary,
-        fontSize: 14, fontWeight: FontWeight.w700)));
+        fontSize: 11, fontWeight: FontWeight.w700)));
 }
 
 class _StatusDot extends StatelessWidget {
@@ -261,7 +271,7 @@ class _StatusDot extends StatelessWidget {
     Text(active ? 'Active' : 'Suspended',
       style: TextStyle(
         color: active ? AppColors.successGreen : AppColors.errorRed,
-        fontSize: 15, fontWeight: FontWeight.w700)),
+        fontSize: 12, fontWeight: FontWeight.w700)),
   ]);
 }
 
@@ -285,7 +295,7 @@ class _PayBadge extends StatelessWidget {
           decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(
-          color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+          color: color, fontSize: 11, fontWeight: FontWeight.w700)),
       ]));
   }
 }
@@ -297,10 +307,9 @@ class _TH extends StatelessWidget {
   Widget build(BuildContext context) => Text(t.toUpperCase(),
     style: const TextStyle(
       color: AppColors.textSecondary,
-      fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 0.5));
+      fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5));
 }
 
-// Info row (label + value) — used in detail panels
 class _IRow extends StatelessWidget {
   final String label, value;
   const _IRow(this.label, this.value);
@@ -313,15 +322,14 @@ class _IRow extends StatelessWidget {
         SizedBox(width: 148,
           child: Text(label, style: const TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 16, fontWeight: FontWeight.w600))),
+            fontSize: 13, fontWeight: FontWeight.w600))),
         Expanded(child: Text(value, style: TextStyle(
           color: p.text,
-          fontSize: 16, fontWeight: FontWeight.w600))),
+          fontSize: 13, fontWeight: FontWeight.w600))),
       ]));
   }
 }
 
-// Section divider with label
 class _SDivider extends StatelessWidget {
   final String label;
   const _SDivider(this.label);
@@ -332,14 +340,13 @@ class _SDivider extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 18),
       child: Row(children: [
         Text(label, style: TextStyle(
-          color: p.text, fontSize: 16, fontWeight: FontWeight.w700)),
+          color: p.text, fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(width: 12),
         Expanded(child: Divider(color: p.border, height: 1)),
       ]));
   }
 }
 
-// Filter chip
 class _FilterChip extends StatelessWidget {
   final String label, value, current;
   final ValueChanged<String> onChange;
@@ -360,11 +367,10 @@ class _FilterChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(100)),
           child: Text(label, style: TextStyle(
             color: active ? Colors.white : p.subText,
-            fontSize: 15, fontWeight: FontWeight.w700)))));
+            fontSize: 12, fontWeight: FontWeight.w700)))));
   }
 }
 
-// Company avatar (letter + gradient)
 class _CoAvatar extends StatelessWidget {
   final String name;
   final double size;
@@ -402,33 +408,115 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'super@hrnova.rw';
+
     return Container(
       color: _sidebarBg,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Logo area
         Padding(
-          padding: const EdgeInsets.fromLTRB(22, 26, 22, 20),
-          child: RichText(text: const TextSpan(
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
-              letterSpacing: -0.5),
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              RichText(text: const TextSpan(
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+                children: [
+                  TextSpan(text: 'HR',   style: TextStyle(color: Colors.white)),
+                  TextSpan(text: 'Nova', style: TextStyle(color: AppColors.primaryBlue)),
+                ])),
+            ]),
+            const SizedBox(height: 4),
+            const Text('Super Admin Panel', style: TextStyle(
+              color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500)),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        // Gradient separator
+        Container(
+          height: 1,
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              AppColors.primaryBlue.withAlpha(0),
+              AppColors.primaryBlue,
+              AppColors.primaryBlue.withAlpha(0),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Nav items
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             children: [
-              TextSpan(text: 'HR',   style: TextStyle(color: Colors.white)),
-              TextSpan(text: 'Nova', style: TextStyle(color: AppColors.primaryBlue)),
-            ]))),
-        Container(height: 1, color: const Color(0xFF1A3050),
-          margin: const EdgeInsets.symmetric(horizontal: 16)),
-        const SizedBox(height: 10),
-        _SItem(icon: Icons.home_rounded,         label: 'Dashboard',
-          active: view == _View.dashboard && !panelOpen, onTap: onDashboard),
-        _SItem(icon: Icons.business_rounded,     label: 'Companies',
-          active: view == _View.companies || panelOpen,  onTap: onCompanies),
-        _SItem(icon: Icons.receipt_long_rounded, label: 'Billing',
-          active: view == _View.billing && !panelOpen,   onTap: onBilling),
-        const Spacer(),
+              _SItem(icon: Icons.home_rounded,         label: 'Dashboard',
+                active: view == _View.dashboard && !panelOpen, onTap: onDashboard),
+              _SItem(icon: Icons.business_rounded,     label: 'Companies',
+                active: view == _View.companies || panelOpen,  onTap: onCompanies),
+              _SItem(icon: Icons.receipt_long_rounded, label: 'Billing',
+                active: view == _View.billing && !panelOpen,   onTap: onBilling),
+            ],
+          ),
+        ),
+        // Profile container
+        Container(
+          margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withAlpha(15), width: 0.5),
+          ),
+          child: Row(children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryBlue, Color(0xFF0066CC)],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Super Admin', style: TextStyle(
+                color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(userEmail, style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 11),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ])),
+          ]),
+        ),
+        // Sign out pill button
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-          child: _SItem(icon: Icons.logout_rounded, label: 'Sign Out',
-            active: false, danger: true,
-            onTap: () => FirebaseAuth.instance.signOut())),
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => FirebaseAuth.instance.signOut(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(6),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: Colors.white.withAlpha(15), width: 0.5),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout_rounded, size: 15, color: AppColors.textSecondary),
+                    SizedBox(width: 8),
+                    Text('Sign Out', style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ]),
     );
   }
@@ -437,50 +525,58 @@ class _Sidebar extends StatelessWidget {
 class _SItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final bool active, danger;
+  final bool active;
   final VoidCallback onTap;
   const _SItem({required this.icon, required this.label,
-    required this.active, required this.onTap, this.danger = false});
+    required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final c = danger
-      ? AppColors.errorRed
-      : (active ? AppColors.primaryBlue : AppColors.textSecondary);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
           onTap: onTap,
+          hoverColor: Colors.white.withAlpha(10),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: active ? AppColors.primaryBlue.withAlpha(28) : Colors.transparent,
-              borderRadius: BorderRadius.circular(10)),
+              color: active ? AppColors.primaryBlue.withAlpha(30) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: active
+                  ? Border.all(color: AppColors.primaryBlue.withAlpha(60), width: 0.5)
+                  : null,
+            ),
             child: Row(children: [
-              Icon(icon, color: c, size: 18),
+              Icon(icon,
+                size: 18,
+                color: active ? AppColors.primaryBlue : AppColors.textSecondary),
               const SizedBox(width: 10),
               Text(label, style: TextStyle(
-                color: c, fontSize: 17,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500)),
-            ])))));
+                color: active ? Colors.white : AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOP BAR — title + super admin badge + search + theme toggle
+// TOP BAR
 // ─────────────────────────────────────────────────────────────────────────────
 class _TopBar extends ConsumerWidget {
   final _View view;
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
-  const _TopBar({
-    required this.view,
-    required this.searchQuery,
-    required this.onSearchChanged,
-  });
+  const _TopBar({required this.view, required this.searchQuery,
+    required this.onSearchChanged});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -496,7 +592,7 @@ class _TopBar extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(children: [
         Text(title, style: TextStyle(
-          color: p.text, fontSize: 21, fontWeight: FontWeight.w700,
+          color: p.text, fontSize: 20, fontWeight: FontWeight.w700,
           letterSpacing: -0.3)),
         const SizedBox(width: 10),
         Container(
@@ -506,9 +602,8 @@ class _TopBar extends ConsumerWidget {
             borderRadius: BorderRadius.circular(100)),
           child: const Text('Super Admin', style: TextStyle(
             color: AppColors.primaryBlue,
-            fontSize: 14, fontWeight: FontWeight.w700))),
+            fontSize: 11, fontWeight: FontWeight.w700))),
         const Spacer(),
-        // Search — only on dashboard + companies
         if (showSearch) ...[
           SizedBox(
             width: 280, height: 44,
@@ -537,7 +632,6 @@ class _TopBar extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
         ],
-        // Theme toggle
         MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
@@ -564,37 +658,52 @@ class SuperAdminScreen extends ConsumerStatefulWidget {
 }
 
 class _SAState extends ConsumerState<SuperAdminScreen> {
-  _View   _view         = _View.dashboard;
-  String  _searchQ      = '';
-  String? _detailId;
-  String? _branchKey;
-  bool    _addCoOpen    = false;
+  _View         _view           = _View.dashboard;
+  String        _searchQ        = '';
+  String?       _detailId;
+  BranchModel?  _selectedBranch;
+  bool          _addCoOpen      = false;
 
   void _nav(_View v) => setState(() {
-    _view = v; _searchQ = ''; _detailId = null; _branchKey = null; _addCoOpen = false;
+    _view = v; _searchQ = ''; _detailId = null;
+    _selectedBranch = null; _addCoOpen = false;
   });
 
   void _openDetail(String id) => setState(() {
-    _detailId = id; _branchKey = null; _addCoOpen = false;
+    _detailId = id; _selectedBranch = null; _addCoOpen = false;
   });
 
-  void _openBranch(String key) => setState(() { _branchKey = key; _addCoOpen = false; });
+  void _openBranch(BranchModel branch) =>
+      setState(() { _selectedBranch = branch; _addCoOpen = false; });
 
   void _closeDetail() => setState(() {
-    _detailId = null; _branchKey = null;
+    _detailId = null; _selectedBranch = null;
   });
 
-  void _closeBranch() => setState(() => _branchKey = null);
+  void _closeBranch() => setState(() => _selectedBranch = null);
+
+  void _openAddCompany() => setState(() {
+    _addCoOpen = true; _detailId = null; _selectedBranch = null;
+  });
+
+  void _closeAddCo() => setState(() => _addCoOpen = false);
 
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
-    final bool anyPanelOpen = _detailId != null || _branchKey != null || _addCoOpen;
+    final companies = ref.watch(companiesStreamProvider).valueOrNull ?? [];
+    CompanyModel? selectedCo;
+    if (_detailId != null) {
+      for (final c in companies) {
+        if (c.id == _detailId) { selectedCo = c; break; }
+      }
+    }
+    final bool anyPanelOpen = _detailId != null || _selectedBranch != null || _addCoOpen;
+
     return Scaffold(
       backgroundColor: p.bg,
       body: Stack(fit: StackFit.expand, children: [
 
-        // Sidebar
         Positioned(left: 0, top: 0, bottom: 0, width: 220,
           child: _Sidebar(
             view: _view, panelOpen: anyPanelOpen,
@@ -603,7 +712,6 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
             onBilling:   () => _nav(_View.billing),
           )),
 
-        // TopBar
         Positioned(left: 220, top: 0, right: 0, height: 64,
           child: _TopBar(
             view: _view,
@@ -611,45 +719,36 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
             onSearchChanged: (v) => setState(() => _searchQ = v),
           )),
 
-        // Main content
         Positioned(left: 220, top: 64, right: 0, bottom: 0,
           child: _page(p)),
 
-        // Add company overlay (future — not open via current nav)
-
-        // Company detail panel
-        if (_detailId != null && _branchKey == null)
-          Positioned(left: 220, top: 0, right: 0, bottom: 0,
-            child: Row(children: [
-              Expanded(child: GestureDetector(
-                onTap: _closeDetail,
-                child: Container(color: Colors.black.withAlpha(100)))),
-              _CoDetailPanel(
-                co: _mock.firstWhere((c) => c.id == _detailId,
-                  orElse: () => _mock.first),
-                onClose: _closeDetail,
-                onBranch: _openBranch,
-              ),
-            ])),
-
-        // Branch detail panel
-        if (_branchKey != null)
+        if (_selectedBranch != null && selectedCo != null)
           Positioned(left: 220, top: 0, right: 0, bottom: 0,
             child: Row(children: [
               Expanded(child: GestureDetector(
                 onTap: _closeDetail,
                 child: Container(color: Colors.black.withAlpha(100)))),
               _BranchDetailPanel(
-                branchKey: _branchKey!,
-                coName: _mock.firstWhere(
-                  (c) => c.id == _branchKey!.split('_')[0],
-                  orElse: () => _mock.first).name,
+                branch: _selectedBranch!,
+                coName: selectedCo.name,
                 onClose: _closeDetail,
                 onBack:  _closeBranch,
               ),
             ])),
 
-        // Add company panel
+        if (_selectedBranch == null && selectedCo != null)
+          Positioned(left: 220, top: 0, right: 0, bottom: 0,
+            child: Row(children: [
+              Expanded(child: GestureDetector(
+                onTap: _closeDetail,
+                child: Container(color: Colors.black.withAlpha(100)))),
+              _CoDetailPanel(
+                co: selectedCo,
+                onClose: _closeDetail,
+                onBranch: _openBranch,
+              ),
+            ])),
+
         if (_addCoOpen)
           Positioned(left: 220, top: 0, right: 0, bottom: 0,
             child: Row(children: [
@@ -666,155 +765,150 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
   Widget _page(_P p) => switch (_view) {
     _View.dashboard => _DashView(
         searchQuery: _searchQ,
-        onAdd:    () => _openAddCompany(),
+        onAdd:     _openAddCompany,
         onViewAll: () => _nav(_View.companies),
         onDetail:  _openDetail,
       ),
     _View.companies => _CompaniesView(
         searchQuery: _searchQ,
-        onAdd:   () => _openAddCompany(),
+        onAdd:    _openAddCompany,
         onDetail: _openDetail,
       ),
     _View.billing => const _BillingView(),
   };
-
-  void _openAddCompany() => setState(() {
-    _addCoOpen = true; _detailId = null; _branchKey = null;
-  });
-
-  void _closeAddCo() => setState(() => _addCoOpen = false);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DASHBOARD VIEW
 // ─────────────────────────────────────────────────────────────────────────────
-class _DashView extends StatelessWidget {
+class _DashView extends ConsumerWidget {
   final String searchQuery;
   final VoidCallback onAdd, onViewAll;
   final ValueChanged<String> onDetail;
   const _DashView({required this.searchQuery, required this.onAdd,
     required this.onViewAll, required this.onDetail});
 
-  List<_Co> get _recent {
-    if (searchQuery.isEmpty) return _mock.take(5).toList();
-    return _mock.where((c) =>
-      c.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-      c.industry.toLowerCase().contains(searchQuery.toLowerCase()))
-      .take(5).toList();
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = _P.of(context);
-    final total     = _mock.length;
-    final active    = _mock.where((c) => c.isActive).length;
-    final suspended = total - active;
-    final revenue   = _mock.where((c) => c.isActive).fold(0, (s, c) => s + c.price);
+    final async = ref.watch(companiesStreamProvider);
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      // Header
-      Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-        child: Row(children: [
-          Text('Overview', style: TextStyle(
-            color: p.subText, fontSize: 16, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: onAdd),
-        ])),
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e',
+        style: const TextStyle(color: AppColors.errorRed))),
+      data: (companies) {
+        final q = searchQuery.toLowerCase();
+        final recent = companies.where((c) =>
+          q.isEmpty ||
+          c.name.toLowerCase().contains(q) ||
+          c.industry.toLowerCase().contains(q)).take(5).toList();
+        final total     = companies.length;
+        final active    = companies.where((c) => c.isActive).length;
+        final suspended = total - active;
+        final revenue   = companies.where((c) => c.isActive)
+            .fold(0, (s, c) => s + c.monthlyPrice);
 
-      // KPIs
-      Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        child: Row(children: [
-          Expanded(child: _KpiCard(value: '$total',      label: 'Total Companies',
-            icon: Icons.business_rounded,   color: AppColors.primaryBlue)),
-          const SizedBox(width: 14),
-          Expanded(child: _KpiCard(value: '$active',     label: 'Active',
-            icon: Icons.check_circle_rounded, color: AppColors.successGreen)),
-          const SizedBox(width: 14),
-          Expanded(child: _KpiCard(value: '$suspended',  label: 'Suspended',
-            icon: Icons.block_rounded,      color: AppColors.errorRed)),
-          const SizedBox(width: 14),
-          Expanded(child: _KpiCard(value: _fmt(revenue), label: 'Monthly Revenue',
-            icon: Icons.payments_rounded,   color: AppColors.warningAmber)),
-        ])),
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+            child: Row(children: [
+              Text('Overview', style: TextStyle(
+                color: p.subText, fontSize: 13, fontWeight: FontWeight.w500)),
+              const Spacer(),
+              _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: onAdd),
+            ])),
 
-      // Recent Companies header
-      Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
-        child: Row(children: [
-          Text('Recent Companies', style: TextStyle(
-            color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withAlpha(18),
-              borderRadius: BorderRadius.circular(100)),
-            child: Text('${_mock.length}', style: const TextStyle(
-              color: AppColors.primaryBlue,
-              fontSize: 13, fontWeight: FontWeight.w700))),
-          const Spacer(),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: onViewAll,
-              child: const Text('View all →',
-                style: TextStyle(color: AppColors.primaryBlue,
-                  fontSize: 16, fontWeight: FontWeight.w700)))),
-        ])),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: Row(children: [
+              Expanded(child: _KpiCard(value: '$total',      label: 'Total Companies',
+                icon: Icons.business_rounded,     color: AppColors.primaryBlue)),
+              const SizedBox(width: 14),
+              Expanded(child: _KpiCard(value: '$active',     label: 'Active',
+                icon: Icons.check_circle_rounded, color: AppColors.successGreen)),
+              const SizedBox(width: 14),
+              Expanded(child: _KpiCard(value: '$suspended',  label: 'Suspended',
+                icon: Icons.block_rounded,        color: AppColors.errorRed)),
+              const SizedBox(width: 14),
+              Expanded(child: _KpiCard(value: _fmt(revenue), label: 'Monthly Revenue',
+                icon: Icons.payments_rounded,     color: AppColors.warningAmber)),
+            ])),
 
-      // Table
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Container(
-            decoration: p.card16,
-            child: _CoTable(
-              rows: _recent,
-              columns: _CoTableCols.dashboard,
-              onDetail: onDetail,
-              onAdd: onAdd,
-            )))),
-    ]);
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+            child: Row(children: [
+              Text('Recent Companies', style: TextStyle(
+                color: p.text, fontSize: 15, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withAlpha(18),
+                  borderRadius: BorderRadius.circular(100)),
+                child: Text('${companies.length}', style: const TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontSize: 13, fontWeight: FontWeight.w700))),
+              const Spacer(),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: onViewAll,
+                  child: const Text('View all →',
+                    style: TextStyle(color: AppColors.primaryBlue,
+                      fontSize: 13, fontWeight: FontWeight.w700)))),
+            ])),
+
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Container(
+                decoration: p.card16,
+                child: _CoTable(
+                  rows: recent,
+                  columns: _CoTableCols.dashboard,
+                  onDetail: onDetail,
+                  onAdd: onAdd,
+                )))),
+        ]);
+      },
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPANIES VIEW
 // ─────────────────────────────────────────────────────────────────────────────
-class _CompaniesView extends StatefulWidget {
+class _CompaniesView extends ConsumerStatefulWidget {
   final String searchQuery;
   final VoidCallback onAdd;
   final ValueChanged<String> onDetail;
   const _CompaniesView({required this.searchQuery, required this.onAdd,
     required this.onDetail});
   @override
-  State<_CompaniesView> createState() => _CompaniesViewState();
+  ConsumerState<_CompaniesView> createState() => _CompaniesViewState();
 }
 
-class _CompaniesViewState extends State<_CompaniesView> {
-  String _filter       = 'all';
-  String _statusFilter = 'all'; // 'all' | 'active' | 'suspended'
-  String _sort         = 'newest';
+class _CompaniesViewState extends ConsumerState<_CompaniesView> {
+  String _chip = 'all';
+  String _sort = 'newest';
 
-  List<_Co> get _filtered {
-    var list = _mock.where((c) {
+  List<CompanyModel> _filtered(List<CompanyModel> all) {
+    var list = all.where((c) {
       final q = widget.searchQuery.toLowerCase();
       final matchQ = q.isEmpty ||
         c.name.toLowerCase().contains(q) ||
         c.industry.toLowerCase().contains(q);
-      final matchF = _filter == 'all' ||
-        (_filter == 'single'       && !c.isMulti) ||
-        (_filter == 'multi_branch' &&  c.isMulti);
-      final matchS = _statusFilter == 'all' ||
-        (_statusFilter == 'active'    &&  c.isActive) ||
-        (_statusFilter == 'suspended' && !c.isActive);
-      return matchQ && matchF && matchS;
+      final matchChip = _chip == 'all' ||
+        (_chip == 'single'       && !c.isMulti) ||
+        (_chip == 'multi_branch' &&  c.isMulti) ||
+        (_chip == 'active'       &&  c.isActive) ||
+        (_chip == 'suspended'    && !c.isActive);
+      return matchQ && matchChip;
     }).toList();
     switch (_sort) {
-      case 'price_high': list.sort((a, b) => b.price.compareTo(a.price));
-      case 'price_low':  list.sort((a, b) => a.price.compareTo(b.price));
+      case 'price_high': list.sort((a, b) => b.monthlyPrice.compareTo(a.monthlyPrice));
+      case 'price_low':  list.sort((a, b) => a.monthlyPrice.compareTo(b.monthlyPrice));
       case 'name':       list.sort((a, b) => a.name.compareTo(b.name));
       default: break;
     }
@@ -824,62 +918,68 @@ class _CompaniesViewState extends State<_CompaniesView> {
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
-    final list = _filtered;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      // Toolbar
-      Padding(
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 10),
-        child: Row(children: [
-          _FilterChip('All',          'all',          _filter, (v) => setState(() => _filter = v)),
-          const SizedBox(width: 8),
-          _FilterChip('Single',       'single',        _filter, (v) => setState(() => _filter = v)),
-          const SizedBox(width: 8),
-          _FilterChip('Multi-Branch', 'multi_branch',  _filter, (v) => setState(() => _filter = v)),
-          const SizedBox(width: 16),
-          Container(width: 1, height: 20, color: AppColors.textSecondary.withAlpha(40)),
-          const SizedBox(width: 16),
-          _FilterChip('Active',    'active',    _statusFilter, (v) => setState(() => _statusFilter = v)),
-          const SizedBox(width: 8),
-          _FilterChip('Suspended', 'suspended', _statusFilter, (v) => setState(() => _statusFilter = v)),
-          const SizedBox(width: 14),
-          Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: p.card, borderRadius: BorderRadius.circular(100)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _sort,
-                dropdownColor: p.card,
-                style: TextStyle(color: p.text, fontSize: 13),
-                icon: const Icon(Icons.unfold_more_rounded,
-                  color: AppColors.textSecondary, size: 16),
-                items: const [
-                  DropdownMenuItem(value: 'newest',     child: Text('Newest')),
-                  DropdownMenuItem(value: 'price_high', child: Text('Price: High → Low')),
-                  DropdownMenuItem(value: 'price_low',  child: Text('Price: Low → High')),
-                  DropdownMenuItem(value: 'name',       child: Text('Name A–Z')),
-                ],
-                onChanged: (v) => setState(() => _sort = v!)))),
-          const Spacer(),
-          _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: widget.onAdd),
-        ])),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-        child: Text('${list.length} of ${_mock.length} companies',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12))),
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Container(
-            decoration: p.card16,
-            child: _CoTable(
-              rows: list,
-              columns: _CoTableCols.companies,
-              onDetail: widget.onDetail,
-              onAdd: widget.onAdd,
-            )))),
-    ]);
+    final async = ref.watch(companiesStreamProvider);
+
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e',
+        style: const TextStyle(color: AppColors.errorRed))),
+      data: (all) {
+        final list = _filtered(all);
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 10),
+            child: Row(children: [
+              _FilterChip('All',          'all',          _chip, (v) => setState(() => _chip = v)),
+              const SizedBox(width: 8),
+              _FilterChip('Single',       'single',       _chip, (v) => setState(() => _chip = v)),
+              const SizedBox(width: 8),
+              _FilterChip('Multi-Branch', 'multi_branch', _chip, (v) => setState(() => _chip = v)),
+              const SizedBox(width: 8),
+              _FilterChip('Active',       'active',       _chip, (v) => setState(() => _chip = v)),
+              const SizedBox(width: 8),
+              _FilterChip('Suspended',    'suspended',    _chip, (v) => setState(() => _chip = v)),
+              const SizedBox(width: 14),
+              Container(
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: p.card, borderRadius: BorderRadius.circular(100)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _sort,
+                    dropdownColor: p.card,
+                    style: TextStyle(color: p.text, fontSize: 13),
+                    icon: const Icon(Icons.unfold_more_rounded,
+                      color: AppColors.textSecondary, size: 16),
+                    items: const [
+                      DropdownMenuItem(value: 'newest',     child: Text('Newest')),
+                      DropdownMenuItem(value: 'price_high', child: Text('Price: High → Low')),
+                      DropdownMenuItem(value: 'price_low',  child: Text('Price: Low → High')),
+                      DropdownMenuItem(value: 'name',       child: Text('Name A–Z')),
+                    ],
+                    onChanged: (v) => setState(() => _sort = v!)))),
+              const Spacer(),
+              _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: widget.onAdd),
+            ])),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+            child: Text('${list.length} of ${all.length} companies',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12))),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Container(
+                decoration: p.card16,
+                child: _CoTable(
+                  rows: list,
+                  columns: _CoTableCols.companies,
+                  onDetail: widget.onDetail,
+                  onAdd: widget.onAdd,
+                )))),
+        ]);
+      },
+    );
   }
 }
 
@@ -889,7 +989,7 @@ class _CompaniesViewState extends State<_CompaniesView> {
 enum _CoTableCols { dashboard, companies }
 
 class _CoTable extends StatelessWidget {
-  final List<_Co> rows;
+  final List<CompanyModel> rows;
   final _CoTableCols columns;
   final ValueChanged<String> onDetail;
   final VoidCallback onAdd;
@@ -926,7 +1026,7 @@ class _CoTable extends StatelessWidget {
             ]))
           : ListView.separated(
               itemCount: rows.length,
-              separatorBuilder: (_, _) =>
+              separatorBuilder: (ctx, i) =>
                 Divider(height: 1, color: p.border.withAlpha(100)),
               itemBuilder: (ctx, i) => _CoRow(
                 co: rows[i], isDash: isDash,
@@ -936,7 +1036,7 @@ class _CoTable extends StatelessWidget {
 }
 
 class _CoRow extends StatefulWidget {
-  final _Co co;
+  final CompanyModel co;
   final bool isDash;
   final VoidCallback onView;
   const _CoRow({required this.co, required this.isDash, required this.onView});
@@ -971,7 +1071,7 @@ class _CoRowState extends State<_CoRow> {
                 Text(co.name, style: TextStyle(
                   color: p.text, fontSize: 15, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis),
-                Text(co.hrEmail, style: const TextStyle(
+                Text(co.hrAdminEmail, style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 11),
                   overflow: TextOverflow.ellipsis),
               ])),
@@ -984,11 +1084,11 @@ class _CoRowState extends State<_CoRow> {
                 style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 13))),
             Expanded(flex: 2, child: _StatusDot(co.isActive)),
-            Expanded(flex: 2, child: Text(_fmt(co.price),
+            Expanded(flex: 2, child: Text(_fmt(co.monthlyPrice),
               style: TextStyle(
                 color: p.text, fontSize: 15, fontWeight: FontWeight.w600))),
             Expanded(flex: 2, child: Text(
-              widget.isDash ? co.added : '${co.employees}',
+              widget.isDash ? co.createdAtFormatted : '${co.employeeCount}',
               style: const TextStyle(
                 color: AppColors.textSecondary, fontSize: 13))),
             MouseRegion(
@@ -1009,41 +1109,70 @@ class _CoRowState extends State<_CoRow> {
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPANY DETAIL PANEL
 // ─────────────────────────────────────────────────────────────────────────────
-class _CoDetailPanel extends StatelessWidget {
-  final _Co co;
+class _CoDetailPanel extends ConsumerStatefulWidget {
+  final CompanyModel co;
   final VoidCallback onClose;
-  final ValueChanged<String> onBranch;
+  final ValueChanged<BranchModel> onBranch;
   const _CoDetailPanel({required this.co, required this.onClose,
     required this.onBranch});
+  @override
+  ConsumerState<_CoDetailPanel> createState() => _CoDetailPanelState();
+}
+
+class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
+  bool _suspending = false;
+
+  Future<void> _toggleStatus() async {
+    final co        = widget.co;
+    final newStatus = co.isActive ? 'suspended' : 'active';
+    setState(() => _suspending = true);
+    try {
+      await SuperAdminService().updateStatus(co.id, newStatus);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${co.name} has been ${newStatus == 'active' ? 'activated' : 'suspended'}.'),
+          backgroundColor: newStatus == 'active'
+            ? AppColors.successGreen : AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) _showErrorSnackbar(context, e.toString());
+    } finally {
+      if (mounted) setState(() => _suspending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final p = _P.of(context);
-    final brs = _branchList[co.id] ?? [];
+    final p   = _P.of(context);
+    final co  = widget.co;
+    final brsAsync  = ref.watch(branchesProvider(co.id));
+    final paysAsync = ref.watch(paymentsProvider(co.id));
+    final brs = brsAsync.valueOrNull ?? [];
 
     return Container(
       width: 500,
       color: p.card,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
 
-        // Header
         Container(
           padding: const EdgeInsets.fromLTRB(24, 20, 16, 18),
           color: p.card,
           child: Row(children: [
             Text('Company Details', style: TextStyle(
-              color: p.text, fontSize: 19, fontWeight: FontWeight.w700)),
+              color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
             const Spacer(),
             MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
-                onTap: onClose,
+                onTap: widget.onClose,
                 child: Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: p.bg, borderRadius: BorderRadius.circular(100)),
-                  child: Icon(Icons.close_rounded,
-                    color: p.subText, size: 18)))),
+                  child: Icon(Icons.close_rounded, color: p.subText, size: 18)))),
           ])),
         Divider(height: 1, color: p.border.withAlpha(80)),
 
@@ -1053,7 +1182,6 @@ class _CoDetailPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-              // Identity card
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -1065,7 +1193,7 @@ class _CoDetailPanel extends StatelessWidget {
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(co.name, style: TextStyle(
-                      color: p.text, fontSize: 18, fontWeight: FontWeight.w700),
+                      color: p.text, fontSize: 20, fontWeight: FontWeight.w700),
                       overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Row(children: [
@@ -1077,122 +1205,147 @@ class _CoDetailPanel extends StatelessWidget {
                 ])),
 
               _SDivider('Company Information'),
-              _IRow('Industry',      co.industry),
-              _IRow('Type',          co.isMulti ? 'Multi-Branch' : 'Single Location'),
-              _IRow('Address',       co.address),
-              _IRow('TIN Number',    co.tin),
-              _IRow('Added on',      co.added),
-              _IRow('Employees',     '${co.employees}'),
+              _IRow('Industry',   co.industry.isEmpty ? '—' : co.industry),
+              _IRow('Type',       co.isMulti ? 'Multi-Branch' : 'Single Location'),
+              _IRow('Address',    co.address.isEmpty ? '—' : co.address),
+              _IRow('Added on',   co.createdAtFormatted),
+              _IRow('Employees',  '${co.employeeCount}'),
 
               _SDivider('HR Administrator'),
-              _IRow('Name',          co.hrName),
-              _IRow('Email',         co.hrEmail),
-              _IRow('Phone',         co.phone),
+              _IRow('Name',  co.contactPerson.isEmpty ? '—' : co.contactPerson),
+              _IRow('Email', co.hrAdminEmail),
+              _IRow('Phone', co.hrAdminPhone.isEmpty ? '—' : co.hrAdminPhone),
 
               _SDivider('Financial'),
-              _IRow('Monthly Price', _fmt(co.price)),
-              _IRow('Payment Method','Bank Transfer'),
+              _IRow('Monthly Price',   _fmt(co.monthlyPrice)),
+              _IRow('Payment Method', 'Bank Transfer'),
 
-              if (co.isMulti && brs.isNotEmpty) ...[
+              if (co.isMulti) ...[
                 _SDivider('Branches (${brs.length})'),
-                ...brs.asMap().entries.map((e) {
-                  final b = e.value;
-                  final key = b['key'] ?? '${co.id}_${e.key}';
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => onBranch(key),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 13),
-                          decoration: BoxDecoration(
-                            color: p.bg,
-                            borderRadius: BorderRadius.circular(12)),
-                          child: Row(children: [
-                            Container(
-                              width: 36, height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryBlue.withAlpha(18),
-                                borderRadius: BorderRadius.circular(10)),
-                              child: const Icon(Icons.location_on_rounded,
-                                color: AppColors.primaryBlue, size: 18)),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                              Text(b['name']!, style: TextStyle(
-                                color: p.text, fontSize: 15,
-                                fontWeight: FontWeight.w600)),
-                              Text(b['location']!, style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 11)),
-                            ])),
+                ...brs.map((branch) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => widget.onBranch(branch),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 13),
+                        decoration: BoxDecoration(
+                          color: p.bg,
+                          borderRadius: BorderRadius.circular(12)),
+                        child: Row(children: [
+                          Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withAlpha(18),
+                              borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.location_on_rounded,
+                              color: AppColors.primaryBlue, size: 18)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                            Text(branch.name, style: TextStyle(
+                              color: p.text, fontSize: 15,
+                              fontWeight: FontWeight.w600)),
+                            Text(branch.location, style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 11)),
+                          ])),
+                          if (branch.code.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 9, vertical: 4),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryBlue.withAlpha(12),
                                 borderRadius: BorderRadius.circular(100)),
-                              child: Text(b['code']!, style: const TextStyle(
+                              child: Text(branch.code, style: const TextStyle(
                                 color: AppColors.primaryBlue,
                                 fontSize: 13, fontWeight: FontWeight.w600))),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.chevron_right_rounded,
-                              color: AppColors.textSecondary, size: 18),
-                          ])))));
-                }),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.textSecondary, size: 18),
+                        ])))))),
+                const SizedBox(height: 4),
+                _Btn(
+                  label: 'Add Branch', icon: Icons.add_rounded,
+                  outline: true, fullWidth: true,
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (ctx) => _AddBranchDialog(companyId: co.id))),
+                const SizedBox(height: 8),
               ],
 
               _SDivider('Recent Payments'),
-              ..._recentPayments.take(3).map((pay) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 13),
-                  decoration: BoxDecoration(
-                    color: p.bg,
-                    borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    Container(
-                      width: 36, height: 36,
+              ...paysAsync.when(
+                loading: () => [const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)))],
+                error: (_, _) => [const Text('Could not load payments',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13))],
+                data: (pays) => pays.isEmpty
+                  ? [Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text('No payments recorded yet.',
+                        style: TextStyle(
+                          color: p.subText, fontSize: 13)))]
+                  : pays.take(3).map((pay) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 13),
                       decoration: BoxDecoration(
-                        color: AppColors.successGreen.withAlpha(18),
-                        borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.check_rounded,
-                        color: AppColors.successGreen, size: 17)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(pay['date'] as String, style: TextStyle(
-                        color: p.text, fontSize: 15,
-                        fontWeight: FontWeight.w600)),
-                      Text('${pay['method']} · ${pay['ref']}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 10)),
-                    ])),
-                    Text(_fmt(pay['amount'] as int),
-                      style: const TextStyle(
-                        color: AppColors.successGreen,
-                        fontSize: 16, fontWeight: FontWeight.w700)),
-                  ])))),
-
+                        color: p.bg, borderRadius: BorderRadius.circular(12)),
+                      child: Row(children: [
+                        Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.successGreen.withAlpha(18),
+                            borderRadius: BorderRadius.circular(10)),
+                          child: const Icon(Icons.check_rounded,
+                            color: AppColors.successGreen, size: 17)),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(pay.date, style: TextStyle(
+                            color: p.text, fontSize: 15, fontWeight: FontWeight.w600)),
+                          Text('${pay.methodLabel} · ${pay.reference}',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 10)),
+                        ])),
+                        Text(_fmt(pay.amount), style: const TextStyle(
+                          color: AppColors.successGreen,
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                      ])))).toList(),
+              ),
+              const SizedBox(height: 6),
+              _Btn(
+                label: 'Record Payment', icon: Icons.add_rounded,
+                outline: true, fullWidth: true,
+                onTap: () => showDialog<void>(
+                  context: context,
+                  builder: (ctx) => _AddPaymentDialog(co: co))),
               const SizedBox(height: 8),
             ]))),
 
-        // Bottom actions
         Container(
           padding: const EdgeInsets.all(20),
           color: p.card,
           child: Row(children: [
             Expanded(child: _Btn(
-              label: co.isActive ? 'Suspend' : 'Activate',
+              label: _suspending
+                ? 'Please wait…'
+                : (co.isActive ? 'Suspend' : 'Activate'),
               color: co.isActive ? AppColors.errorRed : AppColors.successGreen,
-              outline: true, fullWidth: true, onTap: () {})),
+              outline: true, fullWidth: true,
+              onTap: _suspending ? null : _toggleStatus)),
             const SizedBox(width: 12),
             Expanded(child: _Btn(
               label: 'Edit Company',
-              fullWidth: true, onTap: () {})),
+              fullWidth: true,
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (ctx) => _EditCoDialog(co: co)))),
           ])),
       ]),
     );
@@ -1203,43 +1356,30 @@ class _CoDetailPanel extends StatelessWidget {
 // BRANCH DETAIL PANEL
 // ─────────────────────────────────────────────────────────────────────────────
 class _BranchDetailPanel extends StatelessWidget {
-  final String branchKey;
+  final BranchModel branch;
   final String coName;
   final VoidCallback onClose;
   final VoidCallback onBack;
-  const _BranchDetailPanel({required this.branchKey, required this.coName,
+  const _BranchDetailPanel({required this.branch, required this.coName,
     required this.onClose, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
-    final b = _branchDetail[branchKey];
-    if (b == null) return const SizedBox(width: 500);
-
-    final isActive = (b['status'] ?? 'active') == 'active';
-    final employees = b['employees'] ?? '—';
-    final name     = b['name']     ?? '—';
-    final location = b['location'] ?? '—';
-    final code     = b['code']     ?? '—';
-    final manager  = b['manager']  ?? '—';
-    final email    = b['managerEmail'] ?? '—';
-    final phone    = b['phone']    ?? '—';
-    final added    = b['added']    ?? '—';
-    final letter   = name[0].toUpperCase();
-    final colors   = AppColors.avatarGradients[letter]
-                      ?? AppColors.avatarGradients['A']!;
+    final b = branch;
+    final letter = b.name.isEmpty ? 'A' : b.name[0].toUpperCase();
+    final colors = AppColors.avatarGradients[letter]
+                    ?? AppColors.avatarGradients['A']!;
 
     return Container(
       width: 500,
       color: p.card,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
 
-        // Header with back button
         Container(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 18),
           color: p.card,
           child: Row(children: [
-            // Back to company
             MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -1251,15 +1391,14 @@ class _BranchDetailPanel extends StatelessWidget {
                   child: Icon(Icons.arrow_back_rounded,
                     color: p.subText, size: 18)))),
             const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                Text('Branch Details', style: TextStyle(
-                  color: p.text, fontSize: 19, fontWeight: FontWeight.w700)),
-                Text(coName, style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13, fontWeight: FontWeight.w600)),
-              ])),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Branch Details', style: TextStyle(
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+              Text(coName, style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13, fontWeight: FontWeight.w600)),
+            ])),
             MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -1279,7 +1418,6 @@ class _BranchDetailPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-              // Branch identity card
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -1301,58 +1439,52 @@ class _BranchDetailPanel extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(name, style: TextStyle(
-                      color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
+                    Text(b.name, style: TextStyle(
+                      color: p.text, fontSize: 20, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryBlue.withAlpha(18),
-                          borderRadius: BorderRadius.circular(100)),
-                        child: Text(code, style: const TextStyle(
-                          color: AppColors.primaryBlue,
-                          fontSize: 13, fontWeight: FontWeight.w600))),
-                      const SizedBox(width: 8),
-                      _StatusDot(isActive),
+                      if (b.code.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withAlpha(18),
+                            borderRadius: BorderRadius.circular(100)),
+                          child: Text(b.code, style: const TextStyle(
+                            color: AppColors.primaryBlue,
+                            fontSize: 13, fontWeight: FontWeight.w600))),
+                        const SizedBox(width: 8),
+                      ],
+                      _StatusDot(b.isActive),
                     ]),
                   ])),
                 ])),
 
               _SDivider('Branch Information'),
-              _IRow('Location',    location),
-              _IRow('Branch Code', code),
-              _IRow('Employees',   employees),
-              _IRow('Status',      isActive ? 'Active' : 'Suspended'),
-              _IRow('Added on',    added),
+              _IRow('Location',    b.location.isEmpty ? '—' : b.location),
+              _IRow('Branch Code', b.code.isEmpty ? '—' : b.code),
+              _IRow('Status',      b.isActive ? 'Active' : 'Suspended'),
+              _IRow('Added on',    b.createdAtFormatted),
               _IRow('Company',     coName),
 
-              _SDivider('Branch Manager'),
-              _IRow('Name',        manager),
-              _IRow('Email',       email),
-              _IRow('Phone',       phone),
-
               _SDivider('Attendance Overview'),
-              _AttendanceStat(label: 'Present Today',  value: '42',  color: AppColors.successGreen),
+              _AttendanceStat(label: 'Present Today',  value: '—', color: AppColors.successGreen),
               const SizedBox(height: 8),
-              _AttendanceStat(label: 'On Leave',       value: '5',   color: AppColors.warningAmber),
+              _AttendanceStat(label: 'On Leave',       value: '—', color: AppColors.warningAmber),
               const SizedBox(height: 8),
-              _AttendanceStat(label: 'Absent',         value: '3',   color: AppColors.errorRed),
+              _AttendanceStat(label: 'Absent',         value: '—', color: AppColors.errorRed),
               const SizedBox(height: 8),
-              _AttendanceStat(label: 'Late Check-in',  value: '7',   color: AppColors.primaryBlue),
-
+              _AttendanceStat(label: 'Late Check-in',  value: '—', color: AppColors.primaryBlue),
               const SizedBox(height: 8),
             ]))),
 
-        // Bottom actions
         Container(
           padding: const EdgeInsets.all(20),
           color: p.card,
           child: Row(children: [
             Expanded(child: _Btn(
-              label: isActive ? 'Suspend Branch' : 'Activate Branch',
-              color: isActive ? AppColors.errorRed : AppColors.successGreen,
+              label: b.isActive ? 'Suspend Branch' : 'Activate Branch',
+              color: b.isActive ? AppColors.errorRed : AppColors.successGreen,
               outline: true, fullWidth: true, onTap: () {})),
             const SizedBox(width: 12),
             Expanded(child: _Btn(
@@ -1378,8 +1510,7 @@ class _AttendanceStat extends StatelessWidget {
         color: p.bg,
         borderRadius: BorderRadius.circular(12)),
       child: Row(children: [
-        Container(
-          width: 8, height: 8,
+        Container(width: 8, height: 8,
           decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 12),
         Expanded(child: Text(label, style: const TextStyle(
@@ -1394,138 +1525,164 @@ class _AttendanceStat extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // BILLING VIEW
 // ─────────────────────────────────────────────────────────────────────────────
-class _BillingView extends StatefulWidget {
+class _BillingView extends ConsumerStatefulWidget {
   const _BillingView();
   @override
-  State<_BillingView> createState() => _BillingViewState();
+  ConsumerState<_BillingView> createState() => _BillingViewState();
 }
 
-class _BillingViewState extends State<_BillingView> {
-  final Map<String, _PayStatus> _status = {
-    '1': _PayStatus.paid,
-    '2': _PayStatus.paid,
-    '3': _PayStatus.notPaid,
-    '4': _PayStatus.pending,
-    '5': _PayStatus.pending,
-  };
+class _BillingViewState extends ConsumerState<_BillingView> {
+  final Map<String, _PayStatus> _status = {};
 
-  void _setStatus(String id, _PayStatus s) =>
-      setState(() => _status[id] = s);
+  _PayStatus _getStatus(String id) => _status[id] ?? _PayStatus.pending;
+
+  Future<void> _onStatusChange(CompanyModel co, _PayStatus newStatus) async {
+    if (newStatus == _PayStatus.paid) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => _AddPaymentDialog(co: co),
+      );
+      if (confirmed != true) return;
+    }
+    if (mounted) setState(() => _status[co.id] = newStatus);
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
-    final active  = _mock.where((c) => c.isActive).toList();
-    final paid    = _status.values.where((s) => s == _PayStatus.paid).length;
-    final pending = _status.values.where((s) => s == _PayStatus.pending).length;
-    final notPaid = _status.values.where((s) => s == _PayStatus.notPaid).length;
-    final revenue = active.fold(0, (s, c) => s + c.price);
+    final async = ref.watch(companiesStreamProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: _KpiCard(value: _fmt(revenue),
-            label: 'Monthly Revenue',
-            icon: Icons.trending_up_rounded, color: AppColors.successGreen)),
-          const SizedBox(width: 14),
-          Expanded(child: _KpiCard(value: '$paid',
-            label: 'Paid This Month',
-            icon: Icons.check_circle_rounded, color: AppColors.primaryBlue)),
-          const SizedBox(width: 14),
-          Expanded(child: _KpiCard(value: '$pending',
-            label: 'Pending',
-            icon: Icons.schedule_rounded, color: AppColors.warningAmber)),
-          const SizedBox(width: 14),
-          Expanded(child: _KpiCard(value: '$notPaid',
-            label: 'Not Paid',
-            icon: Icons.cancel_rounded, color: AppColors.errorRed)),
-        ]),
-        const SizedBox(height: 24),
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e',
+        style: const TextStyle(color: AppColors.errorRed))),
+      data: (companies) {
+        final now = DateTime.now();
+        const monthNames = [
+          'January','February','March','April','May','June',
+          'July','August','September','October','November','December'
+        ];
+        final period = '${monthNames[now.month - 1]} ${now.year}';
 
-        Container(
-          padding: const EdgeInsets.all(16),
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withAlpha(12),
-            borderRadius: BorderRadius.circular(14)),
-          child: Row(children: [
-            const Icon(Icons.info_outline_rounded,
-              color: AppColors.primaryBlue, size: 18),
-            const SizedBox(width: 10),
-            Expanded(child: const Text(
-              'Payments are received via bank transfer. '
-              'Update each company\'s status manually after confirming receipt.',
-              style: TextStyle(color: AppColors.primaryBlue,
-                fontSize: 15, fontWeight: FontWeight.w600))),
-          ])),
+        final active  = companies.where((c) => c.isActive).toList();
+        final revenue = active.fold(0, (s, c) => s + c.monthlyPrice);
+        final paid    = active.where((c) => _getStatus(c.id) == _PayStatus.paid).length;
+        final pending = active.where((c) => _getStatus(c.id) == _PayStatus.pending).length;
+        final notPaid = active.where((c) => _getStatus(c.id) == _PayStatus.notPaid).length;
 
-        Row(children: [
-          Text('Payment Status — June 2025', style: TextStyle(
-            color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
-          const Spacer(),
-          const Text('Tap status badge to update',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        ]),
-        const SizedBox(height: 12),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: _KpiCard(value: _fmt(revenue),
+                label: 'Monthly Revenue',
+                icon: Icons.trending_up_rounded, color: AppColors.successGreen)),
+              const SizedBox(width: 14),
+              Expanded(child: _KpiCard(value: '$paid',
+                label: 'Paid This Month',
+                icon: Icons.check_circle_rounded, color: AppColors.primaryBlue)),
+              const SizedBox(width: 14),
+              Expanded(child: _KpiCard(value: '$pending',
+                label: 'Pending',
+                icon: Icons.schedule_rounded, color: AppColors.warningAmber)),
+              const SizedBox(width: 14),
+              Expanded(child: _KpiCard(value: '$notPaid',
+                label: 'Not Paid',
+                icon: Icons.cancel_rounded, color: AppColors.errorRed)),
+            ]),
+            const SizedBox(height: 24),
 
-        Container(
-          decoration: p.card16,
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-              child: Row(children: const [
-                Expanded(flex: 3, child: _TH('Company')),
-                Expanded(flex: 2, child: _TH('Type')),
-                Expanded(flex: 2, child: _TH('Monthly Price')),
-                Expanded(flex: 2, child: _TH('Company Status')),
-                Expanded(flex: 2, child: _TH('Payment Status')),
-              ])),
-            Divider(height: 1, color: p.border),
-            ..._mock.map((co) {
-              final ps = _status[co.id] ?? _PayStatus.pending;
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 14),
-                child: Row(children: [
-                  Expanded(flex: 3, child: Row(children: [
-                    _CoAvatar(co.name, size: 34),
-                    const SizedBox(width: 10),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(co.name, style: TextStyle(
-                        color: p.text, fontSize: 15,
-                        fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis),
-                      Text(co.hrEmail, style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11)),
-                    ])),
-                  ])),
-                  Expanded(flex: 2, child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _TypeBadge(co.isMulti))),
-                  Expanded(flex: 2, child: Text(_fmt(co.price),
-                    style: TextStyle(
-                      color: p.text, fontSize: 15,
-                      fontWeight: FontWeight.w600))),
-                  Expanded(flex: 2, child: _StatusDot(co.isActive)),
-                  Expanded(flex: 2, child: _PayStatusPicker(
-                    status: ps,
-                    enabled: co.isActive,
-                    onChange: (s) => _setStatus(co.id, s))),
-                ]));
-            }),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withAlpha(12),
+                borderRadius: BorderRadius.circular(14)),
               child: Row(children: [
-                _LegendDot(AppColors.successGreen, 'Paid'),
-                const SizedBox(width: 16),
-                _LegendDot(AppColors.warningAmber, 'Pending'),
-                const SizedBox(width: 16),
-                _LegendDot(AppColors.errorRed, 'Not Paid'),
+                const Icon(Icons.info_outline_rounded,
+                  color: AppColors.primaryBlue, size: 18),
+                const SizedBox(width: 10),
+                const Expanded(child: Text(
+                  'Payments are received via bank transfer. '
+                  'Select "Paid" on a company to record a payment.',
+                  style: TextStyle(color: AppColors.primaryBlue,
+                    fontSize: 15, fontWeight: FontWeight.w600))),
               ])),
-          ])),
-      ]),
+
+            Row(children: [
+              Text('Payment Status — $period', style: TextStyle(
+                color: p.text, fontSize: 15, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              const Text('Tap status badge to update',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            ]),
+            const SizedBox(height: 12),
+
+            Container(
+              decoration: p.card16,
+              child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                  child: const Row(children: [
+                    Expanded(flex: 3, child: _TH('Company')),
+                    Expanded(flex: 2, child: _TH('Type')),
+                    Expanded(flex: 2, child: _TH('Monthly Price')),
+                    Expanded(flex: 2, child: _TH('Company Status')),
+                    Expanded(flex: 2, child: _TH('Payment Status')),
+                  ])),
+                Divider(height: 1, color: p.border),
+                if (companies.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Center(child: Text('No companies yet.',
+                      style: TextStyle(color: p.subText, fontSize: 14))))
+                else
+                  ...companies.map((co) {
+                    final ps = _getStatus(co.id);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                      child: Row(children: [
+                        Expanded(flex: 3, child: Row(children: [
+                          _CoAvatar(co.name, size: 34),
+                          const SizedBox(width: 10),
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(co.name, style: TextStyle(
+                              color: p.text, fontSize: 15,
+                              fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis),
+                            Text(co.hrAdminEmail, style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 11)),
+                          ])),
+                        ])),
+                        Expanded(flex: 2, child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _TypeBadge(co.isMulti))),
+                        Expanded(flex: 2, child: Text(_fmt(co.monthlyPrice),
+                          style: TextStyle(
+                            color: p.text, fontSize: 15,
+                            fontWeight: FontWeight.w600))),
+                        Expanded(flex: 2, child: _StatusDot(co.isActive)),
+                        Expanded(flex: 2, child: _PayStatusPicker(
+                          status: ps,
+                          enabled: co.isActive,
+                          onChange: (s) => _onStatusChange(co, s))),
+                      ]));
+                  }),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  child: Row(children: [
+                    _LegendDot(AppColors.successGreen, 'Paid'),
+                    const SizedBox(width: 16),
+                    _LegendDot(AppColors.warningAmber, 'Pending'),
+                    const SizedBox(width: 16),
+                    _LegendDot(AppColors.errorRed, 'Not Paid'),
+                  ])),
+              ])),
+          ]),
+        );
+      },
     );
   }
 }
@@ -1599,15 +1756,21 @@ class _AddCoPanel extends StatefulWidget {
 }
 
 class _AddCoPanelState extends State<_AddCoPanel> {
-  final _name    = TextEditingController();
-  final _email   = TextEditingController();
-  final _hrName  = TextEditingController();
-  final _phone   = TextEditingController();
-  final _address = TextEditingController();
-  final _tin     = TextEditingController();
-  final _price   = TextEditingController();
-  String _type   = 'single';
+  final _name     = TextEditingController();
+  final _email    = TextEditingController();
+  final _hrName   = TextEditingController();
+  final _password = TextEditingController();
+  final _phone    = TextEditingController(text: '+250');
+  final _address  = TextEditingController();
+  final _price    = TextEditingController();
+  final _empCount = TextEditingController();
+  final _bName    = TextEditingController();
+  final _bLoc     = TextEditingController();
+  final _bCode    = TextEditingController();
+  String _type     = 'single';
   String _industry = 'Other';
+  bool   _loading  = false;
+  bool   _obscure  = true;
 
   static const _industries = [
     'School', 'Polytechnic', 'Clinic', 'Hospital',
@@ -1617,12 +1780,66 @@ class _AddCoPanelState extends State<_AddCoPanel> {
   @override
   void dispose() {
     _name.dispose(); _email.dispose(); _hrName.dispose();
-    _phone.dispose(); _address.dispose(); _tin.dispose(); _price.dispose();
+    _password.dispose(); _phone.dispose(); _address.dispose();
+    _price.dispose(); _empCount.dispose();
+    _bName.dispose(); _bLoc.dispose(); _bCode.dispose();
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    if (_name.text.trim().isEmpty ||
+        _email.text.trim().isEmpty ||
+        _password.text.length < 8) {
+      _showErrorSnackbar(context,
+        _password.text.length < 8
+          ? 'Temporary password must be at least 8 characters.'
+          : 'Company name and HR admin email are required.');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final result = await SuperAdminService().createCompany(
+        name:          _name.text.trim(),
+        hrAdminEmail:  _email.text.trim(),
+        tempPassword:  _password.text,
+        contactPerson: _hrName.text.trim(),
+        hrAdminPhone:  _phone.text.trim(),
+        address:       _address.text.trim(),
+        industry:      _industry,
+        companyType:   _type,
+        monthlyPrice:  int.tryParse(_price.text.trim()) ?? 0,
+        employeeCount: int.tryParse(_empCount.text.trim()) ?? 0,
+        firstBranchName:     _bName.text.trim().isEmpty ? null : _bName.text.trim(),
+        firstBranchLocation: _bLoc.text.trim().isEmpty  ? null : _bLoc.text.trim(),
+        firstBranchCode:     _bCode.text.trim().isEmpty  ? null : _bCode.text.trim(),
+      );
+      if (!mounted) return;
+      final companyName  = result['companyName'] as String? ?? 'Company';
+      final adminEmail   = result['hrAdminEmail'] as String? ?? '';
+      final tempPassword = _password.text;
+      widget.onClose();
+      await _showSuccessDialog(context, '$companyName Added Successfully!');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            'HR Admin: $adminEmail  •  Temp Password: $tempPassword\n'
+            'Share these credentials securely.',
+            style: const TextStyle(fontSize: 13)),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 10),
+          backgroundColor: const Color(0xFF0D1E35),
+        ));
+      }
+    } catch (e) {
+      if (mounted) _showErrorSnackbar(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Widget _field(String label, TextEditingController ctrl,
-      {TextInputType type = TextInputType.text, String hint = ''}) {
+      {TextInputType type = TextInputType.text, String hint = '',
+       bool isPassword = false}) {
     final p = _P.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(
@@ -1631,12 +1848,20 @@ class _AddCoPanelState extends State<_AddCoPanel> {
       TextField(
         controller: ctrl,
         keyboardType: type,
+        obscureText: isPassword && _obscure,
         style: TextStyle(color: p.text, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-          filled: true, fillColor: p.fieldBg,
+          filled: true, fillColor: p.card,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: AppColors.textSecondary, size: 18),
+                onPressed: () => setState(() => _obscure = !_obscure))
+            : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           enabledBorder: OutlineInputBorder(
@@ -1654,12 +1879,11 @@ class _AddCoPanelState extends State<_AddCoPanel> {
     final p = _P.of(context);
     return Container(
       width: 520,
-      color: p.card,
+      color: p.bg,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // Header
         Container(
           padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
-          color: p.card,
+          color: p.bg,
           child: Row(children: [
             Container(
               width: 44, height: 44,
@@ -1674,7 +1898,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
               const Text('Add New Company',
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               Text('Fill in the company details below',
                 style: TextStyle(
                   color: p.subText, fontSize: 15, fontWeight: FontWeight.w500)),
@@ -1686,13 +1910,12 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                 child: Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
-                    color: p.fieldBg, borderRadius: BorderRadius.circular(10)),
+                    color: p.card, borderRadius: BorderRadius.circular(10)),
                   child: Icon(Icons.close_rounded,
                     color: p.subText, size: 18)))),
           ])),
         Divider(height: 1, color: p.border),
 
-        // Form
         Expanded(child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1701,15 +1924,16 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             _field('HR Admin Email', _email,
               type: TextInputType.emailAddress, hint: 'hr@company.rw'),
             _field('HR Admin Name', _hrName, hint: 'Full name'),
+            _field('Temporary Password', _password,
+              hint: 'Min 8 characters', isPassword: true),
 
-            // Type toggle
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Company Type', style: TextStyle(
                 color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: p.fieldBg, borderRadius: BorderRadius.circular(12)),
+                  color: p.card, borderRadius: BorderRadius.circular(12)),
                 child: Row(children: [
                   _TypeToggle('Single Branch', 'single', _type,
                     (v) => setState(() => _type = v), p),
@@ -1719,7 +1943,6 @@ class _AddCoPanelState extends State<_AddCoPanel> {
               const SizedBox(height: 16),
             ]),
 
-            // Industry dropdown
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Industry', style: TextStyle(
                 color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
@@ -1728,7 +1951,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                 height: 50,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: p.fieldBg, borderRadius: BorderRadius.circular(12)),
+                  color: p.card, borderRadius: BorderRadius.circular(12)),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _industry,
@@ -1744,27 +1967,37 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             ]),
 
             _field('Phone Number', _phone,
-              type: TextInputType.phone, hint: '+250 7XX XXX XXX'),
+              type: TextInputType.phone, hint: '7XX XXX XXX'),
             _field('Address', _address, hint: 'Street, District'),
-            _field('TIN Number', _tin, hint: '100XXXXXXX'),
             _field('Monthly Price (RWF)', _price,
               type: TextInputType.number, hint: '80000'),
+            _field('Employee Count', _empCount,
+              type: TextInputType.number, hint: '50'),
+
+            if (_type == 'multi_branch') ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('First Branch (optional)', style: TextStyle(
+                  color: p.text, fontSize: 13, fontWeight: FontWeight.w700))),
+              _field('Branch Name', _bName, hint: 'e.g. Kigali HQ'),
+              _field('Branch Location', _bLoc, hint: 'District or address'),
+              _field('Branch Code', _bCode, hint: 'e.g. KIG-01'),
+            ],
           ]))),
 
-        // Bottom actions
         Container(
           padding: const EdgeInsets.all(20),
-          color: p.card,
+          color: p.bg,
           child: Row(children: [
             Expanded(child: _Btn(
               label: 'Cancel', outline: true, fullWidth: true,
               onTap: widget.onClose)),
             const SizedBox(width: 12),
             Expanded(child: _Btn(
-              label: 'Add Company',
-              icon: Icons.add_rounded,
+              label: _loading ? 'Creating…' : 'Add Company',
+              icon: _loading ? null : Icons.add_rounded,
               fullWidth: true,
-              onTap: widget.onClose)), // UI-only: closes panel
+              onTap: _loading ? null : _submit)),
           ])),
       ]),
     );
@@ -1794,4 +2027,484 @@ class _TypeToggle extends StatelessWidget {
             color: sel ? AppColors.primaryBlue : p.subText,
             fontSize: 15, fontWeight: FontWeight.w600)))))));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIALOGS
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EditCoDialog extends StatefulWidget {
+  final CompanyModel co;
+  const _EditCoDialog({required this.co});
+  @override
+  State<_EditCoDialog> createState() => _EditCoDialogState();
+}
+
+class _EditCoDialogState extends State<_EditCoDialog> {
+  late final _name    = TextEditingController(text: widget.co.name);
+  late final _person  = TextEditingController(text: widget.co.contactPerson);
+  late final _phone   = TextEditingController(
+      text: widget.co.hrAdminPhone.isEmpty ? '+250' : widget.co.hrAdminPhone);
+  late final _address = TextEditingController(text: widget.co.address);
+  late final _price   = TextEditingController(text: '${widget.co.monthlyPrice}');
+  late final _emp     = TextEditingController(text: '${widget.co.employeeCount}');
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _name.dispose(); _person.dispose(); _phone.dispose();
+    _address.dispose(); _price.dispose(); _emp.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_name.text.trim().isEmpty) return;
+    setState(() => _loading = true);
+    try {
+      await SuperAdminService().updateCompany(widget.co.id, {
+        'name':          _name.text.trim(),
+        'contactPerson': _person.text.trim(),
+        'hrAdminPhone':  _phone.text.trim(),
+        'address':       _address.text.trim(),
+        'monthlyPrice':  int.tryParse(_price.text.trim()) ?? widget.co.monthlyPrice,
+        'employeeCount': int.tryParse(_emp.text.trim()) ?? widget.co.employeeCount,
+      });
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Company updated successfully.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (e) {
+      if (mounted) _showErrorSnackbar(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _P.of(context);
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: p.card,
+      child: SizedBox(
+        width: 480,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
+            child: Row(children: [
+              Text('Edit Company', style: TextStyle(
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(Icons.close_rounded, color: p.subText, size: 20)),
+            ])),
+          Divider(height: 1, color: p.border),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(children: [
+                _df(p, 'Company Name', _name),
+                _df(p, 'Contact Person', _person),
+                _df(p, 'Phone', _phone, type: TextInputType.phone),
+                _df(p, 'Address', _address),
+                _df(p, 'Monthly Price (RWF)', _price, type: TextInputType.number),
+                _df(p, 'Employee Count', _emp, type: TextInputType.number),
+              ]))),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              Expanded(child: _Btn(
+                label: 'Cancel', outline: true, fullWidth: true,
+                onTap: () => Navigator.pop(context))),
+              const SizedBox(width: 12),
+              Expanded(child: _Btn(
+                label: _loading ? 'Saving…' : 'Save Changes',
+                fullWidth: true,
+                onTap: _loading ? null : _save)),
+            ])),
+        ]),
+      ),
+    );
+  }
+
+  Widget _df(_P p, String label, TextEditingController ctrl,
+      {TextInputType type = TextInputType.text}) =>
+    Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(
+          color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: ctrl, keyboardType: type,
+          style: TextStyle(color: p.text, fontSize: 14),
+          decoration: InputDecoration(
+            filled: true, fillColor: p.fieldBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          )),
+      ]));
+}
+
+// ─── Add Payment Dialog ───────────────────────────────────────────────────────
+class _AddPaymentDialog extends StatefulWidget {
+  final CompanyModel co;
+  const _AddPaymentDialog({required this.co});
+  @override
+  State<_AddPaymentDialog> createState() => _AddPaymentDialogState();
+}
+
+class _AddPaymentDialogState extends State<_AddPaymentDialog> {
+  static const _shortMonths = [
+    'Jan','Feb','Mar','Apr','May','Jun',
+    'Jul','Aug','Sep','Oct','Nov','Dec'
+  ];
+
+  late final _amount = TextEditingController(
+    text: '${widget.co.monthlyPrice}');
+  late final _ref    = TextEditingController();
+  late String _date;
+  String _method = 'bank_transfer';
+  bool   _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _date = '${_shortMonths[now.month - 1]} ${now.year}';
+  }
+
+  @override
+  void dispose() { _amount.dispose(); _ref.dispose(); super.dispose(); }
+
+  Future<void> _record() async {
+    final amt = int.tryParse(_amount.text.trim()) ?? 0;
+    if (amt <= 0) {
+      _showErrorSnackbar(context, 'Enter a valid payment amount.');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await SuperAdminService().addPayment(
+        companyId: widget.co.id,
+        date:      _date,
+        amount:    amt,
+        method:    _method,
+        reference: _ref.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) _showErrorSnackbar(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _P.of(context);
+    final methods = [
+      ('bank_transfer', 'Bank Transfer'),
+      ('mobile_money',  'Mobile Money'),
+      ('cash',          'Cash'),
+    ];
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: p.card,
+      child: SizedBox(
+        width: 420,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withAlpha(20),
+                  shape: BoxShape.circle),
+                child: const Icon(Icons.payments_rounded,
+                  color: AppColors.successGreen, size: 20)),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Record Payment', style: TextStyle(
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w700))),
+              IconButton(
+                onPressed: () => Navigator.pop(context, false),
+                icon: Icon(Icons.close_rounded, color: p.subText, size: 20)),
+            ]),
+            const SizedBox(height: 8),
+            Text(widget.co.name,
+              style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 13)),
+            const SizedBox(height: 20),
+            Divider(height: 1, color: p.border),
+            const SizedBox(height: 20),
+            // Period
+            Row(children: [
+              Text('Period', style: TextStyle(
+                color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Container(
+                height: 42,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: p.fieldBg, borderRadius: BorderRadius.circular(10)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _date,
+                    dropdownColor: p.card,
+                    style: TextStyle(color: p.text, fontSize: 13),
+                    items: _buildMonthItems(),
+                    onChanged: (v) => setState(() => _date = v!)))),
+            ]),
+            const SizedBox(height: 14),
+            // Amount
+            _pField(p, 'Amount (RWF)', _amount, type: TextInputType.number),
+            const SizedBox(height: 4),
+            // Method
+            Row(children: [
+              Text('Method', style: TextStyle(
+                color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Container(
+                height: 42,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: p.fieldBg, borderRadius: BorderRadius.circular(10)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _method,
+                    dropdownColor: p.card,
+                    style: TextStyle(color: p.text, fontSize: 13),
+                    items: methods.map((m) =>
+                      DropdownMenuItem(value: m.$1, child: Text(m.$2))).toList(),
+                    onChanged: (v) => setState(() => _method = v!)))),
+            ]),
+            const SizedBox(height: 14),
+            _pField(p, 'Reference (optional)', _ref, hint: 'BNK-2025-07-001'),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: _Btn(
+                label: 'Cancel', outline: true, fullWidth: true,
+                onTap: () => Navigator.pop(context, false))),
+              const SizedBox(width: 12),
+              Expanded(child: _Btn(
+                label: _loading ? 'Recording…' : 'Record Payment',
+                color: AppColors.successGreen,
+                fullWidth: true,
+                onTap: _loading ? null : _record)),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  List<DropdownMenuItem<String>> _buildMonthItems() {
+    final items = <DropdownMenuItem<String>>[];
+    final now = DateTime.now();
+    for (int i = 0; i < 6; i++) {
+      final d = DateTime(now.year, now.month - i, 1);
+      final label = '${_shortMonths[d.month - 1]} ${d.year}';
+      items.add(DropdownMenuItem(value: label, child: Text(label)));
+    }
+    return items;
+  }
+
+  Widget _pField(_P p, String label, TextEditingController ctrl,
+      {TextInputType type = TextInputType.text, String hint = ''}) =>
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(
+        color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 6),
+      TextField(
+        controller: ctrl, keyboardType: type,
+        style: TextStyle(color: p.text, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          filled: true, fillColor: p.fieldBg,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+        )),
+    ]);
+}
+
+// ─── Add Branch Dialog ────────────────────────────────────────────────────────
+class _AddBranchDialog extends StatefulWidget {
+  final String companyId;
+  const _AddBranchDialog({required this.companyId});
+  @override
+  State<_AddBranchDialog> createState() => _AddBranchDialogState();
+}
+
+class _AddBranchDialogState extends State<_AddBranchDialog> {
+  final _name     = TextEditingController();
+  final _location = TextEditingController();
+  final _code     = TextEditingController();
+  final _adminEmail = TextEditingController();
+  final _adminPwd   = TextEditingController();
+  final _adminName  = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _name.dispose(); _location.dispose(); _code.dispose();
+    _adminEmail.dispose(); _adminPwd.dispose(); _adminName.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_name.text.trim().isEmpty) {
+      _showErrorSnackbar(context, 'Branch name is required.');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await SuperAdminService().addBranch(
+        companyId:           widget.companyId,
+        name:                _name.text.trim(),
+        location:            _location.text.trim(),
+        code:                _code.text.trim(),
+        branchAdminEmail:    _adminEmail.text.trim().isEmpty ? null : _adminEmail.text.trim(),
+        branchAdminPassword: _adminPwd.text.isEmpty ? null : _adminPwd.text,
+        branchAdminName:     _adminName.text.trim().isEmpty ? null : _adminName.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Branch added successfully.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (e) {
+      if (mounted) _showErrorSnackbar(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _P.of(context);
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: p.card,
+      child: SizedBox(
+        width: 460,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
+            child: Row(children: [
+              Text('Add Branch', style: TextStyle(
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(Icons.close_rounded, color: p.subText, size: 20)),
+            ])),
+          Divider(height: 1, color: p.border),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.55),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _bf(p, 'Branch Name *', _name, hint: 'e.g. Kigali HQ'),
+                _bf(p, 'Location', _location, hint: 'District or address'),
+                _bf(p, 'Branch Code', _code, hint: 'e.g. KIG-01'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8, top: 4),
+                  child: Text('Branch Admin (optional)', style: TextStyle(
+                    color: p.text, fontSize: 13, fontWeight: FontWeight.w700))),
+                _bf(p, 'Admin Email', _adminEmail, type: TextInputType.emailAddress),
+                _bf(p, 'Admin Name', _adminName),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Admin Password', style: TextStyle(
+                    color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _adminPwd,
+                    obscureText: _obscure,
+                    style: TextStyle(color: p.text, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Min 8 characters',
+                      hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      filled: true, fillColor: p.fieldBg,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                          color: AppColors.textSecondary, size: 18),
+                        onPressed: () => setState(() => _obscure = !_obscure)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+                    )),
+                ]),
+              ]))),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              Expanded(child: _Btn(
+                label: 'Cancel', outline: true, fullWidth: true,
+                onTap: () => Navigator.pop(context))),
+              const SizedBox(width: 12),
+              Expanded(child: _Btn(
+                label: _loading ? 'Adding…' : 'Add Branch',
+                icon: _loading ? null : Icons.add_rounded,
+                fullWidth: true,
+                onTap: _loading ? null : _add)),
+            ])),
+        ]),
+      ),
+    );
+  }
+
+  Widget _bf(_P p, String label, TextEditingController ctrl,
+      {TextInputType type = TextInputType.text, String hint = ''}) =>
+    Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(
+          color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: ctrl, keyboardType: type,
+          style: TextStyle(color: p.text, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            filled: true, fillColor: p.fieldBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          )),
+      ]));
 }

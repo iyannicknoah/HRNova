@@ -2,9 +2,10 @@ const express = require('express');
 const router  = express.Router();
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getApp } = require('firebase-admin/app');
 const { verifyToken, requireRole } = require('../middleware/verifyToken');
 
-const db = () => getFirestore();
+const db = () => getFirestore(getApp(), 'default');
 
 // Every route in this file requires super_admin
 router.use(verifyToken, requireRole('super_admin'));

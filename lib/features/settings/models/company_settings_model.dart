@@ -11,8 +11,29 @@ class CompanySettingsModel {
     this.companySlug,
     this.workStartTime = '08:00',
     this.workEndTime = '17:00',
+    this.gracePeriodMinutes = 10,
     this.lateThresholdMinutes = 15,
+    this.workingDays = const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     this.workingDaysPerWeek = 5,
+    this.annualLeaveDays = 18,
+    this.sickLeaveDays = 10,
+    this.lateDeductionPerHourRwf = 500,
+    this.maxLateBeforeWarning = 3,
+    this.salaryPaymentDay = 28,
+    this.overtimeMultiplier = 1.5,
+    this.transportAllowanceRwf = 0,
+    this.housingAllowanceRwf = 0,
+    this.notificationMethod = 'email',
+    this.isOnboardingComplete = false,
+    this.departments = const [],
+    this.performanceCriteria = const [],
+    this.managerPhone = '',
+    this.hrAdminPhone = '',
+    this.guardPhone = '',
+    this.managerEmail = '',
+    this.hrAdminEmail = '',
+    this.guardModeEnabled = true,
+    this.rraExportEnabled = true,
     this.timezone = 'Africa/Kigali',
     this.currency = 'RWF',
     this.country = 'Rwanda',
@@ -38,10 +59,48 @@ class CompanySettingsModel {
   final String? logoUrl;
   final String? primaryColor;
   final String? companySlug;
+
+  // Work schedule
   final String workStartTime;
   final String workEndTime;
+  final int gracePeriodMinutes;
   final int lateThresholdMinutes;
+  final List<String> workingDays;
   final int workingDaysPerWeek;
+
+  // Leave policy
+  final int annualLeaveDays;
+  final int sickLeaveDays;
+
+  // Payroll rules
+  final int lateDeductionPerHourRwf;
+  final int maxLateBeforeWarning;
+  final int salaryPaymentDay;
+  final double overtimeMultiplier;
+  final int transportAllowanceRwf;
+  final int housingAllowanceRwf;
+
+  // Notifications & contacts
+  final String notificationMethod;
+  final String managerPhone;
+  final String hrAdminPhone;
+  final String guardPhone;
+  final String managerEmail;
+  final String hrAdminEmail;
+
+  // Feature flags
+  final bool isOnboardingComplete;
+  final bool guardModeEnabled;
+  final bool rraExportEnabled;
+  final bool enableWhatsappLeave;
+  final bool enableSelfieAttendance;
+  final bool enableAiReports;
+
+  // Lists
+  final List<String> departments;
+  final List<String> performanceCriteria;
+
+  // Company info
   final String timezone;
   final String currency;
   final String country;
@@ -53,9 +112,6 @@ class CompanySettingsModel {
   final String? openRouterApiKey;
   final double monthlyPrice;
   final String status;
-  final bool enableWhatsappLeave;
-  final bool enableSelfieAttendance;
-  final bool enableAiReports;
 
   factory CompanySettingsModel.fromMap(String companyId, Map<String, dynamic> map) {
     return CompanySettingsModel(
@@ -70,8 +126,30 @@ class CompanySettingsModel {
       companySlug: map['companySlug'] as String?,
       workStartTime: map['workStartTime'] as String? ?? '08:00',
       workEndTime: map['workEndTime'] as String? ?? '17:00',
+      gracePeriodMinutes: map['gracePeriodMinutes'] as int? ?? 10,
       lateThresholdMinutes: map['lateThresholdMinutes'] as int? ?? 15,
+      workingDays: (map['workingDays'] as List?)?.cast<String>() ??
+          const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
       workingDaysPerWeek: map['workingDaysPerWeek'] as int? ?? 5,
+      annualLeaveDays: map['annualLeaveDays'] as int? ?? 18,
+      sickLeaveDays: map['sickLeaveDays'] as int? ?? 10,
+      lateDeductionPerHourRwf: map['lateDeductionPerHourRwf'] as int? ?? 500,
+      maxLateBeforeWarning: map['maxLateBeforeWarning'] as int? ?? 3,
+      salaryPaymentDay: map['salaryPaymentDay'] as int? ?? 28,
+      overtimeMultiplier: (map['overtimeMultiplier'] as num?)?.toDouble() ?? 1.5,
+      transportAllowanceRwf: map['transportAllowanceRwf'] as int? ?? 0,
+      housingAllowanceRwf: map['housingAllowanceRwf'] as int? ?? 0,
+      notificationMethod: map['notificationMethod'] as String? ?? 'email',
+      isOnboardingComplete: map['isOnboardingComplete'] as bool? ?? false,
+      departments: (map['departments'] as List?)?.cast<String>() ?? const [],
+      performanceCriteria: (map['performanceCriteria'] as List?)?.cast<String>() ?? const [],
+      managerPhone: map['managerPhone'] as String? ?? '',
+      hrAdminPhone: map['hrAdminPhone'] as String? ?? '',
+      guardPhone: map['guardPhone'] as String? ?? '',
+      managerEmail: map['managerEmail'] as String? ?? '',
+      hrAdminEmail: map['hrAdminEmail'] as String? ?? '',
+      guardModeEnabled: map['guardModeEnabled'] as bool? ?? true,
+      rraExportEnabled: map['rraExportEnabled'] as bool? ?? true,
       timezone: map['timezone'] as String? ?? 'Africa/Kigali',
       currency: map['currency'] as String? ?? 'RWF',
       country: map['country'] as String? ?? 'Rwanda',
@@ -89,33 +167,135 @@ class CompanySettingsModel {
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'companyId': companyId,
-      'companyName': companyName,
-      'industry': industry,
-      'companyType': companyType,
-      if (rraTinNumber != null) 'rraTinNumber': rraTinNumber,
-      if (rssbNumber != null) 'rssbNumber': rssbNumber,
-      if (logoUrl != null) 'logoUrl': logoUrl,
-      if (primaryColor != null) 'primaryColor': primaryColor,
-      if (companySlug != null) 'companySlug': companySlug,
-      'workStartTime': workStartTime,
-      'workEndTime': workEndTime,
-      'lateThresholdMinutes': lateThresholdMinutes,
-      'workingDaysPerWeek': workingDaysPerWeek,
-      'timezone': timezone,
-      'currency': currency,
-      'country': country,
-      if (phone != null) 'phone': phone,
-      if (email != null) 'email': email,
-      if (address != null) 'address': address,
-      if (website != null) 'website': website,
-      'monthlyPrice': monthlyPrice,
-      'status': status,
-      'enableWhatsappLeave': enableWhatsappLeave,
-      'enableSelfieAttendance': enableSelfieAttendance,
-      'enableAiReports': enableAiReports,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+    'companyId': companyId,
+    'companyName': companyName,
+    'industry': industry,
+    'companyType': companyType,
+    if (rraTinNumber != null) 'rraTinNumber': rraTinNumber,
+    if (rssbNumber != null) 'rssbNumber': rssbNumber,
+    if (logoUrl != null) 'logoUrl': logoUrl,
+    if (primaryColor != null) 'primaryColor': primaryColor,
+    if (companySlug != null) 'companySlug': companySlug,
+    'workStartTime': workStartTime,
+    'workEndTime': workEndTime,
+    'gracePeriodMinutes': gracePeriodMinutes,
+    'lateThresholdMinutes': lateThresholdMinutes,
+    'workingDays': workingDays,
+    'workingDaysPerWeek': workingDaysPerWeek,
+    'annualLeaveDays': annualLeaveDays,
+    'sickLeaveDays': sickLeaveDays,
+    'lateDeductionPerHourRwf': lateDeductionPerHourRwf,
+    'maxLateBeforeWarning': maxLateBeforeWarning,
+    'salaryPaymentDay': salaryPaymentDay,
+    'overtimeMultiplier': overtimeMultiplier,
+    'transportAllowanceRwf': transportAllowanceRwf,
+    'housingAllowanceRwf': housingAllowanceRwf,
+    'notificationMethod': notificationMethod,
+    'isOnboardingComplete': isOnboardingComplete,
+    'departments': departments,
+    'performanceCriteria': performanceCriteria,
+    'managerPhone': managerPhone,
+    'hrAdminPhone': hrAdminPhone,
+    'guardPhone': guardPhone,
+    'managerEmail': managerEmail,
+    'hrAdminEmail': hrAdminEmail,
+    'guardModeEnabled': guardModeEnabled,
+    'rraExportEnabled': rraExportEnabled,
+    'timezone': timezone,
+    'currency': currency,
+    'country': country,
+    if (phone != null) 'phone': phone,
+    if (email != null) 'email': email,
+    if (address != null) 'address': address,
+    if (website != null) 'website': website,
+    'monthlyPrice': monthlyPrice,
+    'status': status,
+    'enableWhatsappLeave': enableWhatsappLeave,
+    'enableSelfieAttendance': enableSelfieAttendance,
+    'enableAiReports': enableAiReports,
+  };
+
+  CompanySettingsModel copyWith({
+    String? companyName,
+    String? industry,
+    String? companyType,
+    String? rraTinNumber,
+    String? workStartTime,
+    String? workEndTime,
+    int? gracePeriodMinutes,
+    List<String>? workingDays,
+    int? annualLeaveDays,
+    int? sickLeaveDays,
+    int? lateDeductionPerHourRwf,
+    int? maxLateBeforeWarning,
+    int? salaryPaymentDay,
+    double? overtimeMultiplier,
+    int? transportAllowanceRwf,
+    int? housingAllowanceRwf,
+    String? notificationMethod,
+    bool? isOnboardingComplete,
+    List<String>? departments,
+    List<String>? performanceCriteria,
+    String? managerPhone,
+    String? hrAdminPhone,
+    String? guardPhone,
+    String? managerEmail,
+    String? hrAdminEmail,
+    bool? guardModeEnabled,
+    bool? rraExportEnabled,
+    String? phone,
+    String? email,
+    String? address,
+  }) =>
+      CompanySettingsModel(
+        companyId: companyId,
+        companyName: companyName ?? this.companyName,
+        industry: industry ?? this.industry,
+        companyType: companyType ?? this.companyType,
+        rraTinNumber: rraTinNumber ?? this.rraTinNumber,
+        rssbNumber: rssbNumber,
+        logoUrl: logoUrl,
+        primaryColor: primaryColor,
+        companySlug: companySlug,
+        workStartTime: workStartTime ?? this.workStartTime,
+        workEndTime: workEndTime ?? this.workEndTime,
+        gracePeriodMinutes: gracePeriodMinutes ?? this.gracePeriodMinutes,
+        lateThresholdMinutes: lateThresholdMinutes,
+        workingDays: workingDays ?? this.workingDays,
+        workingDaysPerWeek: workingDaysPerWeek,
+        annualLeaveDays: annualLeaveDays ?? this.annualLeaveDays,
+        sickLeaveDays: sickLeaveDays ?? this.sickLeaveDays,
+        lateDeductionPerHourRwf: lateDeductionPerHourRwf ?? this.lateDeductionPerHourRwf,
+        maxLateBeforeWarning: maxLateBeforeWarning ?? this.maxLateBeforeWarning,
+        salaryPaymentDay: salaryPaymentDay ?? this.salaryPaymentDay,
+        overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
+        transportAllowanceRwf: transportAllowanceRwf ?? this.transportAllowanceRwf,
+        housingAllowanceRwf: housingAllowanceRwf ?? this.housingAllowanceRwf,
+        notificationMethod: notificationMethod ?? this.notificationMethod,
+        isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
+        departments: departments ?? this.departments,
+        performanceCriteria: performanceCriteria ?? this.performanceCriteria,
+        managerPhone: managerPhone ?? this.managerPhone,
+        hrAdminPhone: hrAdminPhone ?? this.hrAdminPhone,
+        guardPhone: guardPhone ?? this.guardPhone,
+        managerEmail: managerEmail ?? this.managerEmail,
+        hrAdminEmail: hrAdminEmail ?? this.hrAdminEmail,
+        guardModeEnabled: guardModeEnabled ?? this.guardModeEnabled,
+        rraExportEnabled: rraExportEnabled ?? this.rraExportEnabled,
+        timezone: timezone,
+        currency: currency,
+        country: country,
+        phone: phone ?? this.phone,
+        email: email ?? this.email,
+        address: address ?? this.address,
+        website: website,
+        brevoApiKey: brevoApiKey,
+        openRouterApiKey: openRouterApiKey,
+        monthlyPrice: monthlyPrice,
+        status: status,
+        enableWhatsappLeave: enableWhatsappLeave,
+        enableSelfieAttendance: enableSelfieAttendance,
+        enableAiReports: enableAiReports,
+      );
 }

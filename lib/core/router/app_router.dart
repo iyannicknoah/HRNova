@@ -11,6 +11,7 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/suspension_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/employees/screens/employees_screen.dart';
+import '../../features/employees/screens/employee_add_screen.dart';
 import '../../features/employees/screens/employee_profile_screen.dart';
 import '../../features/attendance/screens/attendance_screen.dart';
 import '../../features/attendance/screens/guard_mode_screen.dart';
@@ -56,6 +57,9 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       Future.microtask(() => state.refresh());
     });
     ref.listen<AsyncValue<bool>>(isOnboardingCompleteProvider, (_, next) {
+      Future.microtask(() => state.refresh());
+    });
+    ref.listen<bool>(onboardingCompleteOverrideProvider, (_, __) {
       Future.microtask(() => state.refresh());
     });
 
@@ -113,11 +117,16 @@ class AppRouterNotifier extends Notifier<GoRouter> {
 
     // Onboarding check — hr_admin only
     if (role == AppConstants.roleHrAdmin) {
-      final onboardingAsync = ref.read(isOnboardingCompleteProvider);
-      if (!onboardingAsync.isLoading) {
-        final isComplete = onboardingAsync.value ?? false;
-        if (!isComplete && path != '/onboarding') return '/onboarding';
-        if (isComplete && path == '/onboarding') return '/dashboard';
+      final localDone = ref.read(onboardingCompleteOverrideProvider);
+      if (localDone) {
+        if (path == '/onboarding') return '/dashboard';
+      } else {
+        final onboardingAsync = ref.read(isOnboardingCompleteProvider);
+        if (!onboardingAsync.isLoading) {
+          final isComplete = onboardingAsync.value ?? false;
+          if (!isComplete && path != '/onboarding') return '/onboarding';
+          if (isComplete && path == '/onboarding') return '/dashboard';
+        }
       }
     }
 
@@ -207,6 +216,12 @@ List<RouteBase> _buildRoutes() => [
             path: '/employees',
             builder: (context, state) => const EmployeesScreen(),
             routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => EmployeeAddScreen(
+                  editId: state.uri.queryParameters['editId'],
+                ),
+              ),
               GoRoute(
                 path: ':id',
                 builder: (context, state) => EmployeeProfileScreen(
