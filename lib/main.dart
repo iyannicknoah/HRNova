@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,12 +9,6 @@ import 'features/auth/providers/auth_provider.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
-  await runZonedGuarded(_boot, (error, stack) {
-    debugPrint('Unhandled error: $error\n$stack');
-  });
-}
-
-Future<void> _boot() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {

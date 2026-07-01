@@ -183,7 +183,7 @@ class _Btn extends StatelessWidget {
               ],
               Text(label, style: TextStyle(
                 color: outline ? c : Colors.white,
-                fontSize: 14, fontWeight: FontWeight.w700)),
+                fontSize: 16, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -205,7 +205,7 @@ class _KpiCard extends StatelessWidget {
     final p = _P.of(context);
     return Container(
       padding: const EdgeInsets.all(22),
-      decoration: p.cardR(28),
+      decoration: p.cardR(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -213,7 +213,7 @@ class _KpiCard extends StatelessWidget {
           children: [
             Text(label, style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 13, fontWeight: FontWeight.w500)),
+              fontSize: 15, fontWeight: FontWeight.w500)),
             Container(
               width: 46, height: 46,
               decoration: BoxDecoration(
@@ -223,7 +223,7 @@ class _KpiCard extends StatelessWidget {
           ]),
         const SizedBox(height: 14),
         Text(value, style: TextStyle(
-          color: p.text, fontSize: 28,
+          color: p.text, fontSize: 22,
           fontWeight: FontWeight.w800, letterSpacing: -0.5, height: 1.1)),
       ]),
     );
@@ -244,7 +244,7 @@ class _TypeBadge extends StatelessWidget {
     child: Text(isMulti ? 'Multi-Branch' : 'Single',
       style: TextStyle(
         color: isMulti ? AppColors.primaryBlue : AppColors.textSecondary,
-        fontSize: 12, fontWeight: FontWeight.w600)));
+        fontSize: 14, fontWeight: FontWeight.w700)));
 }
 
 class _StatusDot extends StatelessWidget {
@@ -261,7 +261,7 @@ class _StatusDot extends StatelessWidget {
     Text(active ? 'Active' : 'Suspended',
       style: TextStyle(
         color: active ? AppColors.successGreen : AppColors.errorRed,
-        fontSize: 13, fontWeight: FontWeight.w600)),
+        fontSize: 15, fontWeight: FontWeight.w700)),
   ]);
 }
 
@@ -285,7 +285,7 @@ class _PayBadge extends StatelessWidget {
           decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(
-          color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          color: color, fontSize: 13, fontWeight: FontWeight.w700)),
       ]));
   }
 }
@@ -297,7 +297,7 @@ class _TH extends StatelessWidget {
   Widget build(BuildContext context) => Text(t.toUpperCase(),
     style: const TextStyle(
       color: AppColors.textSecondary,
-      fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5));
+      fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 0.5));
 }
 
 // Info row (label + value) — used in detail panels
@@ -313,10 +313,10 @@ class _IRow extends StatelessWidget {
         SizedBox(width: 148,
           child: Text(label, style: const TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 14, fontWeight: FontWeight.w500))),
+            fontSize: 16, fontWeight: FontWeight.w600))),
         Expanded(child: Text(value, style: TextStyle(
           color: p.text,
-          fontSize: 14, fontWeight: FontWeight.w600))),
+          fontSize: 16, fontWeight: FontWeight.w600))),
       ]));
   }
 }
@@ -332,7 +332,7 @@ class _SDivider extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 18),
       child: Row(children: [
         Text(label, style: TextStyle(
-          color: p.text, fontSize: 14, fontWeight: FontWeight.w700)),
+          color: p.text, fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(width: 12),
         Expanded(child: Divider(color: p.border, height: 1)),
       ]));
@@ -360,7 +360,7 @@ class _FilterChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(100)),
           child: Text(label, style: TextStyle(
             color: active ? Colors.white : p.subText,
-            fontSize: 13, fontWeight: FontWeight.w600)))));
+            fontSize: 15, fontWeight: FontWeight.w700)))));
   }
 }
 
@@ -463,7 +463,7 @@ class _SItem extends StatelessWidget {
               Icon(icon, color: c, size: 18),
               const SizedBox(width: 10),
               Text(label, style: TextStyle(
-                color: c, fontSize: 15,
+                color: c, fontSize: 17,
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500)),
             ])))));
   }
@@ -496,7 +496,7 @@ class _TopBar extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(children: [
         Text(title, style: TextStyle(
-          color: p.text, fontSize: 21, fontWeight: FontWeight.w800,
+          color: p.text, fontSize: 21, fontWeight: FontWeight.w700,
           letterSpacing: -0.3)),
         const SizedBox(width: 10),
         Container(
@@ -506,7 +506,7 @@ class _TopBar extends ConsumerWidget {
             borderRadius: BorderRadius.circular(100)),
           child: const Text('Super Admin', style: TextStyle(
             color: AppColors.primaryBlue,
-            fontSize: 12, fontWeight: FontWeight.w700))),
+            fontSize: 14, fontWeight: FontWeight.w700))),
         const Spacer(),
         // Search — only on dashboard + companies
         if (showSearch) ...[
@@ -717,7 +717,7 @@ class _DashView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
         child: Row(children: [
           Text('Overview', style: TextStyle(
-            color: p.subText, fontSize: 14, fontWeight: FontWeight.w500)),
+            color: p.subText, fontSize: 16, fontWeight: FontWeight.w500)),
           const Spacer(),
           _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: onAdd),
         ])),
@@ -744,7 +744,7 @@ class _DashView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
         child: Row(children: [
           Text('Recent Companies', style: TextStyle(
-            color: p.text, fontSize: 16, fontWeight: FontWeight.w700)),
+            color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -753,7 +753,7 @@ class _DashView extends StatelessWidget {
               borderRadius: BorderRadius.circular(100)),
             child: Text('${_mock.length}', style: const TextStyle(
               color: AppColors.primaryBlue,
-              fontSize: 11, fontWeight: FontWeight.w700))),
+              fontSize: 13, fontWeight: FontWeight.w700))),
           const Spacer(),
           MouseRegion(
             cursor: SystemMouseCursors.click,
@@ -761,7 +761,7 @@ class _DashView extends StatelessWidget {
               onTap: onViewAll,
               child: const Text('View all →',
                 style: TextStyle(color: AppColors.primaryBlue,
-                  fontSize: 14, fontWeight: FontWeight.w600)))),
+                  fontSize: 16, fontWeight: FontWeight.w700)))),
         ])),
 
       // Table
@@ -969,7 +969,7 @@ class _CoRowState extends State<_CoRow> {
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(co.name, style: TextStyle(
-                  color: p.text, fontSize: 13, fontWeight: FontWeight.w600),
+                  color: p.text, fontSize: 15, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis),
                 Text(co.hrEmail, style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 11),
@@ -986,20 +986,22 @@ class _CoRowState extends State<_CoRow> {
             Expanded(flex: 2, child: _StatusDot(co.isActive)),
             Expanded(flex: 2, child: Text(_fmt(co.price),
               style: TextStyle(
-                color: p.text, fontSize: 13, fontWeight: FontWeight.w500))),
+                color: p.text, fontSize: 15, fontWeight: FontWeight.w600))),
             Expanded(flex: 2, child: Text(
               widget.isDash ? co.added : '${co.employees}',
               style: const TextStyle(
                 color: AppColors.textSecondary, fontSize: 13))),
-            SizedBox(width: 56,
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: widget.onView,
-                  child: const Text('View',
-                    style: TextStyle(
-                      color: AppColors.primaryBlue,
-                      fontSize: 13, fontWeight: FontWeight.w600))))),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: widget.onView,
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withAlpha(18),
+                    borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.remove_red_eye_rounded,
+                    color: AppColors.primaryBlue, size: 18)))),
           ]))));
   }
 }
@@ -1030,7 +1032,7 @@ class _CoDetailPanel extends StatelessWidget {
           color: p.card,
           child: Row(children: [
             Text('Company Details', style: TextStyle(
-              color: p.text, fontSize: 17, fontWeight: FontWeight.w800)),
+              color: p.text, fontSize: 19, fontWeight: FontWeight.w700)),
             const Spacer(),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -1063,7 +1065,7 @@ class _CoDetailPanel extends StatelessWidget {
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(co.name, style: TextStyle(
-                      color: p.text, fontSize: 16, fontWeight: FontWeight.w800),
+                      color: p.text, fontSize: 18, fontWeight: FontWeight.w700),
                       overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Row(children: [
@@ -1121,7 +1123,7 @@ class _CoDetailPanel extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                               Text(b['name']!, style: TextStyle(
-                                color: p.text, fontSize: 13,
+                                color: p.text, fontSize: 15,
                                 fontWeight: FontWeight.w600)),
                               Text(b['location']!, style: const TextStyle(
                                 color: AppColors.textSecondary, fontSize: 11)),
@@ -1134,7 +1136,7 @@ class _CoDetailPanel extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(100)),
                               child: Text(b['code']!, style: const TextStyle(
                                 color: AppColors.primaryBlue,
-                                fontSize: 11, fontWeight: FontWeight.w600))),
+                                fontSize: 13, fontWeight: FontWeight.w600))),
                             const SizedBox(width: 8),
                             const Icon(Icons.chevron_right_rounded,
                               color: AppColors.textSecondary, size: 18),
@@ -1163,7 +1165,7 @@ class _CoDetailPanel extends StatelessWidget {
                     Expanded(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(pay['date'] as String, style: TextStyle(
-                        color: p.text, fontSize: 13,
+                        color: p.text, fontSize: 15,
                         fontWeight: FontWeight.w600)),
                       Text('${pay['method']} · ${pay['ref']}',
                         style: const TextStyle(
@@ -1172,7 +1174,7 @@ class _CoDetailPanel extends StatelessWidget {
                     Text(_fmt(pay['amount'] as int),
                       style: const TextStyle(
                         color: AppColors.successGreen,
-                        fontSize: 14, fontWeight: FontWeight.w700)),
+                        fontSize: 16, fontWeight: FontWeight.w700)),
                   ])))),
 
               const SizedBox(height: 8),
@@ -1253,10 +1255,10 @@ class _BranchDetailPanel extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                 Text('Branch Details', style: TextStyle(
-                  color: p.text, fontSize: 17, fontWeight: FontWeight.w800)),
+                  color: p.text, fontSize: 19, fontWeight: FontWeight.w700)),
                 Text(coName, style: const TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 11, fontWeight: FontWeight.w500)),
+                  fontSize: 13, fontWeight: FontWeight.w600)),
               ])),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -1300,7 +1302,7 @@ class _BranchDetailPanel extends StatelessWidget {
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(name, style: TextStyle(
-                      color: p.text, fontSize: 16, fontWeight: FontWeight.w800)),
+                      color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Row(children: [
                       Container(
@@ -1311,7 +1313,7 @@ class _BranchDetailPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(100)),
                         child: Text(code, style: const TextStyle(
                           color: AppColors.primaryBlue,
-                          fontSize: 11, fontWeight: FontWeight.w700))),
+                          fontSize: 13, fontWeight: FontWeight.w600))),
                       const SizedBox(width: 8),
                       _StatusDot(isActive),
                     ]),
@@ -1382,9 +1384,9 @@ class _AttendanceStat extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: Text(label, style: const TextStyle(
           color: AppColors.textSecondary,
-          fontSize: 13, fontWeight: FontWeight.w500))),
+          fontSize: 15, fontWeight: FontWeight.w600))),
         Text(value, style: TextStyle(
-          color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+          color: color, fontSize: 18, fontWeight: FontWeight.w700)),
       ]));
   }
 }
@@ -1455,12 +1457,12 @@ class _BillingViewState extends State<_BillingView> {
               'Payments are received via bank transfer. '
               'Update each company\'s status manually after confirming receipt.',
               style: TextStyle(color: AppColors.primaryBlue,
-                fontSize: 13, fontWeight: FontWeight.w500))),
+                fontSize: 15, fontWeight: FontWeight.w600))),
           ])),
 
         Row(children: [
           Text('Payment Status — June 2025', style: TextStyle(
-            color: p.text, fontSize: 16, fontWeight: FontWeight.w700)),
+            color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
           const Spacer(),
           const Text('Tap status badge to update',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
@@ -1492,7 +1494,7 @@ class _BillingViewState extends State<_BillingView> {
                     Expanded(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(co.name, style: TextStyle(
-                        color: p.text, fontSize: 13,
+                        color: p.text, fontSize: 15,
                         fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis),
                       Text(co.hrEmail, style: const TextStyle(
@@ -1504,8 +1506,8 @@ class _BillingViewState extends State<_BillingView> {
                     child: _TypeBadge(co.isMulti))),
                   Expanded(flex: 2, child: Text(_fmt(co.price),
                     style: TextStyle(
-                      color: p.text, fontSize: 13,
-                      fontWeight: FontWeight.w500))),
+                      color: p.text, fontSize: 15,
+                      fontWeight: FontWeight.w600))),
                   Expanded(flex: 2, child: _StatusDot(co.isActive)),
                   Expanded(flex: 2, child: _PayStatusPicker(
                     status: ps,
@@ -1582,7 +1584,7 @@ class _PayStatusPicker extends StatelessWidget {
           decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 8),
         Text(label, style: TextStyle(
-          color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+          color: color, fontSize: 15, fontWeight: FontWeight.w600)),
       ]));
 }
 
@@ -1624,7 +1626,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
     final p = _P.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(
-        color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+        color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
       const SizedBox(height: 6),
       TextField(
         controller: ctrl,
@@ -1672,10 +1674,10 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
               const Text('Add New Company',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
               Text('Fill in the company details below',
                 style: TextStyle(
-                  color: p.subText, fontSize: 13, fontWeight: FontWeight.w400)),
+                  color: p.subText, fontSize: 15, fontWeight: FontWeight.w500)),
             ])),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -1703,7 +1705,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             // Type toggle
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Company Type', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
@@ -1720,7 +1722,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             // Industry dropdown
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Industry', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 13, fontWeight: FontWeight.w600)),
+                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Container(
                 height: 50,
@@ -1790,6 +1792,6 @@ class _TypeToggle extends StatelessWidget {
             borderRadius: BorderRadius.circular(9)),
           child: Center(child: Text(label, style: TextStyle(
             color: sel ? AppColors.primaryBlue : p.subText,
-            fontSize: 13, fontWeight: FontWeight.w600)))))));
+            fontSize: 15, fontWeight: FontWeight.w600)))))));
   }
 }
