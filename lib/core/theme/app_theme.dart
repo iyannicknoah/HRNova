@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
+  static TextTheme _urbanist(TextTheme base) =>
+      GoogleFonts.urbanistTextTheme(base);
+
   static ThemeData get lightTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       primaryColor: AppColors.primaryBlue,
       scaffoldBackgroundColor: AppColors.backgroundBlue,
-      cardTheme: CardThemeData(
-        color: AppColors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.cardBorder, width: 0.5),
-        ),
-        shadowColor: AppColors.primaryBlue.withAlpha(20),
-      ),
       colorScheme: const ColorScheme.light(
         primary: AppColors.primaryBlue,
         secondary: AppColors.successGreen,
@@ -26,6 +21,12 @@ class AppTheme {
         error: AppColors.errorRed,
         onPrimary: AppColors.white,
         onSurface: AppColors.textPrimary,
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shadowColor: AppColors.primaryBlue.withAlpha(20),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.backgroundBlue,
@@ -54,41 +55,23 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryBlue,
           foregroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          minimumSize: const Size(double.infinity, 44),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          minimumSize: const Size(double.infinity, 50),
           elevation: 0,
         ),
       ),
-      textTheme: const TextTheme(
-        headlineLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
-        headlineMedium: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
-        headlineSmall: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-        titleLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-        titleMedium: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
-        titleSmall: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
-        bodyLarge: TextStyle(color: AppColors.textPrimary),
-        bodyMedium: TextStyle(color: AppColors.textSecondary),
-        bodySmall: TextStyle(color: AppColors.textSecondary),
-        labelLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-      ),
       dividerTheme: const DividerThemeData(color: AppColors.cardBorder, thickness: 0.5),
     );
+    return base.copyWith(textTheme: _urbanist(base.textTheme));
   }
 
   static ThemeData get darkTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: AppColors.primaryBlue,
       scaffoldBackgroundColor: AppColors.darkBackground,
-      cardTheme: CardThemeData(
-        color: AppColors.darkCard,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.white.withAlpha(15), width: 0.5),
-        ),
-      ),
       colorScheme: ColorScheme.dark(
         primary: AppColors.primaryBlue,
         secondary: AppColors.successGreen,
@@ -96,6 +79,14 @@ class AppTheme {
         error: AppColors.errorRed,
         onPrimary: AppColors.white,
         onSurface: AppColors.white.withAlpha(230),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.darkCard,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.white.withAlpha(15), width: 0.5),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.darkBackground,
@@ -124,12 +115,14 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryBlue,
           foregroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          minimumSize: const Size(double.infinity, 44),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          minimumSize: const Size(double.infinity, 50),
           elevation: 0,
         ),
       ),
       dividerTheme: DividerThemeData(color: AppColors.white.withAlpha(20), thickness: 0.5),
     );
+    return base.copyWith(textTheme: _urbanist(base.textTheme));
   }
 }
