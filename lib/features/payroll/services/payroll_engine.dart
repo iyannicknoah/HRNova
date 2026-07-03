@@ -1,74 +1,186 @@
+import '../../attendance/models/attendance_model.dart';
 import '../../employees/models/employee_model.dart';
+import '../../settings/models/company_settings_model.dart';
 import '../models/payroll_model.dart';
-import '../../../core/constants/app_constants.dart';
 
+/// Pure-Dart payroll calculator — no UI, no Firebase.
+/// All rounding to nearest whole RWF.
 class PayrollEngine {
   PayrollEngine._();
 
-  // Rwanda 2025 PAYE — taxable = gross (RSSB does NOT reduce PAYE base)
-  static double calculatePaye(double grossSalary) {
-    if (grossSalary <= AppConstants.payeTaxFreeMonthly) return 0;
-
-    if (grossSalary <= AppConstants.payeBracket1Max) {
-      return (grossSalary - AppConstants.payeTaxFreeMonthly) * AppConstants.payeBracket1Rate;
-    }
-
-    if (grossSalary <= AppConstants.payeBracket2Max) {
-      return 8000 +
-          (grossSalary - AppConstants.payeBracket1Max) * AppConstants.payeBracket2Rate;
-    }
-
-    return 38000 +
-        (grossSalary - AppConstants.payeBracket2Max) * AppConstants.payeBracket3Rate;
+  // ── Rwanda 2025 PAYE ─────────────────────────────────────────────────────────
+  // Taxable income = adjustedGross (RSSB does NOT reduce PAYE base)
+  static double calculatePaye(double gross) {
+    if (gross <= 60000) return 0;
+    if (gross <= 100000) return _r((gross - 60000) * 0.20);
+    if (gross <= 200000) return _r(8000 + (gross - 100000) * 0.30);
+    return _r(38000 + (gross - 200000) * 0.30);
   }
 
-  static double calculatePensionEmployee(double gross) =>
-      gross * AppConstants.pensionEmployeeRate;
+  // ── Individual rate helpers ────────────────────────────────────────────────
+  static double calculatePensionEmployee(double gross) => _r(gross * 0.06);
+  static double calculatePensionEmployer(double gross) => _r(gross * 0.06);
+  static double calculateMaternityEmployee(double gross) => _r(gross * 0.003);
+  static double calculateMaternityEmployer(double gross) => _r(gross * 0.003);
+  static double calculateOccupationalHazard(double gross) => _r(gross * 0.02);
 
-  static double calculatePensionEmployer(double gross) =>
-      gross * AppConstants.pensionEmployerRate;
+  // ── Working days in a month ───────────────────────────────────────────────
+  static List<String> workingDayKeysForMonth(
+      int year, int month, List<String> workingDays) {
+    final first = DateTime(year, month, 1);
+    final last = DateTime(year, month + 1, 0); // last day of month
+    final keys = <String>[];
+    var cur = first;
+    while (!cur.isAfter(last)) {
+      final dayName = _dayName(cur.weekday);
+      final mmdd =
+          '${cur.month.toString().padLeft(2, '0')}-${cur.day.toString().padLeft(2, '0')}';
+      if (workingDays.contains(dayName) && !_rwandaHolidays.contains(mmdd)) {
+        keys.add(
+            '${cur.year}-${cur.month.toString().padLeft(2, '0')}-${cur.day.toString().padLeft(2, '0')}');
+      }
+      cur = cur.add(const Duration(days: 1));
+    }
+    return keys;
+  }
 
-  static double calculateMaternityEmployee(double gross) =>
-      gross * AppConstants.maternityEmployeeRate;
+  static String _dayName(int weekday) => switch (weekday) {
+        1 => 'monday',
+        2 => 'tuesday',
+        3 => 'wednesday',
+        4 => 'thursday',
+        5 => 'friday',
+        6 => 'saturday',
+        7 => 'sunday',
+        _ => '',
+      };
 
-  static double calculateMaternityEmployer(double gross) =>
-      gross * AppConstants.maternityEmployerRate;
-
-  static double calculateOccupationalHazard(double gross) =>
-      gross * AppConstants.occupationalHazardRate;
-
+  // ── Full payslip calculation — 10 steps ──────────────────────────────────
+  /// [attendanceMap]: date key → AttendanceModel for the month.
+  /// [approvedLeaveKeys]: date keys where employee had an approved leave request.
+  /// [workingDayKeys]: all working day keys for the month.
   static PayslipModel calculatePayslip({
     required EmployeeModel employee,
-    required String payrollMonth,
-    required int workingDays,
-    required int presentDays,
-    double allowances = 0,
-    double deductions = 0,
+    required String payrollMonth, // YYYY-MM
+    required Map<String, AttendanceModel> attendanceMap,
+    required Set<String> approvedLeaveKeys,
+    required List<String> workingDayKeys,
+    required CompanySettingsModel settings,
+    double bonuses = 0,
+    String? bonusDescription,
+    double extraDeductions = 0,
+    String? extraDeductionsDescription,
   }) {
-    double effectiveGross = employee.grossSalary;
+    final totalWorkingDays = workingDayKeys.length;
 
-    // Pro-rate for daily/hourly or partial months
-    if (employee.salaryType == AppConstants.salaryTypeFixedMonthly && workingDays > 0) {
-      effectiveGross = (employee.grossSalary / workingDays) * presentDays;
+    // ── Step 1 — Base salary ────────────────────────────────────────────────
+    double baseSalary;
+    int presentDays = 0;
+    double totalHoursWorked = 0;
+
+    switch (employee.salaryType) {
+      case 'daily_rate':
+        // Count days where employee was present (checked in, not absent, not on leave)
+        for (final key in workingDayKeys) {
+          final rec = attendanceMap[key];
+          if (rec != null && rec.checkInTime != null && !rec.isAbsent && !rec.isOnLeave) {
+            presentDays++;
+          }
+        }
+        baseSalary = _r(presentDays * employee.dailyRate);
+        break;
+      case 'hourly_rate':
+        for (final rec in attendanceMap.values) {
+          if (rec.checkInTime != null && rec.checkOutTime != null) {
+            totalHoursWorked +=
+                rec.checkOutTime!.difference(rec.checkInTime!).inMinutes / 60.0;
+            presentDays++;
+          } else if (rec.workingHours != null) {
+            totalHoursWorked += rec.workingHours!;
+            presentDays++;
+          }
+        }
+        baseSalary = _r(totalHoursWorked * employee.hourlyRate);
+        break;
+      default: // fixed_monthly
+        baseSalary = _r(employee.salaryAmount);
+        // Count present days (for display)
+        for (final key in workingDayKeys) {
+          final rec = attendanceMap[key];
+          if (rec != null && rec.checkInTime != null) presentDays++;
+        }
     }
 
-    effectiveGross += allowances;
+    // ── Step 2 — Gross ──────────────────────────────────────────────────────
+    final transportAllowance = _r(employee.transportAllowance);
+    final housingAllowance = _r(employee.housingAllowance);
+    final grossBeforeAdjustments = baseSalary + transportAllowance + housingAllowance + bonuses;
 
-    final adjustedGross = effectiveGross + deductions.abs();
+    // ── Step 3 — Absent deduction (fixed_monthly only) ─────────────────────
+    int absentDays = 0;
+    double absentDeduction = 0;
 
-    final pensionEmp = calculatePensionEmployee(adjustedGross);
-    final pensionEmr = calculatePensionEmployer(adjustedGross);
-    final maternityEmp = calculateMaternityEmployee(adjustedGross);
-    final maternityEmr = calculateMaternityEmployer(adjustedGross);
-    final occupational = calculateOccupationalHazard(adjustedGross);
+    if (employee.salaryType == 'fixed_monthly' && totalWorkingDays > 0) {
+      for (final key in workingDayKeys) {
+        final rec = attendanceMap[key];
+        final hasApprovedLeave = approvedLeaveKeys.contains(key);
+        final hasAttendance = rec != null && rec.checkInTime != null;
+        if (!hasAttendance && !hasApprovedLeave) {
+          absentDays++;
+        }
+      }
+      if (absentDays > 0) {
+        absentDeduction = _r((employee.salaryAmount / totalWorkingDays) * absentDays);
+      }
+    }
+
+    // ── Step 4 — Late deduction ─────────────────────────────────────────────
+    int totalLateMinutes = 0;
+    for (final rec in attendanceMap.values) {
+      if (rec.isLate) totalLateMinutes += rec.lateMinutes;
+    }
+    final lateDeduction = totalLateMinutes > 0
+        ? _r((totalLateMinutes / 60.0) * settings.lateDeductionPerHourRwf)
+        : 0.0;
+
+    // ── Step 5 — Adjusted gross ─────────────────────────────────────────────
+    final adjustedGross = _r(grossBeforeAdjustments - absentDeduction - lateDeduction)
+        .clamp(0.0, double.infinity);
+
+    // ── Step 6 — RSSB employee ──────────────────────────────────────────────
+    final pensionEmployee = calculatePensionEmployee(adjustedGross);
+    final maternityEmployee = calculateMaternityEmployee(adjustedGross);
+    final totalEmployeeRssb = pensionEmployee + maternityEmployee;
+
+    // ── Step 7 — PAYE ───────────────────────────────────────────────────────
     final paye = calculatePaye(adjustedGross);
 
-    final totalEmployeeDeductions = pensionEmp + maternityEmp + paye + deductions.abs();
-    final netSalary = effectiveGross - totalEmployeeDeductions;
+    // ── Step 8 — Loan deductions ────────────────────────────────────────────
+    double loanDeductions = 0;
+    for (final loan in employee.loans) {
+      final loanMap = loan as Map<String, dynamic>? ?? {};
+      final status = loanMap['status'] as String? ?? 'active';
+      final remaining = (loanMap['remainingAmount'] as num?)?.toDouble() ?? 0;
+      final monthly = (loanMap['monthlyDeduction'] as num?)?.toDouble() ?? 0;
+      if (status == 'active' && remaining > 0 && monthly > 0) {
+        loanDeductions += monthly.clamp(0, remaining);
+      }
+    }
+    loanDeductions = _r(loanDeductions);
+
+    // ── Step 9 — Net salary ─────────────────────────────────────────────────
+    final totalDeductions = _r(totalEmployeeRssb + paye + loanDeductions + extraDeductions);
+    final netSalary = _r(adjustedGross - totalDeductions).clamp(0.0, double.infinity);
+
+    // ── Step 10 — Employer costs ────────────────────────────────────────────
+    final pensionEmployer = calculatePensionEmployer(adjustedGross);
+    final maternityEmployer = calculateMaternityEmployer(adjustedGross);
+    final occupationalHazard = calculateOccupationalHazard(adjustedGross);
     final totalEmployerCost =
-        adjustedGross + pensionEmr + maternityEmr + occupational;
+        _r(adjustedGross + pensionEmployer + maternityEmployer + occupationalHazard);
 
     return PayslipModel(
+      id: employee.id,
       employeeId: employee.id,
       companyId: employee.companyId,
       payrollMonth: payrollMonth,
@@ -76,25 +188,44 @@ class PayrollEngine {
       lastName: employee.lastName,
       position: employee.jobTitle,
       department: employee.department,
-      grossSalary: _round(adjustedGross),
-      pensionEmployee: _round(pensionEmp),
-      pensionEmployer: _round(pensionEmr),
-      maternityEmployee: _round(maternityEmp),
-      maternityEmployer: _round(maternityEmr),
-      occupationalHazard: _round(occupational),
-      paye: _round(paye),
-      netSalary: _round(netSalary),
-      totalEmployerCost: _round(totalEmployerCost),
-      workingDays: workingDays,
+      nationalId: employee.nationalId,
+      rssbNumber: employee.rssbNumber,
+      bankAccountNumber: employee.bankAccount,
+      baseSalary: baseSalary,
+      transportAllowance: transportAllowance,
+      housingAllowance: housingAllowance,
+      bonuses: bonuses,
+      bonusDescription: bonusDescription,
+      totalEarnings: _r(grossBeforeAdjustments),
+      absentDays: absentDays,
+      absentDeduction: absentDeduction,
+      totalLateMinutes: totalLateMinutes,
+      lateDeduction: lateDeduction,
+      adjustedGross: adjustedGross,
+      pensionEmployee: pensionEmployee,
+      maternityEmployee: maternityEmployee,
+      totalEmployeeRssb: _r(totalEmployeeRssb),
+      paye: paye,
+      loanDeductions: loanDeductions,
+      extraDeductions: extraDeductions,
+      extraDeductionsDescription: extraDeductionsDescription,
+      totalDeductions: totalDeductions,
+      netSalary: netSalary,
+      pensionEmployer: pensionEmployer,
+      maternityEmployer: maternityEmployer,
+      occupationalHazard: occupationalHazard,
+      totalEmployerCost: totalEmployerCost,
+      workingDays: totalWorkingDays,
       presentDays: presentDays,
       status: 'draft',
-      bankAccountNumber: employee.bankAccount.isEmpty ? null : employee.bankAccount,
-      rssbNumber: employee.rssbNumber,
-      allowances: _round(allowances),
-      deductions: _round(deductions),
     );
   }
 
-  // Rounds to nearest whole number (RWF has no decimals)
-  static double _round(double value) => value.roundToDouble();
+  static double _r(double v) => v.roundToDouble();
+
+  // Rwanda public holidays — same list as AppConstants but used internally here
+  static const _rwandaHolidays = {
+    '01-01', '01-02', '02-01', '04-07', '05-01',
+    '07-01', '07-04', '08-15', '12-25', '12-26',
+  };
 }
