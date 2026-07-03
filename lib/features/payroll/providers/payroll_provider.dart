@@ -271,7 +271,7 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
     }
   }
 
-  /// Lock the payroll. No changes allowed after approval.
+  /// Lock the payroll and decrease loan balances for each employee.
   Future<void> approvePayroll(String month) async {
     final companyId = _companyId;
     if (companyId == null) return;
@@ -280,15 +280,58 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
             'HR Admin';
     final now = DateTime.now().toIso8601String();
 
-    final batch = FirebaseService.db.batch();
     final payslipsSnap =
         await FirebaseService.payslipsRef(companyId, month).get();
+
+    final batch = FirebaseService.db.batch();
+
     for (final d in payslipsSnap.docs) {
+      // 1 — Approve payslip
       batch.update(d.reference,
           {'status': 'approved', 'approvedBy': displayName, 'approvedAt': now});
+
+      // 2 — Decrease loan balances if this employee had loan deductions
+      final ps = PayslipModel.fromMap(d.id, d.data());
+      if (ps.loanDeductions > 0) {
+        final empRef = FirebaseService.db
+            .collection('companies')
+            .doc(companyId)
+            .collection('employees')
+            .doc(ps.employeeId);
+
+        final empSnap = await empRef.get();
+        if (empSnap.exists) {
+          final rawLoans =
+              List<Map<String, dynamic>>.from(
+                  (empSnap.data()!['loans'] as List? ?? [])
+                      .map((l) => Map<String, dynamic>.from(l as Map)));
+
+          double remaining = ps.loanDeductions;
+          final updatedLoans = rawLoans.map((loan) {
+            if (remaining <= 0) return loan;
+            final status = loan['status'] as String? ?? 'active';
+            final rem = (loan['remainingAmount'] as num?)?.toDouble() ?? 0;
+            final monthly = (loan['monthlyDeduction'] as num?)?.toDouble() ?? 0;
+            if (status != 'active' || rem <= 0 || monthly <= 0) return loan;
+
+            final deducted = monthly.clamp(0, rem);
+            remaining -= deducted;
+            final newRem = rem - deducted;
+            return {
+              ...loan,
+              'remainingAmount': newRem,
+              if (newRem <= 0) 'status': 'paid',
+            };
+          }).toList();
+
+          batch.update(empRef, {'loans': updatedLoans});
+        }
+      }
     }
+
     batch.update(FirebaseService.payrollRef(companyId).doc(month),
         {'status': 'approved', 'approvedBy': displayName, 'approvedAt': now});
+
     await batch.commit();
   }
 

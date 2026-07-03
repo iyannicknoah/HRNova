@@ -61,6 +61,25 @@ class ApiService {
     }
   }
 
+  Future<List<int>> getBytes(String path, {Map<String, dynamic>? params}) async {
+    final token = await _getToken();
+    try {
+      final response = await _dio.get<List<int>>(
+        path,
+        queryParameters: params,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      return response.data ?? [];
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Future<Response> postMultipart(String path, FormData formData) async {
     final token = await _getToken();
     try {

@@ -19,6 +19,10 @@ import '../../leave/models/leave_request_model.dart';
 import '../../leave/providers/leave_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
+import '../../payroll/models/payroll_model.dart';
+import '../../payroll/providers/payroll_provider.dart';
+import '../../payroll/services/payslip_pdf_service.dart';
+import '../../settings/providers/settings_provider.dart';
 
 class EmployeeProfileScreen extends ConsumerStatefulWidget {
   const EmployeeProfileScreen({super.key, required this.employeeId});
@@ -81,7 +85,7 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
                     _QRTab(employee: employee),
                     _AttendanceTab(employeeId: widget.employeeId),
                     _LeaveProfileTab(employee: employee),
-                    _PlaceholderTab(icon: Icons.account_balance_wallet_rounded, label: 'Payroll', hint: 'Part 8 — Payroll & Payslips'),
+                    _PayrollProfileTab(employee: employee),
                     _LoansTab(employee: employee),
                   ],
                 ),
@@ -1493,27 +1497,317 @@ class _AdjustLeaveDialogState
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Placeholder tabs
+//  Payroll profile tab
 // ─────────────────────────────────────────────────────────────────────────────
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.icon, required this.label, required this.hint});
-  final IconData icon; final String label, hint;
+class _PayrollProfileTab extends ConsumerWidget {
+  const _PayrollProfileTab({required this.employee});
+  final EmployeeModel employee;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 72, height: 72,
-        decoration: const BoxDecoration(color: AppColors.pillBlueBg, shape: BoxShape.circle),
-        child: Icon(icon, size: 34, color: AppColors.primaryBlue),
-      ),
-      const SizedBox(height: 16),
-      Text(label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.appText)),
-      const SizedBox(height: 6),
-      Text(hint, style: TextStyle(fontSize: 14, color: context.appSubtext)),
-    ]),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final payslipsAsync = ref.watch(employeePayslipsProvider(employee.id));
+
+    return payslipsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (payslips) {
+        if (payslips.isEmpty) {
+          return Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 64, height: 64,
+                decoration: const BoxDecoration(
+                    color: AppColors.pillBlueBg, shape: BoxShape.circle),
+                child: const Icon(Icons.account_balance_wallet_rounded,
+                    size: 30, color: AppColors.primaryBlue),
+              ),
+              const SizedBox(height: 14),
+              Text('No payslips yet',
+                  style: TextStyle(
+                      color: context.appText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Text('Payslips will appear once payroll is run',
+                  style: TextStyle(color: context.appSubtext, fontSize: 13)),
+            ]),
+          );
+        }
+
+        final latest = payslips.first;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // ── Latest payslip summary ────────────────────────────────────
+            _SectionLabel('Latest Payslip — ${_monthLabel(latest.payrollMonth)}'),
+            const SizedBox(height: 12),
+            _LatestPayslipCard(ps: latest, employee: employee),
+            const SizedBox(height: 24),
+
+            // ── Payment history list ──────────────────────────────────────
+            Row(children: [
+              _SectionLabel('Payment History'),
+              const Spacer(),
+              Text('${payslips.length} payslip${payslips.length == 1 ? '' : 's'}',
+                  style: TextStyle(color: context.appSubtext, fontSize: 12)),
+            ]),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                  color: context.appCard,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: context.appBorder)),
+              child: Column(
+                children: payslips.asMap().entries.map((e) {
+                  final i = e.key;
+                  final ps = e.value;
+                  return _PayslipHistoryRow(
+                    ps: ps,
+                    employee: employee,
+                    isLast: i == payslips.length - 1,
+                  );
+                }).toList(),
+              ),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+
+  static String _monthLabel(String month) {
+    try {
+      return DateFormat('MMMM yyyy').format(DateTime.parse('$month-01'));
+    } catch (_) {
+      return month;
+    }
+  }
 }
+
+class _LatestPayslipCard extends ConsumerWidget {
+  const _LatestPayslipCard({required this.ps, required this.employee});
+  final PayslipModel ps;
+  final EmployeeModel employee;
+
+  static final _fmt = NumberFormat('#,##0', 'en_US');
+  static String _rwf(double v) => 'RWF ${_fmt.format(v.round())}';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isApproved = ps.status == 'approved';
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: context.appCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.appBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+                color: isApproved ? AppColors.pillGreenBg : AppColors.pillAmberBg,
+                borderRadius: BorderRadius.circular(100)),
+            child: Text(
+              isApproved ? 'Approved' : 'Draft',
+              style: TextStyle(
+                  color: isApproved
+                      ? AppColors.successGreen
+                      : AppColors.warningAmber,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          const Spacer(),
+          OutlinedButton.icon(
+            onPressed: () => _downloadPdf(context, ref),
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 14),
+            label: const Text('Download PDF'),
+            style: OutlinedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                textStyle: const TextStyle(fontSize: 12),
+                side: BorderSide(color: context.appBorder)),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        Row(children: [
+          _LineItem(label: 'Total Earnings', value: _rwf(ps.totalEarnings), bold: false),
+          _LineItem(label: 'PAYE Tax', value: _rwf(ps.paye), bold: false),
+          _LineItem(label: 'RSSB', value: _rwf(ps.totalEmployeeRssb), bold: false),
+          _LineItem(label: 'Loans', value: _rwf(ps.loanDeductions), bold: false),
+        ]),
+        Divider(height: 24, color: context.appBorder),
+        Row(children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('NET SALARY',
+                style: TextStyle(
+                    color: context.appSubtext,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5)),
+            const SizedBox(height: 4),
+            Text(_rwf(ps.netSalary),
+                style: const TextStyle(
+                    color: AppColors.successGreen,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800)),
+          ]),
+          const Spacer(),
+          if (ps.absentDays > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                  color: AppColors.pillRedBg,
+                  borderRadius: BorderRadius.circular(8)),
+              child: Text('${ps.absentDays} absent day${ps.absentDays == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                      color: AppColors.errorRed,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+            ),
+        ]),
+      ]),
+    );
+  }
+
+  Future<void> _downloadPdf(BuildContext context, WidgetRef ref) async {
+    final settings = ref.read(companySettingsProvider).value;
+    final companyName = settings?.companyName ?? 'Company';
+    final doc =
+        await PayslipPdfService.generatePayslip(ps, companyName);
+    await Printing.layoutPdf(onLayout: (_) async => await doc.save());
+  }
+}
+
+class _PayslipHistoryRow extends ConsumerWidget {
+  const _PayslipHistoryRow(
+      {required this.ps, required this.employee, required this.isLast});
+  final PayslipModel ps;
+  final EmployeeModel employee;
+  final bool isLast;
+
+  static final _fmt = NumberFormat('#,##0', 'en_US');
+  static String _rwf(double v) => 'RWF ${_fmt.format(v.round())}';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final label = _monthLabel(ps.payrollMonth);
+    final isApproved = ps.status == 'approved';
+
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  style: TextStyle(
+                      color: context.appText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text('${ps.workingDays} working days · ${ps.presentDays} present',
+                  style: TextStyle(
+                      color: context.appSubtext, fontSize: 11)),
+            ]),
+          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(_rwf(ps.netSalary),
+                style: const TextStyle(
+                    color: AppColors.successGreen,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: isApproved
+                      ? AppColors.pillGreenBg
+                      : AppColors.pillAmberBg,
+                  borderRadius: BorderRadius.circular(100)),
+              child: Text(
+                isApproved ? 'Approved' : 'Draft',
+                style: TextStyle(
+                    fontSize: 10,
+                    color: isApproved
+                        ? AppColors.successGreen
+                        : AppColors.warningAmber,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+          ]),
+          const SizedBox(width: 12),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _downloadPdf(context, ref),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(Icons.picture_as_pdf_rounded,
+                  size: 18, color: context.appSubtext),
+            ),
+          ),
+        ]),
+      ),
+      if (!isLast) Divider(height: 1, color: context.appBorder),
+    ]);
+  }
+
+  Future<void> _downloadPdf(BuildContext context, WidgetRef ref) async {
+    final settings = ref.read(companySettingsProvider).value;
+    final companyName = settings?.companyName ?? 'Company';
+    final doc = await PayslipPdfService.generatePayslip(ps, companyName);
+    await Printing.layoutPdf(onLayout: (_) async => await doc.save());
+  }
+
+  static String _monthLabel(String month) {
+    try {
+      return DateFormat('MMM yyyy').format(DateTime.parse('$month-01'));
+    } catch (_) {
+      return month;
+    }
+  }
+}
+
+class _LineItem extends StatelessWidget {
+  const _LineItem(
+      {required this.label, required this.value, this.bold = false});
+  final String label, value;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: TextStyle(
+                color: context.appSubtext,
+                fontSize: 10,
+                letterSpacing: 0.3)),
+        const SizedBox(height: 3),
+        Text(value,
+            style: TextStyle(
+                color: context.appText,
+                fontSize: 13,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
+      ]),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(text,
+      style: TextStyle(
+          color: context.appText,
+          fontSize: 14,
+          fontWeight: FontWeight.w700));
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Loans tab

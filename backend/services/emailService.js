@@ -157,20 +157,51 @@ async function sendLeaveNotification({ employeeEmail, managerEmail, employeeName
   }
 }
 
-async function sendPayslipEmail({ employeeEmail, employeeName, payrollMonth, payslipUrl }) {
+async function sendPayslipEmail({ employeeEmail, employeeName, payrollMonth, pdfBase64, pdfFilename }) {
   const content = `
     <h2>Your Payslip is Ready</h2>
     <p>Dear <strong>${employeeName}</strong>,</p>
-    <p>Your payslip for <strong>${payrollMonth}</strong> is now available.</p>
-    ${payslipUrl ? `<p style="margin:20px 0"><a href="${payslipUrl}" style="background:#3B82F6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">View Payslip</a></p>` : ''}
-    <p>Contact HR if you have any questions about your payslip.</p>`;
+    <p>Your payslip for <strong>${payrollMonth}</strong> is attached to this email as a PDF.</p>
+    <div class="detail-card">
+      <div class="detail-row">
+        <span class="detail-label">Period</span>
+        <span class="detail-value">${payrollMonth}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Employee</span>
+        <span class="detail-value">${employeeName}</span>
+      </div>
+    </div>
+    <p>Please keep this payslip for your records. Contact HR if you have any questions.</p>`;
 
-  return sendEmail({
-    to: employeeEmail,
-    toName: employeeName,
-    subject: `Your Payslip for ${payrollMonth}`,
-    htmlContent: HTML_WRAPPER(content),
-  });
+  if (!process.env.BREVO_API_KEY) {
+    console.log(`[Email] No API key — skipping payslip send to ${employeeEmail}`);
+    return { messageId: 'no-api-key' };
+  }
+
+  try {
+    const payload = {
+      subject: `Your Payslip for ${payrollMonth}`,
+      htmlContent: HTML_WRAPPER(content),
+      sender: SENDER,
+      to: [{ email: employeeEmail, name: employeeName }],
+    };
+
+    // Attach PDF if provided (Brevo accepts base64 content)
+    if (pdfBase64) {
+      payload.attachment = [{
+        content: pdfBase64,
+        name: pdfFilename || `Payslip_${payrollMonth}.pdf`,
+      }];
+    }
+
+    const result = await api.sendTransacEmail(payload);
+    console.log(`[Email] Payslip sent to ${employeeEmail} for ${payrollMonth}`);
+    return result;
+  } catch (err) {
+    console.error('[Email] Payslip send error:', err?.response?.body ?? err.message);
+    throw err;
+  }
 }
 
 function _typeLabel(type) {
