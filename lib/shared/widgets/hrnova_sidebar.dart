@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import 'employee_avatar.dart';
+import 'notification_bell.dart';
 
 class _NavItem {
   const _NavItem({required this.label, required this.icon, required this.route, this.roles});
@@ -77,6 +78,8 @@ class HRNovaSidebar extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    const Spacer(),
+                    const NotificationBell(),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -113,11 +116,16 @@ class HRNovaSidebar extends ConsumerWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              children: _navItems.map((item) => _SidebarItem(
-                item: item,
-                isActive: currentRoute == item.route ||
-                    (currentRoute.startsWith(item.route) && item.route != '/dashboard'),
-              )).toList(),
+              children: _navItems
+                  .where((item) =>
+                      item.roles == null || item.roles!.contains(userRole))
+                  .map((item) => _SidebarItem(
+                        item: item,
+                        isActive: currentRoute == item.route ||
+                            (currentRoute.startsWith(item.route) &&
+                                item.route != '/dashboard'),
+                      ))
+                  .toList(),
             ),
           ),
           // User info at bottom
@@ -180,42 +188,24 @@ class HRNovaSidebar extends ConsumerWidget {
                     ],
                   ),
                 ),
+                GestureDetector(
+                  onTap: () => ref.read(authNotifierProvider.notifier).signOut(),
+                  child: Tooltip(
+                    message: 'Sign Out',
+                    child: Container(
+                      width: 32, height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withAlpha(10),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.logout_rounded, size: 16, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          // Sign out pill button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(100),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(100),
-                hoverColor: AppColors.errorRed.withAlpha(15),
-                onTap: () => ref.read(authNotifierProvider.notifier).signOut(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withAlpha(6),
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: AppColors.white.withAlpha(15), width: 0.5),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.logout_rounded, size: 15, color: AppColors.textSecondary),
-                      SizedBox(width: 8),
-                      Text('Sign Out', style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      )),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const SizedBox(height: 10),
         ],
       ),
     );

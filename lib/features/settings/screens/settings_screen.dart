@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_ext.dart';
 import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
 
@@ -140,7 +141,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Populate controllers once when stream data first arrives
     ref.listen<AsyncValue<CompanySettingsModel?>>(companySettingsProvider, (_, next) {
       if (!_initialized && next.value != null) {
         _initialized = true;
@@ -153,7 +153,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settingsAsync = ref.watch(companySettingsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundBlue,
+      backgroundColor: context.appBg,
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.errorRed))),
@@ -162,10 +162,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-                Text('Settings', style: TextStyle(color: AppColors.textPrimary, fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-                SizedBox(height: 2),
-                Text('Configure your company preferences', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Settings', style: TextStyle(color: context.appText, fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                const SizedBox(height: 2),
+                Text('Configure your company preferences', style: TextStyle(color: context.appSubtext, fontSize: 14)),
               ]),
               const SizedBox(height: 24),
               _section('schedule', Icons.schedule_rounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody()),
@@ -187,7 +187,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _section(String key, IconData icon, String title, String subtitle, Widget body) {
     final open = _expanded[key] ?? false;
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16), border: Border.all(color: context.appBorder)),
       child: Column(
         children: [
           InkWell(
@@ -202,16 +202,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Icon(icon, color: AppColors.primaryBlue, size: 20)),
                   const SizedBox(width: 14),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
-                    Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    Text(title, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+                    Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 12)),
                   ])),
-                  Icon(open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                  Icon(open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: context.appSubtext),
                 ],
               ),
             ),
           ),
           if (open) ...[
-            const Divider(color: AppColors.cardBorder, height: 1),
+            Divider(color: context.appBorder, height: 1),
             Padding(padding: const EdgeInsets.all(20), child: body),
           ],
         ],
@@ -230,7 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 16),
     _field('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
     const SizedBox(height: 16),
-    const Text('Working Days', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+    Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
     const SizedBox(height: 10),
     Wrap(spacing: 8, runSpacing: 8, children: _allDays.map((d) {
       final sel = _days.contains(d);
@@ -240,11 +240,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           decoration: BoxDecoration(
-            color: sel ? AppColors.primaryBlue.withAlpha(15) : AppColors.backgroundBlue,
+            color: sel ? AppColors.primaryBlue.withAlpha(15) : context.appField,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: sel ? AppColors.primaryBlue : AppColors.cardBorder, width: sel ? 1.5 : 1),
+            border: Border.all(color: sel ? AppColors.primaryBlue : context.appBorder, width: sel ? 1.5 : 1),
           ),
-          child: Text(d, style: TextStyle(color: sel ? AppColors.primaryBlue : AppColors.textSecondary, fontSize: 13, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+          child: Text(d, style: TextStyle(color: sel ? AppColors.primaryBlue : context.appSubtext, fontSize: 13, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
         ),
       );
     }).toList()),
@@ -253,7 +253,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'workStartTime': _fmtTime(_startTime),
       'workEndTime': _fmtTime(_endTime),
       'gracePeriodMinutes': int.tryParse(_graceCtrl.text) ?? 10,
-      'workingDays': _days.map((d) => _shortToLong[d]!).toList(),
+      'workingDays': _days.map((d) => _shortToLong[d] ?? d.toLowerCase()).toList(),
     })),
   ]);
 
@@ -285,20 +285,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Overtime Multiplier', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         Container(
           height: 48, padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(color: AppColors.backgroundBlue, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.cardBorder)),
+          decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _overtime,
+              dropdownColor: context.appCard,
               items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
                 value: v,
-                child: Text(v, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                child: Text(v, style: TextStyle(color: context.appText, fontSize: 14)),
               )).toList(),
               onChanged: (v) => setState(() => _overtime = v!),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.appSubtext),
               isExpanded: true,
             ),
           ),
@@ -325,16 +326,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(
         child: TextField(
           controller: _deptCtrl,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 14),
           onSubmitted: (_) => _addDept(),
           decoration: InputDecoration(
             hintText: 'Enter department name...',
-            hintStyle: const TextStyle(color: AppColors.textSecondary),
-            filled: true, fillColor: AppColors.backgroundBlue,
+            hintStyle: TextStyle(color: context.appSubtext),
+            filled: true, fillColor: context.appField,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           ),
         ),
       ),
@@ -366,7 +367,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ]);
 
   Widget _notifBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('Emergency Contacts', style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+    Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600)),
     const SizedBox(height: 14),
     _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
     const SizedBox(height: 12),
@@ -398,38 +399,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ── Shared widgets ────────────────────────────────────────────────────────
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textSecondary),
+            hintStyle: TextStyle(color: context.appSubtext),
             suffixText: suffix,
-            suffixStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            filled: true, fillColor: AppColors.backgroundBlue,
+            suffixStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+            filled: true, fillColor: context.appField,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           ),
         ),
       ]);
 
   Widget _timeField(String label, TimeOfDay t, VoidCallback onTap) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: BoxDecoration(color: AppColors.backgroundBlue, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.cardBorder)),
+            decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
             child: Row(children: [
-              const Icon(Icons.access_time_rounded, color: AppColors.textSecondary, size: 18),
+              Icon(Icons.access_time_rounded, color: context.appSubtext, size: 18),
               const SizedBox(width: 10),
-              Text(_fmtTime(t), style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+              Text(_fmtTime(t), style: TextStyle(color: context.appText, fontSize: 14)),
             ]),
           ),
         ),

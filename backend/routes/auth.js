@@ -63,7 +63,7 @@ router.post('/create-user', verifyToken, async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions to create users' });
     }
 
-    const { email, password, role, companyId, branchId, companyType, displayName } = req.body;
+    const { email, password, role, companyId, branchId, companyType, displayName, employeeId } = req.body;
 
     if (!email || !password || !role || !companyId) {
       return res.status(400).json({
@@ -85,6 +85,7 @@ router.post('/create-user', verifyToken, async (req, res) => {
 
     // Set custom claims
     const claims = { role, companyId };
+    if (employeeId) claims.employeeId = employeeId;
     if (branchId) claims.branchId = branchId;
     if (companyType) claims.companyType = companyType;
     if (displayName) claims.displayName = displayName;

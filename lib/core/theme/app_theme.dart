@@ -5,8 +5,27 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  static TextTheme _urbanist(TextTheme base) =>
-      GoogleFonts.urbanistTextTheme(base);
+  static TextTheme _urbanist(TextTheme base) {
+    final t = GoogleFonts.urbanistTextTheme(base);
+    // Slightly heavier default weights across the board
+    return t.copyWith(
+      displayLarge:  t.displayLarge?.copyWith(fontWeight: FontWeight.w700),
+      displayMedium: t.displayMedium?.copyWith(fontWeight: FontWeight.w700),
+      displaySmall:  t.displaySmall?.copyWith(fontWeight: FontWeight.w700),
+      headlineLarge: t.headlineLarge?.copyWith(fontWeight: FontWeight.w700),
+      headlineMedium:t.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+      headlineSmall: t.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+      titleLarge:    t.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      titleMedium:   t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      titleSmall:    t.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      bodyLarge:     t.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      bodyMedium:    t.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+      bodySmall:     t.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+      labelLarge:    t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+      labelMedium:   t.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+      labelSmall:    t.labelSmall?.copyWith(fontWeight: FontWeight.w500),
+    );
+  }
 
   static ThemeData get lightTheme {
     final base = ThemeData(

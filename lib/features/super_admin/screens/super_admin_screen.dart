@@ -488,35 +488,23 @@ class _Sidebar extends StatelessWidget {
                 color: AppColors.textSecondary, fontSize: 11),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
-          ]),
-        ),
-        // Sign out pill button
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
+            GestureDetector(
               onTap: () => FirebaseAuth.instance.signOut(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(6),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: Colors.white.withAlpha(15), width: 0.5),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.logout_rounded, size: 15, color: AppColors.textSecondary),
-                    SizedBox(width: 8),
-                    Text('Sign Out', style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
+              child: Tooltip(
+                message: 'Sign Out',
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.logout_rounded, size: 16, color: AppColors.textSecondary),
                 ),
               ),
             ),
-          ),
+          ]),
         ),
+        const SizedBox(height: 10),
       ]),
     );
   }

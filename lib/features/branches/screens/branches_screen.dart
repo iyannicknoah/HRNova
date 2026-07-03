@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_ext.dart';
 import '../models/branch_model.dart';
 import '../providers/branches_provider.dart';
 
@@ -33,7 +34,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
     final branchesAsync = ref.watch(branchesStreamProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundBlue,
+      backgroundColor: context.appBg,
       body: branchesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.errorRed))),
@@ -55,10 +56,10 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                 // Header
                 Row(
                   children: [
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-                      Text('Branches', style: TextStyle(color: AppColors.textPrimary, fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-                      SizedBox(height: 2),
-                      Text('Manage your company branches', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Branches', style: TextStyle(color: context.appText, fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                      const SizedBox(height: 2),
+                      Text('Manage your company branches', style: TextStyle(color: context.appSubtext, fontSize: 14)),
                     ]),
                     const Spacer(),
                     FilledButton.icon(
@@ -85,16 +86,16 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                 const SizedBox(height: 20),
                 // Search
                 Container(
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.cardBorder)),
+                  decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
                   child: TextField(
                     onChanged: (v) => setState(() => _search = v),
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: context.appText, fontSize: 14),
+                    decoration: InputDecoration(
                       hintText: 'Search branches...',
-                      hintStyle: TextStyle(color: AppColors.textSecondary),
-                      prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                      hintStyle: TextStyle(color: context.appSubtext),
+                      prefixIcon: Icon(Icons.search_rounded, color: context.appSubtext, size: 20),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                     ),
                   ),
                 ),
@@ -108,7 +109,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                             const SizedBox(height: 12),
                             Text(
                               branches.isEmpty ? 'No branches yet — add one to get started' : 'No branches match your search',
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
+                              style: TextStyle(color: context.appSubtext, fontSize: 15),
                             ),
                           ]),
                         )
@@ -164,7 +165,7 @@ class _BranchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16), border: Border.all(color: context.appBorder)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -180,9 +181,9 @@ class _BranchCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(branch.name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                Text(branch.name, style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 if (branch.branchCode.isNotEmpty)
-                  Text(branch.branchCode, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                  Text(branch.branchCode, style: TextStyle(color: context.appSubtext, fontSize: 11)),
               ])),
               GestureDetector(
                 onTap: () => onToggleActive(!branch.isActive),
@@ -201,7 +202,7 @@ class _BranchCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(color: AppColors.cardBorder, height: 1),
+          Divider(color: context.appBorder, height: 1),
           const SizedBox(height: 10),
           _row(Icons.location_on_rounded, branch.location.isEmpty ? 'No location set' : branch.location),
           const SizedBox(height: 6),
@@ -213,11 +214,11 @@ class _BranchCard extends StatelessWidget {
     );
   }
 
-  Widget _row(IconData icon, String text) => Row(children: [
-    Icon(icon, size: 14, color: AppColors.textSecondary),
+  Widget _row(IconData icon, String text) => Builder(builder: (context) => Row(children: [
+    Icon(icon, size: 14, color: context.appSubtext),
     const SizedBox(width: 6),
-    Expanded(child: Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), overflow: TextOverflow.ellipsis)),
-  ]);
+    Expanded(child: Text(text, style: TextStyle(color: context.appSubtext, fontSize: 12), overflow: TextOverflow.ellipsis)),
+  ]));
 }
 
 // ── Add Branch dialog ─────────────────────────────────────────────────────────
@@ -286,7 +287,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
@@ -302,8 +303,8 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                     decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
                     child: const Icon(Icons.add_business_rounded, color: AppColors.primaryBlue, size: 20)),
                   const SizedBox(width: 12),
-                  const Expanded(child: Text('Add New Branch', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700))),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary)),
+                  Expanded(child: Text('Add New Branch', style: TextStyle(color: context.appText, fontSize: 18, fontWeight: FontWeight.w700))),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close_rounded, color: context.appSubtext)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -320,15 +321,15 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundBlue,
+                    color: context.appField,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _addAdmin ? AppColors.primaryBlue : AppColors.cardBorder, width: _addAdmin ? 1.5 : 1),
+                    border: Border.all(color: _addAdmin ? AppColors.primaryBlue : context.appBorder, width: _addAdmin ? 1.5 : 1),
                   ),
                   child: Row(children: [
                     Icon(_addAdmin ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                        color: _addAdmin ? AppColors.primaryBlue : AppColors.textSecondary, size: 20),
+                        color: _addAdmin ? AppColors.primaryBlue : context.appSubtext, size: 20),
                     const SizedBox(width: 10),
-                    const Text('Create Branch HR Admin account', style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text('Create Branch HR Admin account', style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500)),
                   ]),
                 ),
               ),
@@ -337,23 +338,23 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                 _dlgField('Admin Email', _emailCtrl, hint: 'hr@company.rw', type: TextInputType.emailAddress),
                 const SizedBox(height: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Temporary Password', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                  Text('Temporary Password', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _passCtrl,
                     obscureText: _obscure,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    style: TextStyle(color: context.appText, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Min 8 characters',
-                      hintStyle: const TextStyle(color: AppColors.textSecondary),
-                      filled: true, fillColor: AppColors.backgroundBlue,
+                      hintStyle: TextStyle(color: context.appSubtext),
+                      filled: true, fillColor: context.appField,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                       suffixIcon: IconButton(
                         onPressed: () => setState(() => _obscure = !_obscure),
-                        icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18, color: AppColors.textSecondary),
+                        icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18, color: context.appSubtext),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
                       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
                     ),
                   ),
@@ -377,11 +378,11 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                   child: OutlinedButton(
                     onPressed: _saving ? null : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.cardBorder),
+                      side: BorderSide(color: context.appBorder),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                     ),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.textPrimary)),
+                    child: Text('Cancel', style: TextStyle(color: context.appText)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -408,21 +409,21 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
   }
 
   Widget _dlgField(String label, TextEditingController ctrl, {String? hint, TextInputType? type}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+      Builder(builder: (context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textSecondary),
-            filled: true, fillColor: AppColors.backgroundBlue,
+            hintStyle: TextStyle(color: context.appSubtext),
+            filled: true, fillColor: context.appField,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           ),
         ),
-      ]);
+      ]));
 }

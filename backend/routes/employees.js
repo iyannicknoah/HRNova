@@ -101,26 +101,34 @@ router.post('/', requireRole('hr_admin', 'group_hr_admin', 'branch_hr_admin', 's
       createdAt: new Date().toISOString(),
     });
 
-    if ((empRole === 'manager' || empRole === 'hr_admin') && email) {
+    let tempPassword = null;
+    if (email) {
       try {
-        const tempPassword = `${companyId.substring(0, 4)}@${docId.substring(0, 6)}`;
+        // Generate a readable temp password: first 4 of companyId + @ + first 6 of docId
+        tempPassword = `${companyId.substring(0, 4)}@${docId.substring(0, 6)}`;
         const authUser = await getAuth().createUser({
           email,
           password: tempPassword,
           displayName: `${firstName} ${lastName}`,
         });
-        await getAuth().setCustomUserClaims(authUser.uid, {
+        const claims = {
           companyId,
-          role: empRole,
+          role: empRole || 'employee',
           employeeId: docId,
-        });
+        };
+        // Guards get a branchId claim if one was provided
+        if ((empRole === 'guard') && rest.branchId) {
+          claims.branchId = rest.branchId;
+        }
+        await getAuth().setCustomUserClaims(authUser.uid, claims);
         await docRef.update({ uid: authUser.uid });
       } catch (authErr) {
         console.warn('Auth account creation failed (non-fatal):', authErr.message);
+        tempPassword = null;
       }
     }
 
-    res.status(201).json({ id: docId, qrCode });
+    res.status(201).json({ id: docId, qrCode, tempPassword });
   } catch (err) {
     console.error('POST /employees:', err);
     res.status(500).json({ error: err.message });

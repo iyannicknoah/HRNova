@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_ext.dart';
+import '../../attendance/providers/attendance_provider.dart';
+import '../../employees/providers/employees_provider.dart';
+import '../../leave/providers/leave_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundBlue,
+      backgroundColor: context.appBg,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(28),
         child: Column(
@@ -15,18 +23,18 @@ class DashboardScreen extends StatelessWidget {
           children: [
             _DashHeader(),
             const SizedBox(height: 24),
-            const _KpiRow(),
+            _KpiRow(),
             const SizedBox(height: 24),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Expanded(flex: 3, child: _AttendanceTable()),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
                 Expanded(flex: 2, child: _QuickActionsPanel()),
               ],
             ),
             const SizedBox(height: 20),
-            const _DeptStats(),
+            _DeptStats(),
           ],
         ),
       ),
@@ -35,28 +43,32 @@ class DashboardScreen extends StatelessWidget {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-class _DashHeader extends StatelessWidget {
+class _DashHeader extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
+    final companyStatus = ref.watch(companyStatusProvider).value ?? 'active';
+    final today = DateFormat('EEEE, d MMMM yyyy').format(DateTime.now());
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Dashboard',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: context.appText,
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
               ),
             ),
-            SizedBox(height: 2),
+            const SizedBox(height: 2),
             Text(
-              'Tuesday, 1 July 2026',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              today,
+              style: TextStyle(color: context.appSubtext, fontSize: 14),
             ),
           ],
         ),
@@ -64,17 +76,17 @@ class _DashHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appCard,
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appBorder),
           ),
           child: Row(
-            children: const [
-              Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 16),
-              SizedBox(width: 6),
+            children: [
+              const Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 16),
+              const SizedBox(width: 6),
               Text(
-                'Kigali Group Ltd',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                companyName,
+                style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -83,16 +95,22 @@ class _DashHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.pillGreenBg,
+            color: companyStatus == 'active' ? AppColors.pillGreenBg : AppColors.pillAmberBg,
             borderRadius: BorderRadius.circular(100),
           ),
           child: Row(
-            children: const [
-              Icon(Icons.circle, color: AppColors.successGreen, size: 7),
-              SizedBox(width: 6),
+            children: [
+              Icon(Icons.circle,
+                  color: companyStatus == 'active' ? AppColors.successGreen : AppColors.warningAmber,
+                  size: 7),
+              const SizedBox(width: 6),
               Text(
-                'Active',
-                style: TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w600),
+                companyStatus == 'active' ? 'Active' : companyStatus,
+                style: TextStyle(
+                  color: companyStatus == 'active' ? AppColors.successGreen : AppColors.warningAmber,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -103,17 +121,28 @@ class _DashHeader extends StatelessWidget {
 }
 
 // ── KPI row ───────────────────────────────────────────────────────────────────
-class _KpiRow extends StatelessWidget {
-  const _KpiRow();
-
+class _KpiRow extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    const kpis = [
-      _KpiData('Total Employees', '47', Icons.people_rounded, AppColors.primaryBlue, AppColors.pillBlueBg, null),
-      _KpiData('Present Today', '41', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg, '+2'),
-      _KpiData('On Leave', '3', Icons.beach_access_rounded, AppColors.warningAmber, AppColors.pillAmberBg, null),
-      _KpiData('Absent Today', '3', Icons.cancel_rounded, AppColors.errorRed, AppColors.pillRedBg, null),
-      _KpiData('Late Arrivals', '2', Icons.schedule_rounded, Color(0xFF9B59B6), Color(0xFFF0E8FF), null),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = DateTime.now();
+    final employeesAsync = ref.watch(employeesProvider);
+    final recordsAsync = ref.watch(attendanceByDateProvider(today));
+    final dateKey = leaveDateKey(today);
+    final onLeaveIds = ref.watch(leavesCalendarByDateProvider(dateKey)).value ?? const <String>{};
+
+    final totalEmployees = employeesAsync.value?.where((e) => e.isActive).length ?? 0;
+    final records = recordsAsync.value ?? [];
+    final present = records.where((r) => r.checkInTime != null && !r.isLate && !r.isOnLeave).length;
+    final late    = records.where((r) => r.isLate && r.checkInTime != null).length;
+    final onLeave = onLeaveIds.length;
+    final absent  = (totalEmployees - present - late - onLeave).clamp(0, totalEmployees);
+
+    final kpis = [
+      _KpiData('Total Employees', '$totalEmployees', Icons.people_rounded, AppColors.primaryBlue, AppColors.pillBlueBg, null),
+      _KpiData('Present Today', '${present + late}', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg, null),
+      _KpiData('On Leave', '$onLeave', Icons.beach_access_rounded, AppColors.warningAmber, AppColors.pillAmberBg, null),
+      _KpiData('Absent Today', '$absent', Icons.cancel_rounded, AppColors.errorRed, AppColors.pillRedBg, null),
+      _KpiData('Late Arrivals', '$late', Icons.schedule_rounded, const Color(0xFF9B59B6), const Color(0xFFF0E8FF), null),
     ];
 
     return Row(
@@ -146,9 +175,9 @@ class _KpiCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,8 +185,7 @@ class _KpiCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 40, height: 40,
                 decoration: BoxDecoration(color: data.bg, borderRadius: BorderRadius.circular(12)),
                 child: Icon(data.icon, color: data.color, size: 20),
               ),
@@ -172,12 +200,9 @@ class _KpiCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            data.value,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 30, fontWeight: FontWeight.w700),
-          ),
+          Text(data.value, style: TextStyle(color: context.appText, fontSize: 30, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
-          Text(data.label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          Text(data.label, style: TextStyle(color: context.appSubtext, fontSize: 12)),
         ],
       ),
     );
@@ -185,26 +210,40 @@ class _KpiCard extends StatelessWidget {
 }
 
 // ── Attendance table ──────────────────────────────────────────────────────────
-class _AttendanceTable extends StatelessWidget {
-  const _AttendanceTable();
-
-  static const _rows = [
-    _AttRow('Jean-Paul Habimana', '07:58', 'On Time'),
-    _AttRow('Alice Uwimana', '08:03', 'On Time'),
-    _AttRow('Eric Nshimiyimana', '08:31', 'Late'),
-    _AttRow('Grace Mukamana', '—', 'Absent'),
-    _AttRow('Patrick Ndikumana', '08:00', 'On Time'),
-    _AttRow('Sandra Igiraneza', '08:12', 'On Time'),
-    _AttRow('David Uwizeye', '—', 'Absent'),
-  ];
-
+class _AttendanceTable extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = DateTime.now();
+    final employeesAsync = ref.watch(employeesProvider);
+    final recordsAsync = ref.watch(attendanceByDateProvider(today));
+
+    final employees = employeesAsync.value ?? [];
+    final records = recordsAsync.value ?? [];
+    final recMap = {for (final r in records) r.employeeId: r};
+
+    // Build display rows: employees who checked in today
+    final rows = employees
+        .where((e) => e.isActive && recMap.containsKey(e.id))
+        .take(7)
+        .map((e) {
+          final r = recMap[e.id]!;
+          final isLate = r.isLate;
+          final isOut = r.checkOutTime != null;
+          final status = r.isOnLeave ? 'On Leave' : isLate ? 'Late' : 'On Time';
+          final timeStr = r.checkInTime != null
+              ? '${r.checkInTime!.hour.toString().padLeft(2, '0')}:${r.checkInTime!.minute.toString().padLeft(2, '0')}'
+              : '—';
+          return (name: e.fullName, time: timeStr, status: status, checkedOut: isOut);
+        })
+        .toList();
+
+    final loading = employeesAsync.isLoading || recordsAsync.isLoading;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,56 +252,79 @@ class _AttendanceTable extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
             child: Row(
               children: [
-                const Text(
-                  'Today\'s Attendance',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => context.push('/attendance'),
                   child: const Text('View All', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13)),
                 ),
               ],
             ),
           ),
-          const Divider(color: AppColors.cardBorder, height: 1),
+          Divider(color: context.appBorder, height: 1),
           Container(
-            color: AppColors.backgroundBlue,
+            color: context.appTint,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: const Row(
+            child: Row(
               children: [
-                Expanded(flex: 3, child: Text('Employee', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text('Clock In', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text('Status', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text('Employee', style: TextStyle(color: context.appSubtext, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Clock In', style: TextStyle(color: context.appSubtext, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Status', style: TextStyle(color: context.appSubtext, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
               ],
             ),
           ),
-          ..._rows.map((r) => _AttendanceRow(row: r)),
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (rows.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  'No attendance records yet for today',
+                  style: TextStyle(color: context.appSubtext, fontSize: 13),
+                ),
+              ),
+            )
+          else
+            ...rows.map((r) => _AttendanceRow(
+                  name: r.name, time: r.time, status: r.status,
+                )),
         ],
       ),
     );
   }
 }
 
-class _AttRow {
-  const _AttRow(this.name, this.time, this.status);
-  final String name, time, status;
-}
-
 class _AttendanceRow extends StatelessWidget {
-  const _AttendanceRow({required this.row});
-  final _AttRow row;
+  const _AttendanceRow({required this.name, required this.time, required this.status});
+  final String name, time, status;
 
   @override
   Widget build(BuildContext context) {
-    final isLate = row.status == 'Late';
-    final isAbsent = row.status == 'Absent';
-    final pillBg = isAbsent ? AppColors.pillRedBg : isLate ? AppColors.pillAmberBg : AppColors.pillGreenBg;
-    final pillText = isAbsent ? AppColors.pillRedText : isLate ? AppColors.pillAmberText : AppColors.pillGreenText;
+    final isLate = status == 'Late';
+    final isAbsent = status == 'Absent';
+    final isLeave = status == 'On Leave';
+    final pillBg = isAbsent
+        ? AppColors.pillRedBg
+        : isLate
+            ? AppColors.pillAmberBg
+            : isLeave
+                ? AppColors.pillNavyBg
+                : AppColors.pillGreenBg;
+    final pillText = isAbsent
+        ? AppColors.pillRedText
+        : isLate
+            ? AppColors.pillAmberText
+            : isLeave
+                ? AppColors.pillNavyText
+                : AppColors.pillGreenText;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.cardBorder))),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: context.appBorder))),
       child: Row(
         children: [
           Expanded(
@@ -270,38 +332,19 @@ class _AttendanceRow extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 32, height: 32,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: AppColors.gradientForName(row.name),
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: LinearGradient(colors: AppColors.gradientForName(name), begin: Alignment.topLeft, end: Alignment.bottomRight),
                     shape: BoxShape.circle,
                   ),
-                  child: Center(
-                    child: Text(
-                      row.name[0],
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
-                  ),
+                  child: Center(child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700))),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    row.name,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                Expanded(child: Text(name, style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
               ],
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(row.time, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          ),
+          Expanded(flex: 2, child: Text(time, style: TextStyle(color: context.appSubtext, fontSize: 13))),
           Expanded(
             flex: 2,
             child: Align(
@@ -309,7 +352,7 @@ class _AttendanceRow extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: pillBg, borderRadius: BorderRadius.circular(100)),
-                child: Text(row.status, style: TextStyle(color: pillText, fontSize: 12, fontWeight: FontWeight.w500)),
+                child: Text(status, style: TextStyle(color: pillText, fontSize: 12, fontWeight: FontWeight.w500)),
               ),
             ),
           ),
@@ -321,25 +364,24 @@ class _AttendanceRow extends StatelessWidget {
 
 // ── Quick actions ─────────────────────────────────────────────────────────────
 class _QuickActionsPanel extends StatelessWidget {
-  const _QuickActionsPanel();
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 14),
-        const _ActionCard('Add Employee', Icons.person_add_rounded, AppColors.primaryBlue),
+        _ActionCard('Add Employee', Icons.person_add_rounded, AppColors.primaryBlue,
+            onTap: () => context.push('/employees/new')),
         const SizedBox(height: 10),
-        const _ActionCard('Approve Leave Requests', Icons.event_available_rounded, AppColors.warningAmber),
+        _ActionCard('Approve Leave Requests', Icons.event_available_rounded, AppColors.warningAmber,
+            onTap: () => context.push('/leave')),
         const SizedBox(height: 10),
-        const _ActionCard('Process Payroll', Icons.payments_rounded, AppColors.successGreen),
+        _ActionCard('Process Payroll', Icons.payments_rounded, AppColors.successGreen,
+            onTap: () => context.push('/payroll')),
         const SizedBox(height: 10),
-        const _ActionCard('Generate Report', Icons.bar_chart_rounded, Color(0xFF9B59B6)),
+        _ActionCard('Generate Report', Icons.bar_chart_rounded, const Color(0xFF9B59B6),
+            onTap: () => context.push('/reports')),
         const SizedBox(height: 20),
         Container(
           width: double.infinity,
@@ -356,37 +398,21 @@ class _QuickActionsPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withAlpha(30),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                width: 36, height: 36,
+                decoration: BoxDecoration(color: AppColors.primaryBlue.withAlpha(30), borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 20),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Nova AI Assistant',
-                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-              ),
+              const Text('Nova AI Assistant', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
-              const Text(
-                'Get insights on attendance patterns and workforce analytics.',
-                style: TextStyle(color: Color(0xFF8899BB), fontSize: 12, height: 1.4),
-              ),
+              const Text('Get insights on attendance patterns and workforce analytics.', style: TextStyle(color: Color(0xFF8899BB), fontSize: 12, height: 1.4)),
               const SizedBox(height: 14),
               GestureDetector(
-                onTap: () {},
+                onTap: () => context.push('/nova-ai'),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: const Text(
-                    'Ask Nova',
-                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
+                  decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(100)),
+                  child: const Text('Ask Nova', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -398,43 +424,35 @@ class _QuickActionsPanel extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard(this.label, this.icon, this.color);
+  const _ActionCard(this.label, this.icon, this.color, {this.onTap});
   final String label;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appBorder),
           ),
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withAlpha(20),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                width: 36, height: 36,
+                decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 13),
+              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500))),
+              Icon(Icons.arrow_forward_ios_rounded, color: context.appSubtext, size: 13),
             ],
           ),
         ),
@@ -444,38 +462,56 @@ class _ActionCard extends StatelessWidget {
 }
 
 // ── Department stats ─────────────────────────────────────────────────────────
-class _DeptStats extends StatelessWidget {
-  const _DeptStats();
-
-  static const _depts = [
-    ('Operations', 18, AppColors.primaryBlue),
-    ('Finance', 12, AppColors.successGreen),
-    ('HR', 8, AppColors.warningAmber),
-    ('IT', 6, Color(0xFF9B59B6)),
-    ('Sales', 3, AppColors.errorRed),
+class _DeptStats extends ConsumerWidget {
+  static const _deptColors = [
+    AppColors.primaryBlue,
+    AppColors.successGreen,
+    AppColors.warningAmber,
+    Color(0xFF9B59B6),
+    AppColors.errorRed,
+    Color(0xFF00897B),
+    Color(0xFF546E7A),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final employeesAsync = ref.watch(employeesProvider);
+    final employees = employeesAsync.value?.where((e) => e.isActive).toList() ?? [];
+    final total = employees.length;
+
+    // Count by department
+    final deptCounts = <String, int>{};
+    for (final e in employees) {
+      deptCounts[e.department] = (deptCounts[e.department] ?? 0) + 1;
+    }
+    final sorted = deptCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top = sorted.take(7).toList();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Employees by Department',
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
-          ),
+          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
-          ..._depts.map((d) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _DeptBar(name: d.$1, count: d.$2, color: d.$3, total: 47),
-              )),
+          if (top.isEmpty)
+            Text('No department data yet', style: TextStyle(color: context.appSubtext, fontSize: 13))
+          else
+            ...top.asMap().entries.map((entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _DeptBar(
+                    name: entry.value.key.isEmpty ? 'Unassigned' : entry.value.key,
+                    count: entry.value.value,
+                    color: _deptColors[entry.key % _deptColors.length],
+                    total: total,
+                  ),
+                )),
         ],
       ),
     );
@@ -490,15 +526,15 @@ class _DeptBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = count / total;
+    final pct = total > 0 ? count / total : 0.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(name, style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500)),
             const Spacer(),
-            Text('$count employees', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            Text('$count employee${count == 1 ? '' : 's'}', style: TextStyle(color: context.appSubtext, fontSize: 12)),
           ],
         ),
         const SizedBox(height: 6),
@@ -506,9 +542,8 @@ class _DeptBar extends StatelessWidget {
           return Stack(
             children: [
               Container(
-                height: 6,
-                width: constraints.maxWidth,
-                decoration: BoxDecoration(color: AppColors.backgroundBlue, borderRadius: BorderRadius.circular(100)),
+                height: 6, width: constraints.maxWidth,
+                decoration: BoxDecoration(color: context.appTint, borderRadius: BorderRadius.circular(100)),
               ),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 600),

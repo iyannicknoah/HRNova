@@ -39,6 +39,10 @@ final currentCompanyTypeProvider = Provider<String?>((ref) {
   return ref.watch(userClaimsProvider).value?['companyType'] as String?;
 });
 
+final currentEmployeeIdProvider = Provider<String?>((ref) {
+  return ref.watch(userClaimsProvider).value?['employeeId'] as String?;
+});
+
 // ── Theme notifier — persists in SharedPreferences ─────────────────────────
 class ThemeNotifier extends StateNotifier<ThemeMode> {
   ThemeNotifier(super.initialMode);

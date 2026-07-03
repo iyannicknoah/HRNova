@@ -52,6 +52,18 @@ final activeEmployeesProvider = Provider.autoDispose<AsyncValue<List<EmployeeMod
       );
 });
 
+// Stream the current logged-in employee's profile via their employeeId claim
+final currentEmployeeProvider =
+    StreamProvider.autoDispose<EmployeeModel?>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  final employeeId = ref.watch(currentEmployeeIdProvider);
+  if (companyId == null || employeeId == null) return const Stream.empty();
+  return FirebaseService.employeesRef(companyId)
+      .doc(employeeId)
+      .snapshots()
+      .map((doc) => doc.exists ? EmployeeModel.fromDoc(doc) : null);
+});
+
 final employeeByQRProvider =
     FutureProvider.autoDispose.family<EmployeeModel?, String>((ref, qrCode) async {
   final companyId = ref.watch(currentCompanyIdProvider);
@@ -74,7 +86,8 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
 
   String? get _companyId => _ref.read(currentCompanyIdProvider);
 
-  Future<String> addEmployee({
+  /// Returns (docId, tempPassword). tempPassword is null if no email was provided.
+  Future<(String, String?)> addEmployee({
     required Map<String, dynamic> data,
     Uint8List? photoBytes,
   }) async {
@@ -112,23 +125,29 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // If role is manager, create auth account via backend
-      final role = data['role'] as String? ?? 'employee';
-      if ((role == 'manager' || role == 'hr_admin') &&
-          data['email'] != null &&
-          (data['email'] as String).isNotEmpty) {
-        await ApiService().post('/api/auth/create-user', data: {
-          'email': data['email'],
-          'password': '${companyId.substring(0, 4)}@${docId.substring(0, 6)}',
-          'displayName': '${data['firstName']} ${data['lastName']}',
-          'companyId': companyId,
-          'role': role,
-          'employeeId': docId,
-        });
+      // Create a Firebase Auth account for every role that has an email
+      final email = data['email'] as String?;
+      String? tempPassword;
+      if (email != null && email.isNotEmpty) {
+        tempPassword = '${companyId.substring(0, 4)}@${docId.substring(0, 6)}';
+        try {
+          await ApiService().post('/api/auth/create-user', data: {
+            'email': email,
+            'password': tempPassword,
+            'displayName': '${data['firstName']} ${data['lastName']}',
+            'companyId': companyId,
+            'role': data['role'] ?? 'employee',
+            'employeeId': docId,
+            if (data['branchId'] != null) 'branchId': data['branchId'],
+          });
+        } catch (_) {
+          // Auth creation is non-fatal — employee doc is already saved
+          tempPassword = null;
+        }
       }
 
       state = const AsyncValue.data(null);
-      return docId;
+      return (docId, tempPassword);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;
@@ -164,6 +183,21 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
       await FirebaseService.employeesRef(companyId)
           .doc(employeeId)
           .update({'status': 'inactive'});
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEmployee(String employeeId) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      await FirebaseService.employeesRef(companyId)
+          .doc(employeeId)
+          .update({'status': 'deleted', 'deletedAt': FieldValue.serverTimestamp()});
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

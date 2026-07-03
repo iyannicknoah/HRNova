@@ -32,7 +32,7 @@ class BranchModel {
       companyId: d['companyId'] as String? ?? '',
       name: d['name'] as String? ?? '',
       location: d['location'] as String? ?? '',
-      branchCode: d['branchCode'] as String? ?? '',
+      branchCode: (d['branchCode'] ?? d['code']) as String? ?? '',
       branchHrAdminUid: d['branchHrAdminUid'] as String?,
       branchHrAdminEmail: d['branchHrAdminEmail'] as String?,
       employeeCount: d['employeeCount'] as int? ?? 0,

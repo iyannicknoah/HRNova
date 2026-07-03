@@ -30,13 +30,18 @@ import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/onboarding_screen.dart';
 import '../../features/super_admin/screens/super_admin_screen.dart';
 import '../../features/mobile/screens/mobile_home_screen.dart';
+import '../../features/mobile/screens/mobile_onboarding_screen.dart';
 import '../../features/branches/screens/branches_screen.dart';
 import '../../shared/widgets/hrnova_sidebar.dart';
+
+// Seeded from SharedPreferences in main.dart before runApp
+final mobileOnboardingSeenProvider = Provider<bool>((ref) => false);
 
 bool _isPublicRoute(String path) {
   return path.startsWith('/apply') ||
       path.startsWith('/jobs') ||
-      path == '/apply-success';
+      path == '/apply-success' ||
+      path == '/mobile-onboarding';
 }
 
 // ── Router notifier ────────────────────────────────────────────────────────
@@ -81,7 +86,12 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     if (authAsync.isLoading) return null;
 
     final user = authAsync.value;
-    if (user == null) return path == '/login' ? null : '/login';
+    if (user == null) {
+      // First launch → show mobile onboarding before login
+      final onboardingSeen = ref.read(mobileOnboardingSeenProvider);
+      if (!onboardingSeen && path == '/login') return '/mobile-onboarding';
+      return path == '/login' ? null : '/login';
+    }
 
     final claimsAsync = ref.read(userClaimsProvider);
     if (claimsAsync.isLoading) return null;
@@ -191,6 +201,10 @@ List<RouteBase> _buildRoutes() => [
       ),
 
       // ── Standalone authenticated routes (no sidebar) ─────────────────────
+      GoRoute(
+        path: '/mobile-onboarding',
+        builder: (context, state) => const MobileOnboardingScreen(),
+      ),
       GoRoute(
         path: '/guard-mode',
         builder: (context, state) => const GuardModeScreen(),
@@ -302,6 +316,9 @@ class _SidebarShell extends ConsumerWidget {
     final claimsAsync = ref.watch(userClaimsProvider);
     final claims = claimsAsync.value;
 
+    final themeMode = ref.watch(themeNotifierProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
     return Scaffold(
       body: Row(
         children: [
@@ -310,7 +327,46 @@ class _SidebarShell extends ConsumerWidget {
             userRole: claims?['role'] as String? ?? 'hr_admin',
             companyName: claims?['companyName'] as String? ?? 'HRNova',
           ),
-          Expanded(child: child),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Global top bar with theme toggle
+                Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0D1628) : Colors.white,
+                    border: Border(bottom: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE8EFF8))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Tooltip(
+                        message: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                        child: GestureDetector(
+                          onTap: () => ref.read(themeNotifierProvider.notifier).toggle(),
+                          child: Container(
+                            width: 34, height: 34,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withAlpha(12) : const Color(0xFFF0F6FF),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                              size: 18,
+                              color: isDark ? Colors.white70 : const Color(0xFF6B7A99),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(child: child),
+              ],
+            ),
+          ),
         ],
       ),
     );
