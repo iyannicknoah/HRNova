@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'core/router/app_router.dart' show appRouterProvider, mobileOnboardingSeenProvider;
+import 'core/router/app_router.dart' show appRouterProvider;
+import 'core/providers/ui_providers.dart' show mobileOnboardingSeenProvider;
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'firebase_options.dart';

@@ -1,8 +1,7 @@
 const Brevo = require('@getbrevo/brevo');
 
-const client = Brevo.ApiClient.instance;
-client.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
 const api = new Brevo.TransactionalEmailsApi();
+api.authentications['apiKey'].apiKey = process.env.BREVO_API_KEY ?? '';
 
 const SENDER = { name: 'HRNova', email: 'noreply@hrnova.rw' };
 

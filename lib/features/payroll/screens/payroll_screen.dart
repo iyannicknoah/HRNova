@@ -1,6 +1,4 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:convert';
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +11,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/payroll_model.dart';
 import '../providers/payroll_provider.dart';
 import '../services/payslip_pdf_service.dart';
+import '../../../core/utils/download_helper.dart';
 
 final _numFmt = NumberFormat('#,##0', 'en_US');
 String _rwf(double v) => 'RWF ${_numFmt.format(v.round())}';
@@ -175,14 +174,9 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     if (companyId == null) return;
     try {
       final bytes = await ApiService().getBytes('/api/exports/$type/$companyId/$month');
-      final blob  = html.Blob([bytes],
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      final url   = html.Url.createObjectUrlFromBlob(blob);
       final label = type == 'rra-paye' ? 'RRA_PAYE' : 'RSSB';
-      html.AnchorElement(href: url)
-        ..setAttribute('download', 'HRNova_${label}_$month.xlsx')
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      downloadBytes(bytes, 'HRNova_${label}_$month.xlsx',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     } catch (e) {
       if (mounted) _snack('Export failed: $e', AppColors.errorRed);
     }

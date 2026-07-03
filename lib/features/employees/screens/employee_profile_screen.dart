@@ -1,6 +1,4 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:ui' as ui;
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +20,7 @@ import '../providers/employees_provider.dart';
 import '../../payroll/models/payroll_model.dart';
 import '../../payroll/providers/payroll_provider.dart';
 import '../../payroll/services/payslip_pdf_service.dart';
+import '../../../core/utils/download_helper.dart';
 import '../../settings/providers/settings_provider.dart';
 
 class EmployeeProfileScreen extends ConsumerStatefulWidget {
@@ -589,12 +588,9 @@ class _QRTabState extends ConsumerState<_QRTab> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) return;
       final bytes = byteData.buffer.asUint8List();
-      final blob = html.Blob([bytes], 'image/png');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      html.AnchorElement(href: url)
-        ..setAttribute('download', '${widget.employee.fullName.replaceAll(' ', '_')}_QR.png')
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      downloadBytes(bytes,
+          '${widget.employee.fullName.replaceAll(' ', '_')}_QR.png',
+          'image/png');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

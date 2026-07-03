@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -116,7 +117,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       });
       // Local override so router lets us through before stream refreshes
       ref.read(onboardingCompleteOverrideProvider.notifier).state = true;
-      if (mounted) context.go('/dashboard');
+      if (mounted) context.go(kIsWeb ? '/dashboard' : '/guard-mode');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

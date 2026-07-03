@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/providers/ui_providers.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/settings/providers/settings_provider.dart';
 
@@ -33,9 +35,6 @@ import '../../features/mobile/screens/mobile_home_screen.dart';
 import '../../features/mobile/screens/mobile_onboarding_screen.dart';
 import '../../features/branches/screens/branches_screen.dart';
 import '../../shared/widgets/hrnova_sidebar.dart';
-
-// Seeded from SharedPreferences in main.dart before runApp
-final mobileOnboardingSeenProvider = Provider<bool>((ref) => false);
 
 bool _isPublicRoute(String path) {
   return path.startsWith('/apply') ||
@@ -143,7 +142,12 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     // From /login → role-based home
     if (path == '/login') return _homeForRole(role);
 
-    // Guard is restricted to guard-mode only
+    // On mobile: HR Admin + other management roles → guard-mode only (no full dashboard on mobile)
+    if (!kIsWeb && _isMobileGuardRole(role) && path != '/guard-mode' && path != '/onboarding') {
+      return '/guard-mode';
+    }
+
+    // Guard role is always restricted to guard-mode
     if (role == AppConstants.roleGuard && path != '/guard-mode') return '/guard-mode';
 
     // Employee is restricted to mobile-home only
@@ -153,13 +157,15 @@ class AppRouterNotifier extends Notifier<GoRouter> {
   }
 
   String _homeForRole(String? role) {
-    return switch (role) {
-      AppConstants.roleSuperAdmin => '/super-admin',
-      AppConstants.roleGuard => '/guard-mode',
-      AppConstants.roleEmployee => '/mobile-home',
-      _ => '/dashboard',
-    };
+    if (role == AppConstants.roleSuperAdmin) return '/super-admin';
+    if (role == AppConstants.roleEmployee) return '/mobile-home';
+    if (role == AppConstants.roleGuard) return '/guard-mode';
+    // On mobile, all management/admin roles go to guard-mode (QR attendance)
+    if (!kIsWeb && _isMobileGuardRole(role)) return '/guard-mode';
+    return '/dashboard';
   }
+
+  static bool _isMobileGuardRole(String? role) => role != null && role != AppConstants.roleEmployee && role != AppConstants.roleSuperAdmin;
 }
 
 final appRouterProvider =
