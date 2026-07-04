@@ -694,9 +694,8 @@ class _SummaryChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withAlpha(26),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           children: [
@@ -855,16 +854,17 @@ class _BalanceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _card,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(55), blurRadius: 14, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
           Container(
-            width: 5,
-            height: 42,
+            width: 38, height: 38,
             decoration: BoxDecoration(
-              color: borderColor,
-              borderRadius: BorderRadius.circular(4),
+              color: borderColor.withAlpha(28),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(Icons.beach_access_rounded, color: borderColor, size: 18),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -944,9 +944,8 @@ class _LeaveRequestCard extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
+              color: statusColor.withAlpha(30),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: statusColor.withOpacity(0.3)),
             ),
             child: Text(statusLabel,
                 style: TextStyle(
@@ -1667,10 +1666,9 @@ class _SlipHistoryTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? _blue.withOpacity(0.1) : _card,
+          color: isSelected ? _blue.withAlpha(25) : _card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isSelected ? _blue.withOpacity(0.4) : _border),
+          boxShadow: [BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 10, offset: const Offset(0, 2))],
         ),
         child: Row(
           children: [
@@ -1816,9 +1814,8 @@ class _ProfileContent extends ConsumerWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: _blue.withOpacity(0.12),
+                color: _blue.withAlpha(30),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _blue.withOpacity(0.3)),
               ),
               child: Text(emp.department,
                   style: const TextStyle(

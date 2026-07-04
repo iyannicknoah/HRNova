@@ -1104,12 +1104,7 @@ class _LeaveProfileTab extends ConsumerWidget {
               final pct = t.$5 > 0 ? (bal / t.$5).clamp(0.0, 1.0) : 0.0;
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: context.appCard,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border(left: BorderSide(color: t.$3, width: 4)),
-                  boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 8, offset: const Offset(0, 2))],
-                ),
+                decoration: context.cardDeco(14),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                   child: Column(children: [

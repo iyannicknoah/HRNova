@@ -128,14 +128,12 @@ class _KpiRow extends ConsumerWidget {
     final today = DateTime(_now.year, _now.month, _now.day);
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(today));
-    final dateKey = leaveDateKey(today);
-    final onLeaveIds = ref.watch(leavesCalendarByDateProvider(dateKey)).value ?? const <String>{};
+    final onLeave = ref.watch(approvedLeavesTodayProvider).value ?? 0;
 
     final totalEmployees = employeesAsync.value?.where((e) => e.isActive).length ?? 0;
     final records = recordsAsync.value ?? [];
     final present = records.where((r) => r.checkInTime != null && !r.isLate && !r.isOnLeave).length;
     final late    = records.where((r) => r.isLate && r.checkInTime != null).length;
-    final onLeave = onLeaveIds.length;
     final absent  = (totalEmployees - present - late - onLeave).clamp(0, totalEmployees);
 
     final kpis = [
@@ -175,11 +173,7 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -243,11 +237,7 @@ class _AttendanceTable extends ConsumerWidget {
     final loading = employeesAsync.isLoading;
 
     return Container(
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -493,11 +483,7 @@ class _DeptStats extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

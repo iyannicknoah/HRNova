@@ -91,6 +91,25 @@ final leavesCalendarByMonthProvider =
       .map((s) => s.docs.map((d) => d.data()).toList());
 });
 
+// ── Stream: count of approved leaves active today ─────────────────────────────
+
+final approvedLeavesTodayProvider = StreamProvider.autoDispose<int>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value(0);
+  final now = DateTime.now();
+  final todayStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  // Query approved leaves that started on or before today; filter endDate >= today in memory
+  return FirebaseService.leaveRef(companyId)
+      .where('status', isEqualTo: 'approved')
+      .where('startDate', isLessThanOrEqualTo: '${todayStr}T23:59:59.999')
+      .snapshots()
+      .map((s) => s.docs.where((d) {
+            final end = (d.data()['endDate'] as String? ?? '');
+            return end.compareTo(todayStr) >= 0;
+          }).length);
+});
+
 // ── Notification streams ──────────────────────────────────────────────────────
 
 final unreadNotificationsCountProvider =

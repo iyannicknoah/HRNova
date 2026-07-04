@@ -322,20 +322,8 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
     final color = _leaveColor(req.leaveType);
 
     return Container(
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          height: 4,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(14)),
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.all(18),
           child: Column(

@@ -34,4 +34,17 @@ extension AppThemeX on BuildContext {
   // Secondary / muted text
   Color get appSubtext =>
       isDark ? const Color(0xFF8A9BBC) : AppColors.textSecondary;
+
+  // Shadow-only card decoration — no border, matches super admin style
+  BoxDecoration cardDeco([double radius = 14]) => BoxDecoration(
+        color: appCard,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withAlpha(55) : Colors.black.withAlpha(14),
+            blurRadius: isDark ? 16 : 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      );
 }
