@@ -99,8 +99,8 @@ class _LeaveHeader extends StatelessWidget {
           Text('Leave Management',
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
           Text('Review, approve and track employee leave',
@@ -256,12 +256,17 @@ class _PendingTab extends ConsumerWidget {
                         color: context.appSubtext, fontSize: 13)),
               ]),
             )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              itemCount: requests.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) =>
-                  _PendingCard(request: requests[i]),
+          : Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  itemCount: requests.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (_, i) => _PendingCard(request: requests[i]),
+                ),
+              ),
             ),
     );
   }
@@ -430,48 +435,34 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                 ],
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _loading ? null : _showRejectDialog,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                            color: AppColors.errorRed.withAlpha(180)),
-                        foregroundColor: AppColors.errorRed,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100)),
-                      ),
-                      child: const Text('Decline',
-                          style:
-                              TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 14),
+                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  OutlinedButton(
+                    onPressed: _loading ? null : _showRejectDialog,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.errorRed.withAlpha(180)),
+                      foregroundColor: AppColors.errorRed,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
+                    child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _loading ? null : _approve,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.successGreen,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100)),
-                      ),
-                      child: _loading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white))
-                          : const Text('Approve',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 10),
+                  FilledButton(
+                    onPressed: _loading ? null : _approve,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.successGreen,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
+                    child: _loading
+                        ? const SizedBox(width: 14, height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                 ]),
               ]),
@@ -847,7 +838,7 @@ class _RequestRowState extends State<_RequestRow> {
                 ),
               ]),
             ),
-            Expanded(flex: 12, child: _TypeBadge(req.leaveType)),
+            Expanded(flex: 12, child: Align(alignment: Alignment.centerLeft, child: _TypeBadge(req.leaveType))),
             Expanded(
               flex: 12,
               child: Text(_dateF.format(req.startDate),
@@ -868,7 +859,7 @@ class _RequestRowState extends State<_RequestRow> {
                       fontSize: 13,
                       fontWeight: FontWeight.w600)),
             ),
-            Expanded(flex: 10, child: _StatusBadge(req.status)),
+            Expanded(flex: 10, child: Align(alignment: Alignment.centerLeft, child: _StatusBadge(req.status))),
             Expanded(
               flex: 7,
               child: Text(_srcLabel(req.source),

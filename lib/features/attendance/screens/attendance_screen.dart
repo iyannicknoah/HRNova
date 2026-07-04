@@ -208,8 +208,8 @@ class _Header extends StatelessWidget {
           Text('Attendance',
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
           Text('Real-time employee attendance tracking',

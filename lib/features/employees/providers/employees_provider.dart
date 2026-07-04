@@ -14,7 +14,7 @@ import '../models/employee_model.dart';
 
 final employeesProvider = StreamProvider.autoDispose<List<EmployeeModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
 
   final role = ref.watch(currentUserRoleProvider);
   final branchId = ref.watch(currentBranchIdProvider);
@@ -38,7 +38,7 @@ final employeesProvider = StreamProvider.autoDispose<List<EmployeeModel>>((ref) 
 final employeeByIdProvider =
     StreamProvider.autoDispose.family<EmployeeModel?, String>((ref, employeeId) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value(null);
 
   return FirebaseService.employeesRef(companyId)
       .doc(employeeId)
@@ -57,7 +57,7 @@ final currentEmployeeProvider =
     StreamProvider.autoDispose<EmployeeModel?>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   final employeeId = ref.watch(currentEmployeeIdProvider);
-  if (companyId == null || employeeId == null) return const Stream.empty();
+  if (companyId == null || employeeId == null) return Stream.value(null);
   return FirebaseService.employeesRef(companyId)
       .doc(employeeId)
       .snapshots()

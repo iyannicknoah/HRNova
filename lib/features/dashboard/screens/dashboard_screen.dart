@@ -60,8 +60,8 @@ class _DashHeader extends ConsumerWidget {
               'Dashboard',
               style: TextStyle(
                 color: context.appText,
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
             ),
@@ -124,7 +124,8 @@ class _DashHeader extends ConsumerWidget {
 class _KpiRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final today = DateTime.now();
+    final _now = DateTime.now();
+    final today = DateTime(_now.year, _now.month, _now.day);
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(today));
     final dateKey = leaveDateKey(today);
@@ -213,7 +214,8 @@ class _KpiCard extends StatelessWidget {
 class _AttendanceTable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final today = DateTime.now();
+    final _now = DateTime.now();
+    final today = DateTime(_now.year, _now.month, _now.day);
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(today));
 
@@ -237,7 +239,8 @@ class _AttendanceTable extends ConsumerWidget {
         })
         .toList();
 
-    final loading = employeesAsync.isLoading || recordsAsync.isLoading;
+    // Only block on employees — attendance shows empty state while its query runs
+    final loading = employeesAsync.isLoading;
 
     return Container(
       decoration: BoxDecoration(

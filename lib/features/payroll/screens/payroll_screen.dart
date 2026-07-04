@@ -211,7 +211,7 @@ class _TopBar extends ConsumerWidget {
         // Title
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Payroll',
-              style: TextStyle(color: context.appText, fontSize: 24,
+              style: TextStyle(color: context.appText, fontSize: 20,
                   fontWeight: FontWeight.w800, letterSpacing: -0.5)),
           Text('Rwanda 2025 · PAYE + RSSB',
               style: TextStyle(color: context.appSubtext, fontSize: 13)),

@@ -15,7 +15,7 @@ class RecruitmentScreen extends StatelessWidget {
           children: [
             const Icon(Icons.work_rounded, size: 48, color: AppColors.primaryBlue),
             const SizedBox(height: 16),
-            Text('Recruitment', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: context.appText)),
+            Text('Recruitment', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
             const SizedBox(height: 8),
             Text('Recruitment Panel — Part 10', style: TextStyle(color: context.appSubtext)),
           ],

@@ -17,7 +17,7 @@ String leaveDateKey(DateTime d) =>
 final pendingLeaveRequestsProvider =
     StreamProvider.autoDispose<List<LeaveRequestModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   return FirebaseService.leaveRef(companyId)
       .where('status', isEqualTo: 'pending')
       .orderBy('requestedAt', descending: true)
@@ -31,7 +31,7 @@ final pendingLeaveRequestsProvider =
 final allLeaveRequestsProvider =
     StreamProvider.autoDispose<List<LeaveRequestModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   return FirebaseService.leaveRef(companyId)
       .orderBy('requestedAt', descending: true)
       .limit(300)
@@ -46,7 +46,7 @@ final employeeLeaveRequestsProvider =
     StreamProvider.autoDispose.family<List<LeaveRequestModel>, String>(
         (ref, employeeId) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   return FirebaseService.leaveRef(companyId)
       .where('employeeId', isEqualTo: employeeId)
       .orderBy('requestedAt', descending: true)
@@ -60,7 +60,7 @@ final employeeLeaveRequestsProvider =
 final leavesCalendarByDateProvider =
     StreamProvider.autoDispose.family<Set<String>, String>((ref, dateStr) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value(<String>{});
   return FirebaseService.leavesCalendarRef(companyId)
       .where('date', isEqualTo: dateStr)
       .snapshots()
@@ -78,7 +78,7 @@ final leavesCalendarByMonthProvider =
     StreamProvider.autoDispose.family<List<Map<String, dynamic>>, _LCMonthParam>(
         (ref, p) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   final start =
       '${p.year}-${p.month.toString().padLeft(2, '0')}-01';
   final endMonth = p.month == 12 ? 1 : p.month + 1;
@@ -96,7 +96,7 @@ final leavesCalendarByMonthProvider =
 final unreadNotificationsCountProvider =
     StreamProvider.autoDispose<int>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value(0);
   return FirebaseService.notificationsRef(companyId)
       .where('isRead', isEqualTo: false)
       .snapshots()
@@ -106,7 +106,7 @@ final unreadNotificationsCountProvider =
 final notificationsStreamProvider =
     StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   return FirebaseService.notificationsRef(companyId)
       .orderBy('createdAt', descending: true)
       .limit(50)

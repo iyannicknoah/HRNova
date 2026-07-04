@@ -16,6 +16,7 @@ enum _ScanState {
   lateArrival,
   checkOutSuccess,
   alreadyDone,
+  afterHours,
 }
 
 // ── Scan result payload ───────────────────────────────────────────────────────
@@ -160,10 +161,26 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
             isManual: false,
           );
 
+      // Check-in after work hours → absent, don't count as checked in
+      if (record.isAbsent) {
+        final settings = ref.read(companySettingsProvider).value;
+        setState(() {
+          _result = _ScanResult(
+            name: employee.fullName,
+            jobTitle: employee.jobTitle,
+            department: employee.department,
+            photoUrl: employee.profilePhotoUrl,
+            checkInTimeStr: settings?.workEndTime ?? '17:00',
+          );
+          _state = _ScanState.afterHours;
+        });
+        _scheduleReset();
+        return;
+      }
+
       final isLate = record.isLate;
       final now = DateTime.now();
-      final checkInStr =
-          '${_p(now.hour)}:${_p(now.minute)}';
+      final checkInStr = '${_p(now.hour)}:${_p(now.minute)}';
 
       setState(() {
         _result = _ScanResult(
@@ -217,6 +234,9 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
       _ScanState.alreadyDone     => _result == null
           ? const SizedBox.shrink()
           : _AlreadyDoneOverlay(result: _result!, key: const ValueKey('done')),
+      _ScanState.afterHours      => _result == null
+          ? const SizedBox.shrink()
+          : _AfterHoursOverlay(result: _result!, key: const ValueKey('ah')),
     };
   }
 
@@ -645,6 +665,59 @@ class _AlreadyDoneOverlay extends StatelessWidget {
                   color: Colors.white54, fontSize: 14)),
         ]),
       ),
+    );
+  }
+}
+
+// ── After-hours overlay ───────────────────────────────────────────────────────
+class _AfterHoursOverlay extends StatelessWidget {
+  const _AfterHoursOverlay({super.key, required this.result});
+  final _ScanResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFF7B1010),
+      child: Stack(children: [
+        Positioned.fill(
+          child: Center(
+            child: Icon(Icons.watch_later_rounded,
+                size: 380, color: Colors.white.withAlpha(15)),
+          ),
+        ),
+        Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _GuardAvatar(name: result.name, photoUrl: result.photoUrl, size: 100),
+            const SizedBox(height: 20),
+            Text(result.name,
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text('${result.jobTitle}  ·  ${result.department}',
+                style: const TextStyle(color: Colors.white70, fontSize: 16)),
+            const SizedBox(height: 22),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(25),
+                  borderRadius: BorderRadius.circular(100)),
+              child: const Text('ABSENT — AFTER HOURS',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2)),
+            ),
+            const SizedBox(height: 16),
+            Text('Work ended at ${result.checkInTimeStr}',
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            const Text('Check-in is no longer accepted for today',
+                style: TextStyle(color: Colors.white54, fontSize: 14)),
+          ]),
+        ),
+      ]),
     );
   }
 }

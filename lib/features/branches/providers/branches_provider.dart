@@ -8,7 +8,7 @@ import '../models/branch_model.dart';
 // ── Real-time branches stream ─────────────────────────────────────────────────
 final branchesStreamProvider = StreamProvider.autoDispose<List<BranchModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
 
   return FirebaseService.branchesRef(companyId)
       .orderBy('createdAt')

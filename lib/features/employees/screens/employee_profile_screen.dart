@@ -22,6 +22,10 @@ import '../../payroll/providers/payroll_provider.dart';
 import '../../payroll/services/payslip_pdf_service.dart';
 import '../../../core/utils/download_helper.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../performance/models/performance_model.dart';
+import '../../performance/providers/performance_provider.dart';
+import '../../performance/services/performance_pdf_service.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class EmployeeProfileScreen extends ConsumerStatefulWidget {
   const EmployeeProfileScreen({super.key, required this.employeeId});
@@ -38,7 +42,7 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 6, vsync: this);
+    _tabs = TabController(length: 7, vsync: this);
   }
 
   @override
@@ -86,6 +90,7 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
                     _LeaveProfileTab(employee: employee),
                     _PayrollProfileTab(employee: employee),
                     _LoansTab(employee: employee),
+                    _PerformanceTab(employee: employee),
                   ],
                 ),
               ),
@@ -226,7 +231,7 @@ class _TabBar extends StatelessWidget {
         dividerColor: context.appBg,
         tabs: const [
           Tab(text: 'Profile'), Tab(text: 'QR Code'), Tab(text: 'Attendance'),
-          Tab(text: 'Leave'), Tab(text: 'Payroll'), Tab(text: 'Loans'),
+          Tab(text: 'Leave'), Tab(text: 'Payroll'), Tab(text: 'Loans'), Tab(text: 'Performance'),
         ],
       ),
     );
@@ -2005,4 +2010,595 @@ class _DlgField extends StatelessWidget {
       ),
       validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
   ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Performance tab
+// ─────────────────────────────────────────────────────────────────────────────
+class _PerformanceTab extends ConsumerStatefulWidget {
+  const _PerformanceTab({required this.employee});
+  final EmployeeModel employee;
+
+  @override
+  ConsumerState<_PerformanceTab> createState() => _PerformanceTabState();
+}
+
+class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
+  bool _generatingAnnual = false;
+  String? _annualNarrative;
+  bool _showPdfBtn = false;
+
+  Future<void> _generateAnnualReport(List<PerformanceModel> records) async {
+    setState(() => _generatingAnnual = true);
+    try {
+      final narrative =
+          await ref.read(performanceNotifierProvider.notifier).generateAnnualReport(
+                employeeId: widget.employee.id,
+                employeeName: widget.employee.fullName,
+                jobTitle: widget.employee.jobTitle,
+                department: widget.employee.department,
+              );
+      if (mounted) setState(() { _annualNarrative = narrative; _showPdfBtn = true; });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.errorRed,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _generatingAnnual = false);
+    }
+  }
+
+  Future<void> _downloadPdf(List<PerformanceModel> records) async {
+    await PerformancePdfService.downloadAnnualReport(
+      employeeName: widget.employee.fullName,
+      department: widget.employee.department,
+      jobTitle: widget.employee.jobTitle,
+      year: DateTime.now().year,
+      records: records,
+      narrative: _annualNarrative ?? '',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recordsAsync =
+        ref.watch(employeePerformanceProvider(widget.employee.id));
+
+    return recordsAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
+      error: (e, _) => Center(
+          child: Text('Error: $e',
+              style: const TextStyle(color: AppColors.errorRed))),
+      data: (records) {
+        final sorted = List<PerformanceModel>.from(records)
+          ..sort((a, b) => a.month.compareTo(b.month));
+
+        if (records.isEmpty) {
+          return Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                    color: AppColors.pillBlueBg, shape: BoxShape.circle),
+                child: const Icon(Icons.trending_up_rounded,
+                    size: 30, color: AppColors.primaryBlue),
+              ),
+              const SizedBox(height: 14),
+              Text('No performance records yet',
+                  style: TextStyle(
+                      color: context.appText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Text('Scores will appear once a manager evaluates this employee',
+                  style: TextStyle(color: context.appSubtext, fontSize: 13)),
+            ]),
+          );
+        }
+
+        Widget trendWidget = const SizedBox.shrink();
+        if (sorted.length >= 2) {
+          final last = sorted.last.overallScore;
+          final prev = sorted[sorted.length - 2].overallScore;
+          final diff = last - prev;
+          final trendColor = diff > 0
+              ? AppColors.successGreen
+              : diff < 0
+                  ? AppColors.errorRed
+                  : AppColors.warningAmber;
+          final trendIcon = diff > 0
+              ? Icons.trending_up_rounded
+              : diff < 0
+                  ? Icons.trending_down_rounded
+                  : Icons.trending_flat_rounded;
+          final trendLabel = diff > 0
+              ? '+${diff.toStringAsFixed(1)} from last month'
+              : diff < 0
+                  ? '${diff.toStringAsFixed(1)} from last month'
+                  : 'Same as last month';
+          trendWidget = Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: trendColor.withAlpha(18),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: trendColor.withAlpha(60)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(trendIcon, color: trendColor, size: 14),
+              const SizedBox(width: 6),
+              Text(trendLabel,
+                  style: TextStyle(
+                      color: trendColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+            ]),
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Text('Performance History',
+                  style: TextStyle(
+                      color: context.appText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+              const Spacer(),
+              trendWidget,
+              const SizedBox(width: 12),
+              if (_showPdfBtn)
+                OutlinedButton.icon(
+                  onPressed: () => _downloadPdf(sorted),
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                  label: const Text('Download PDF'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryBlue,
+                    side: const BorderSide(color: AppColors.primaryBlue),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: _generatingAnnual
+                      ? null
+                      : () => _generateAnnualReport(sorted),
+                  icon: _generatingAnnual
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primaryBlue))
+                      : const Icon(Icons.auto_awesome_rounded, size: 16),
+                  label: Text(_generatingAnnual
+                      ? 'Generating...'
+                      : 'Generate Annual Report'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryBlue,
+                    side: const BorderSide(color: AppColors.primaryBlue),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                ),
+            ]),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: context.appCard,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: context.appBorder),
+              ),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Score Trend',
+                        style: TextStyle(
+                            color: context.appText,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 180,
+                      child: _PerformanceLineChart(records: sorted),
+                    ),
+                  ]),
+            ),
+            const SizedBox(height: 20),
+            if (_annualNarrative != null) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withAlpha(8),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.primaryBlue.withAlpha(60)),
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.auto_awesome_rounded,
+                            color: AppColors.primaryBlue, size: 14),
+                        const SizedBox(width: 8),
+                        Text('Annual Performance Narrative',
+                            style: TextStyle(
+                                color: context.appText,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                      ]),
+                      const SizedBox(height: 10),
+                      Text(_annualNarrative!,
+                          style: TextStyle(
+                              color: context.appText,
+                              fontSize: 13,
+                              height: 1.6)),
+                    ]),
+              ),
+              const SizedBox(height: 20),
+            ],
+            Text('Monthly Reviews',
+                style: TextStyle(
+                    color: context.appText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            ...records.map((r) => _MonthlyReviewCard(record: r)),
+          ]),
+        );
+      },
+    );
+  }
+}
+
+class _PerformanceLineChart extends StatelessWidget {
+  const _PerformanceLineChart({required this.records});
+  final List<PerformanceModel> records;
+
+  @override
+  Widget build(BuildContext context) {
+    final spots = records.asMap().entries.map((e) =>
+        FlSpot(e.key.toDouble(), e.value.overallScore)).toList();
+
+    final months = records.map((r) {
+      try {
+        return DateFormat('MMM').format(DateTime.parse('${r.month}-01'));
+      } catch (_) {
+        return r.month;
+      }
+    }).toList();
+
+    return LineChart(
+      LineChartData(
+        minY: 0,
+        maxY: 5,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 1,
+          getDrawingHorizontalLine: (_) => FlLine(
+            color: context.appBorder,
+            strokeWidth: 1,
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              reservedSize: 28,
+              getTitlesWidget: (v, _) => Text(
+                v.toInt().toString(),
+                style: TextStyle(color: context.appSubtext, fontSize: 10),
+              ),
+            ),
+          ),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (v, _) {
+                final i = v.toInt();
+                if (i < 0 || i >= months.length) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(months[i],
+                      style: TextStyle(
+                          color: context.appSubtext, fontSize: 9)),
+                );
+              },
+              reservedSize: 24,
+            ),
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: AppColors.primaryBlue,
+            barWidth: 2.5,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, _, __, ___) {
+                final color = spot.y >= 4
+                    ? AppColors.successGreen
+                    : spot.y >= 3
+                        ? AppColors.warningAmber
+                        : AppColors.errorRed;
+                return FlDotCirclePainter(
+                    radius: 4,
+                    color: color,
+                    strokeWidth: 2,
+                    strokeColor: Colors.white);
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppColors.primaryBlue.withAlpha(20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthlyReviewCard extends StatefulWidget {
+  const _MonthlyReviewCard({required this.record});
+  final PerformanceModel record;
+
+  @override
+  State<_MonthlyReviewCard> createState() => _MonthlyReviewCardState();
+}
+
+class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
+  bool _expanded = false;
+
+  Color get _scoreColor {
+    final s = widget.record.overallScore;
+    if (s >= 4) return AppColors.successGreen;
+    if (s >= 3) return AppColors.warningAmber;
+    return AppColors.errorRed;
+  }
+
+  String get _ratingLabel {
+    final s = widget.record.overallScore;
+    if (s >= 4.5) return 'Excellent';
+    if (s >= 3.5) return 'Good';
+    if (s >= 2.5) return 'Average';
+    if (s >= 1.5) return 'Below Average';
+    return 'Poor';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.record;
+    String monthLabel;
+    try {
+      monthLabel = DateFormat('MMMM yyyy').format(DateTime.parse('${r.month}-01'));
+    } catch (_) {
+      monthLabel = r.month;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.appBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.pillBlueBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(monthLabel,
+                    style: const TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 12),
+              _PerformanceStars(r.overallScore),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _scoreColor.withAlpha(18),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(_ratingLabel,
+                    style: TextStyle(
+                        color: _scoreColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                _expanded
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                color: context.appSubtext,
+                size: 18,
+              ),
+            ]),
+          ),
+        ),
+        if (r.aiReview != null && r.aiReview!.isNotEmpty && !_expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Text(
+              r.aiReview!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: context.appSubtext, fontSize: 12, height: 1.5),
+            ),
+          ),
+        if (_expanded) ...[
+          Divider(height: 1, color: context.appBorder),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (r.scores.isNotEmpty) ...[
+                    Text('Criterion Breakdown',
+                        style: TextStyle(
+                            color: context.appText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    ...r.scores.entries.map((e) {
+                      final score = e.value;
+                      final barColor = score >= 4
+                          ? AppColors.successGreen
+                          : score >= 3
+                              ? AppColors.warningAmber
+                              : AppColors.errorRed;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(children: [
+                          Expanded(
+                            flex: 4,
+                            child: Text(e.key,
+                                style: TextStyle(
+                                    color: context.appSubtext,
+                                    fontSize: 11)),
+                          ),
+                          Expanded(
+                            flex: 5,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: (score / 5).clamp(0.0, 1.0),
+                                backgroundColor: context.appBorder,
+                                valueColor:
+                                    AlwaysStoppedAnimation(barColor),
+                                minHeight: 6,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 24,
+                            child: Text(score.toStringAsFixed(0),
+                                textAlign: TextAlign.end,
+                                style: TextStyle(
+                                    color: barColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                          Text('/5',
+                              style: TextStyle(
+                                  color: context.appSubtext,
+                                  fontSize: 10)),
+                        ]),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                  ],
+                  if (r.aiReview != null && r.aiReview!.isNotEmpty) ...[
+                    Row(children: [
+                      const Icon(Icons.auto_awesome_rounded,
+                          color: AppColors.primaryBlue, size: 12),
+                      const SizedBox(width: 6),
+                      Text('AI Review',
+                          style: TextStyle(
+                              color: context.appText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text(r.aiReview!,
+                        style: TextStyle(
+                            color: context.appText,
+                            fontSize: 12,
+                            height: 1.6)),
+                    const SizedBox(height: 10),
+                  ],
+                  if (r.managerNotes != null &&
+                      r.managerNotes!.isNotEmpty) ...[
+                    Row(children: [
+                      Icon(Icons.notes_rounded,
+                          color: context.appSubtext, size: 12),
+                      const SizedBox(width: 6),
+                      Text('Manager Notes',
+                          style: TextStyle(
+                              color: context.appText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text(r.managerNotes!,
+                        style: TextStyle(
+                            color: context.appSubtext,
+                            fontSize: 12,
+                            height: 1.5)),
+                  ],
+                ]),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+class _PerformanceStars extends StatelessWidget {
+  const _PerformanceStars(this.score);
+  final double score;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = score >= 4
+        ? AppColors.successGreen
+        : score >= 3
+            ? AppColors.warningAmber
+            : AppColors.errorRed;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      ...List.generate(5, (i) {
+        final filled = (i + 1) <= score.floor();
+        final half = !filled && (i + 0.5) < score;
+        return Icon(
+          filled
+              ? Icons.star_rounded
+              : half
+                  ? Icons.star_half_rounded
+                  : Icons.star_outline_rounded,
+          color: (filled || half) ? color : color.withAlpha(50),
+          size: 13,
+        );
+      }),
+      const SizedBox(width: 5),
+      Text(score.toStringAsFixed(1),
+          style: TextStyle(
+              color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+    ]);
+  }
 }

@@ -228,7 +228,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 24, 24, 16),
       child: Row(
         children: [
-          Text('Employees', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: context.appText)),
+          Text('Employees', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
           const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),

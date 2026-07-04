@@ -15,7 +15,7 @@ class ReportsScreen extends StatelessWidget {
           children: [
             const Icon(Icons.bar_chart_rounded, size: 48, color: AppColors.primaryBlue),
             const SizedBox(height: 16),
-            Text('Reports', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: context.appText)),
+            Text('Reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
             const SizedBox(height: 8),
             Text('AI Reports — Part 9', style: TextStyle(color: context.appSubtext)),
           ],

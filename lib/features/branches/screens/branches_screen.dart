@@ -57,7 +57,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                 Row(
                   children: [
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Branches', style: TextStyle(color: context.appText, fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                      Text('Branches', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                       const SizedBox(height: 2),
                       Text('Manage your company branches', style: TextStyle(color: context.appSubtext, fontSize: 14)),
                     ]),

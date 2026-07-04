@@ -128,6 +128,9 @@ class HRNovaSidebar extends ConsumerWidget {
                   .toList(),
             ),
           ),
+          // Theme toggle
+          _ThemeToggleRow(),
+          const SizedBox(height: 6),
           // User info at bottom
           Container(
             margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
@@ -222,6 +225,64 @@ class HRNovaSidebar extends ConsumerWidget {
       AppConstants.roleSuperAdmin => 'Super Admin',
       _ => role.replaceAll('_', ' '),
     };
+  }
+}
+
+class _ThemeToggleRow extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeNotifierProvider);
+    final isDark = themeMode == ThemeMode.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          hoverColor: AppColors.white.withAlpha(10),
+          onTap: () => ref.read(themeNotifierProvider.notifier).toggle(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(children: [
+              Icon(
+                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isDark ? 'Light Mode' : 'Dark Mode',
+                  style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400),
+                ),
+              ),
+              Container(
+                width: 36, height: 20,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.primaryBlue : AppColors.white.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.white.withAlpha(30), width: 0.5),
+                ),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: 14, height: 14,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: const BoxDecoration(
+                        color: Colors.white, shape: BoxShape.circle),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }
 

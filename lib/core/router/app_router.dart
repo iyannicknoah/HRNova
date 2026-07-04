@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
-import '../../core/providers/ui_providers.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/settings/providers/settings_provider.dart';
 
@@ -39,8 +38,7 @@ import '../../shared/widgets/hrnova_sidebar.dart';
 bool _isPublicRoute(String path) {
   return path.startsWith('/apply') ||
       path.startsWith('/jobs') ||
-      path == '/apply-success' ||
-      path == '/mobile-onboarding';
+      path == '/apply-success';
 }
 
 // ── Router notifier ────────────────────────────────────────────────────────
@@ -51,10 +49,10 @@ bool _isPublicRoute(String path) {
 class AppRouterNotifier extends Notifier<GoRouter> {
   @override
   GoRouter build() {
-    ref.listen<AsyncValue<User?>>(authStateProvider, (_, _) {
+    ref.listen<AsyncValue<User?>>(authStateProvider, (prev, next) {
       Future.microtask(() => state.refresh());
     });
-    ref.listen<AsyncValue<Map<String, dynamic>?>>(userClaimsProvider, (_, _) {
+    ref.listen<AsyncValue<Map<String, dynamic>?>>(userClaimsProvider, (prev, next) {
       Future.microtask(() => state.refresh());
     });
     ref.listen<AsyncValue<String?>>(companyStatusProvider, (_, next) {
@@ -68,7 +66,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     });
 
     return GoRouter(
-      initialLocation: '/login',
+      initialLocation: kIsWeb ? '/login' : '/mobile-onboarding',
       redirect: _redirect,
       routes: _buildRoutes(),
       errorBuilder: (context, s) => _RouterErrorScreen(error: s.error),
@@ -86,9 +84,12 @@ class AppRouterNotifier extends Notifier<GoRouter> {
 
     final user = authAsync.value;
     if (user == null) {
-      // First launch → show mobile onboarding before login
-      final onboardingSeen = ref.read(mobileOnboardingSeenProvider);
-      if (!onboardingSeen && path == '/login') return '/mobile-onboarding';
+      if (!kIsWeb) {
+        // Mobile: onboarding is the entry point; login is also allowed (after card tap)
+        if (path == '/mobile-onboarding' || path == '/login') return null;
+        return '/mobile-onboarding';
+      }
+      // Web: straight to login
       return path == '/login' ? null : '/login';
     }
 
@@ -139,8 +140,8 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       }
     }
 
-    // From /login → role-based home
-    if (path == '/login') return _homeForRole(role);
+    // From /login or /mobile-onboarding → role-based home
+    if (path == '/login' || path == '/mobile-onboarding') return _homeForRole(role);
 
     // On mobile: HR Admin + other management roles → guard-mode only (no full dashboard on mobile)
     if (!kIsWeb && _isMobileGuardRole(role) && path != '/guard-mode' && path != '/onboarding') {
@@ -322,9 +323,6 @@ class _SidebarShell extends ConsumerWidget {
     final claimsAsync = ref.watch(userClaimsProvider);
     final claims = claimsAsync.value;
 
-    final themeMode = ref.watch(themeNotifierProvider);
-    final isDark = themeMode == ThemeMode.dark;
-
     return Scaffold(
       body: Row(
         children: [
@@ -333,46 +331,7 @@ class _SidebarShell extends ConsumerWidget {
             userRole: claims?['role'] as String? ?? 'hr_admin',
             companyName: claims?['companyName'] as String? ?? 'HRNova',
           ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Global top bar with theme toggle
-                Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0D1628) : Colors.white,
-                    border: Border(bottom: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE8EFF8))),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Tooltip(
-                        message: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                        child: GestureDetector(
-                          onTap: () => ref.read(themeNotifierProvider.notifier).toggle(),
-                          child: Container(
-                            width: 34, height: 34,
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withAlpha(12) : const Color(0xFFF0F6FF),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                              size: 18,
-                              color: isDark ? Colors.white70 : const Color(0xFF6B7A99),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(child: child),
-              ],
-            ),
-          ),
+          Expanded(child: child),
         ],
       ),
     );

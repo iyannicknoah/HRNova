@@ -1,111 +1,90 @@
+import '../../settings/models/company_settings_model.dart';
+
 class PerformanceModel {
   const PerformanceModel({
     required this.id,
-    required this.companyId,
     required this.employeeId,
     required this.employeeName,
-    required this.period,
-    required this.overallScore,
-    required this.kpis,
+    required this.department,
     this.branchId,
-    this.reviewedBy,
-    this.aiSummary,
-    this.managerComments,
-    this.employeeComments,
-    this.status = 'draft',
-    this.rank,
+    required this.month,
+    required this.scores,
+    required this.overallScore,
+    this.aiReview,
+    this.managerNotes,
+    required this.scoredBy,
+    required this.scoredAt,
   });
 
   final String id;
-  final String companyId;
   final String employeeId;
   final String employeeName;
-  final String period;
-  final double overallScore;
-  final List<KpiEntry> kpis;
+  final String department;
   final String? branchId;
-  final String? reviewedBy;
-  final String? aiSummary;
-  final String? managerComments;
-  final String? employeeComments;
-  final String status;
-  final int? rank;
+  final String month; // YYYY-MM
+  final Map<String, double> scores; // criteriaName → 1-5
+  final double overallScore; // weighted average
+  final String? aiReview;
+  final String? managerNotes;
+  final String scoredBy;
+  final DateTime scoredAt;
 
-  factory PerformanceModel.fromMap(String id, Map<String, dynamic> map) {
-    final kpiList = (map['kpis'] as List<dynamic>? ?? [])
-        .map((k) => KpiEntry.fromMap(k as Map<String, dynamic>))
-        .toList();
+  static String docId(String employeeId, String month) => '${employeeId}_$month';
+
+  factory PerformanceModel.fromMap(String id, Map<String, dynamic> m) {
     return PerformanceModel(
       id: id,
-      companyId: map['companyId'] as String? ?? '',
-      employeeId: map['employeeId'] as String? ?? '',
-      employeeName: map['employeeName'] as String? ?? '',
-      period: map['period'] as String? ?? '',
-      overallScore: (map['overallScore'] as num?)?.toDouble() ?? 0,
-      kpis: kpiList,
-      branchId: map['branchId'] as String?,
-      reviewedBy: map['reviewedBy'] as String?,
-      aiSummary: map['aiSummary'] as String?,
-      managerComments: map['managerComments'] as String?,
-      employeeComments: map['employeeComments'] as String?,
-      status: map['status'] as String? ?? 'draft',
-      rank: map['rank'] as int?,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'companyId': companyId,
-      'employeeId': employeeId,
-      'employeeName': employeeName,
-      'period': period,
-      'overallScore': overallScore,
-      'kpis': kpis.map((k) => k.toMap()).toList(),
-      if (branchId != null) 'branchId': branchId,
-      if (reviewedBy != null) 'reviewedBy': reviewedBy,
-      if (aiSummary != null) 'aiSummary': aiSummary,
-      if (managerComments != null) 'managerComments': managerComments,
-      if (employeeComments != null) 'employeeComments': employeeComments,
-      'status': status,
-      if (rank != null) 'rank': rank,
-    };
-  }
-}
-
-class KpiEntry {
-  const KpiEntry({
-    required this.name,
-    required this.target,
-    required this.actual,
-    required this.score,
-    this.weight = 1,
-    this.notes,
-  });
-
-  final String name;
-  final double target;
-  final double actual;
-  final double score;
-  final double weight;
-  final String? notes;
-
-  factory KpiEntry.fromMap(Map<String, dynamic> map) {
-    return KpiEntry(
-      name: map['name'] as String? ?? '',
-      target: (map['target'] as num?)?.toDouble() ?? 0,
-      actual: (map['actual'] as num?)?.toDouble() ?? 0,
-      score: (map['score'] as num?)?.toDouble() ?? 0,
-      weight: (map['weight'] as num?)?.toDouble() ?? 1,
-      notes: map['notes'] as String?,
+      employeeId: m['employeeId'] as String? ?? '',
+      employeeName: m['employeeName'] as String? ?? '',
+      department: m['department'] as String? ?? '',
+      branchId: m['branchId'] as String?,
+      month: m['month'] as String? ?? '',
+      scores: (m['scores'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(k, (v as num).toDouble())),
+      overallScore: (m['overallScore'] as num?)?.toDouble() ?? 0,
+      aiReview: m['aiReview'] as String?,
+      managerNotes: m['managerNotes'] as String?,
+      scoredBy: m['scoredBy'] as String? ?? '',
+      scoredAt: _parseDate(m['scoredAt']),
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'name': name,
-        'target': target,
-        'actual': actual,
-        'score': score,
-        'weight': weight,
-        if (notes != null) 'notes': notes,
-      };
+    'employeeId': employeeId,
+    'employeeName': employeeName,
+    'department': department,
+    if (branchId != null) 'branchId': branchId,
+    'month': month,
+    'scores': scores,
+    'overallScore': overallScore,
+    if (aiReview != null) 'aiReview': aiReview,
+    if (managerNotes != null) 'managerNotes': managerNotes,
+    'scoredBy': scoredBy,
+    'scoredAt': scoredAt.toIso8601String(),
+  };
+
+  static DateTime _parseDate(dynamic v) {
+    if (v == null) return DateTime.now();
+    if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+    try {
+      return (v as dynamic).toDate() as DateTime;
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
+  /// Compute weighted average from scores + criteria
+  static double computeOverall(
+      Map<String, double> scores, List<PerformanceCriterion> criteria) {
+    double total = 0;
+    double weightSum = 0;
+    for (final c in criteria) {
+      final s = scores[c.name];
+      if (s != null) {
+        total += s * c.weight;
+        weightSum += c.weight;
+      }
+    }
+    return weightSum > 0 ? total / weightSum : 0;
+  }
 }

@@ -13,7 +13,7 @@ import '../services/payroll_engine.dart';
 final payrollRunByMonthProvider =
     StreamProvider.autoDispose.family<PayrollRunModel?, String>((ref, month) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value(null);
   return FirebaseService.payrollRef(companyId)
       .doc(month)
       .snapshots()
@@ -23,7 +23,7 @@ final payrollRunByMonthProvider =
 final payslipsByMonthProvider =
     StreamProvider.autoDispose.family<List<PayslipModel>, String>((ref, month) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   return FirebaseService.payslipsRef(companyId, month)
       .orderBy('firstName')
       .snapshots()
@@ -35,7 +35,7 @@ final employeePayslipsProvider =
     StreamProvider.autoDispose.family<List<PayslipModel>, String>(
         (ref, employeeId) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   return FirebaseService.db
       .collectionGroup('payslips')
       .where('companyId', isEqualTo: companyId)

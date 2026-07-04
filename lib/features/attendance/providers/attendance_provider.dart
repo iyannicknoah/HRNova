@@ -18,7 +18,7 @@ String attDocId(String employeeId, DateTime date) =>
 final attendanceByDateProvider = StreamProvider.autoDispose
     .family<List<AttendanceModel>, DateTime>((ref, date) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
   final dateStr = attDateKey(date);
 
   return FirebaseService.attendanceRef(companyId)
@@ -36,7 +36,7 @@ typedef _MonthParam = ({int year, int month});
 final attendanceByMonthProvider = StreamProvider.autoDispose
     .family<List<AttendanceModel>, _MonthParam>((ref, p) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
 
   final start = '${p.year}-${p.month.toString().padLeft(2, '0')}-01';
   final endMonth = p.month == 12 ? 1 : p.month + 1;
@@ -59,7 +59,7 @@ typedef _EmpMonthParam = ({String employeeId, int year, int month});
 final employeeAttendanceByMonthProvider = StreamProvider.autoDispose
     .family<List<AttendanceModel>, _EmpMonthParam>((ref, p) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value([]);
 
   final start = '${p.year}-${p.month.toString().padLeft(2, '0')}-01';
   final endMonth = p.month == 12 ? 1 : p.month + 1;
@@ -85,11 +85,11 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
   String? get _companyId => _ref.read(currentCompanyIdProvider);
   String? get _uid => FirebaseService.currentUserId;
 
-  // Parse workStartTime string like '08:00' → (hour, minute)
-  (int, int) _parseWorkStart(String time) {
+  // Parse a time string like '08:00' → (hour, minute)
+  (int, int) _parseHHMM(String time, {int defaultH = 0}) {
     final parts = time.split(':');
-    if (parts.length != 2) return (8, 0);
-    return (int.tryParse(parts[0]) ?? 8, int.tryParse(parts[1]) ?? 0);
+    if (parts.length != 2) return (defaultH, 0);
+    return (int.tryParse(parts[0]) ?? defaultH, int.tryParse(parts[1]) ?? 0);
   }
 
   // Check in — called from guard mode (QR scan) or manual
@@ -109,14 +109,40 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
       final dateStr = attDateKey(now);
       final docId = attDocId(employeeId, now);
 
-      // Get work start time from settings
       final settings = _ref.read(companySettingsProvider).value;
       final workStartStr = settings?.workStartTime ?? '08:00';
-      final gracePeriod = settings?.gracePeriodMinutes ?? 10;
-      final (sh, sm) = _parseWorkStart(workStartStr);
+      final workEndStr   = settings?.workEndTime   ?? '17:00';
+      final gracePeriod  = settings?.gracePeriodMinutes ?? 10;
 
-      final workStart =
-          DateTime(now.year, now.month, now.day, sh, sm);
+      final (sh, sm) = _parseHHMM(workStartStr, defaultH: 8);
+      final (eh, em) = _parseHHMM(workEndStr,   defaultH: 17);
+
+      final workStart = DateTime(now.year, now.month, now.day, sh, sm);
+      final workEnd   = DateTime(now.year, now.month, now.day, eh, em);
+
+      // Check-in AFTER work hours end → mark as absent
+      if (now.isAfter(workEnd)) {
+        final data = <String, dynamic>{
+          'companyId': companyId,
+          'employeeId': employeeId,
+          if (branchId != null) 'branchId': branchId,
+          'date': dateStr,
+          'verificationType': isManual ? 'manual' : 'qr_scan',
+          if (!isManual) 'guardUid': _uid,
+          'isLate': false,
+          'lateMinutes': 0,
+          'isAbsent': true,
+          'isOnLeave': false,
+          'notes': 'Check-in attempted after work hours ended (${workEndStr})',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        await FirebaseService.attendanceRef(companyId)
+            .doc(docId)
+            .set(data, SetOptions(merge: true));
+        state = const AsyncValue.data(null);
+        return AttendanceModel.fromMap(docId, data);
+      }
+
       final gracedStart = workStart.add(Duration(minutes: gracePeriod));
       final isLate = now.isAfter(gracedStart);
       final lateMinutes = isLate ? now.difference(workStart).inMinutes : 0;
@@ -203,7 +229,7 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
       final settings = _ref.read(companySettingsProvider).value;
       final workStartStr = settings?.workStartTime ?? '08:00';
       final gracePeriod = settings?.gracePeriodMinutes ?? 10;
-      final (sh, sm) = _parseWorkStart(workStartStr);
+      final (sh, sm) = _parseHHMM(workStartStr);
 
       final workStart = DateTime(date.year, date.month, date.day, sh, sm);
       final gracedStart = workStart.add(Duration(minutes: gracePeriod));

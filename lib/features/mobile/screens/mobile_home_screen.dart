@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../employees/models/employee_model.dart';
@@ -144,6 +145,15 @@ class _HomeTab extends StatelessWidget {
     return 'Good evening';
   }
 
+  void _showQrSheet(BuildContext context, EmployeeModel emp) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _QrSheet(employee: emp),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
@@ -225,6 +235,47 @@ class _HomeTab extends StatelessWidget {
                           fontWeight: FontWeight.w600)),
                 ),
               ]),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ── QR Code button ──────────────────────────────────────────
+            GestureDetector(
+              onTap: () => _showQrSheet(context, employee),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _border),
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.successGreen.withAlpha(20),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.qr_code_rounded,
+                        color: AppColors.successGreen, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('My QR Code',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 2),
+                      Text('Tap to show — use instead of your card',
+                          style: TextStyle(color: _sub, fontSize: 11)),
+                    ]),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      size: 18, color: Colors.white.withAlpha(60)),
+                ]),
+              ),
             ),
 
             const SizedBox(height: 28),
@@ -1190,6 +1241,138 @@ class _SettingsRow extends StatelessWidget {
           if (showChevron)
             Icon(Icons.chevron_right_rounded, size: 18, color: Colors.white.withAlpha(60)),
         ]),
+      ),
+    );
+  }
+}
+
+// ─── QR Code Sheet ────────────────────────────────────────────────────────────
+class _QrSheet extends StatefulWidget {
+  const _QrSheet({required this.employee});
+  final EmployeeModel employee;
+  @override
+  State<_QrSheet> createState() => _QrSheetState();
+}
+
+class _QrSheetState extends State<_QrSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // Maximize screen brightness for easy scanning
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+  }
+
+  @override
+  void dispose() {
+    // Restore brightness when sheet closes
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qrData = widget.employee.qrCode?.isNotEmpty == true
+        ? widget.employee.qrCode!
+        : widget.employee.id;
+    final bottom = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 0, 24, bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 36, height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(20),
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Name + role
+          Text(widget.employee.fullName,
+              style: const TextStyle(
+                  color: Color(0xFF0A1628),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4)),
+          const SizedBox(height: 4),
+          Text(widget.employee.jobTitle,
+              style: const TextStyle(color: Color(0xFF6B7A99), fontSize: 13)),
+          const SizedBox(height: 24),
+          // QR Code
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE8EFF8), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4))
+              ],
+            ),
+            child: QrImageView(
+              data: qrData,
+              version: QrVersions.auto,
+              size: 220,
+              eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: Color(0xFF0A1628)),
+              dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Color(0xFF0A1628)),
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Employee ID badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F6FF),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.badge_outlined, size: 14, color: Color(0xFF3B82F6)),
+              const SizedBox(width: 6),
+              Text(
+                qrData.length > 12 ? qrData.substring(0, 12).toUpperCase() : qrData.toUpperCase(),
+                style: const TextStyle(
+                    color: Color(0xFF3B82F6),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          Text('Show this to the guard to check in or out',
+              style: TextStyle(color: Colors.black.withAlpha(80), fontSize: 12),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1628),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+              ),
+              child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
       ),
     );
   }

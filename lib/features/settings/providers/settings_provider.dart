@@ -37,7 +37,7 @@ final settingsNotifierProvider =
 final companySettingsProvider =
     StreamProvider.autoDispose<CompanySettingsModel?>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
-  if (companyId == null) return const Stream.empty();
+  if (companyId == null) return Stream.value(null);
 
   return FirebaseService.settingsRef(companyId).snapshots().map((doc) {
     if (!doc.exists || doc.data() == null) return null;
