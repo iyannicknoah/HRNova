@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../branches/models/branch_model.dart';
+import '../../branches/providers/branches_provider.dart';
 import '../models/leave_request_model.dart';
 import '../providers/leave_provider.dart';
 
@@ -49,11 +53,14 @@ class LeaveScreen extends ConsumerStatefulWidget {
 class _LeaveScreenState extends ConsumerState<LeaveScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
+  late bool _isTopHr;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    final role = ref.read(currentUserRoleProvider) ?? '';
+    _isTopHr = role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin;
+    _tabs = TabController(length: _isTopHr ? 2 : 3, vsync: this);
   }
 
   @override
@@ -70,15 +77,20 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _LeaveHeader(),
-          _LeaveTabBar(controller: _tabs),
+          _LeaveTabBar(controller: _tabs, isTopHr: _isTopHr),
           Expanded(
             child: TabBarView(
               controller: _tabs,
-              children: const [
-                _PendingTab(),
-                _AllRequestsTab(),
-                _CalendarTab(),
-              ],
+              children: _isTopHr
+                  ? const [
+                      _AllRequestsTab(showBranchFilter: true),
+                      _CalendarTab(),
+                    ]
+                  : const [
+                      _PendingTab(),
+                      _AllRequestsTab(showBranchFilter: false),
+                      _CalendarTab(),
+                    ],
             ),
           ),
         ],
@@ -114,32 +126,27 @@ class _LeaveHeader extends StatelessWidget {
 // ── Tab bar ───────────────────────────────────────────────────────────────────
 
 class _LeaveTabBar extends StatelessWidget {
-  const _LeaveTabBar({required this.controller});
+  const _LeaveTabBar({required this.controller, required this.isTopHr});
   final TabController controller;
+  final bool isTopHr;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: context.appCard,
-      ),
+      decoration: BoxDecoration(color: context.appCard),
       child: TabBar(
         controller: controller,
         isScrollable: false,
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
-        labelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-        unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(text: 'Pending Approvals'),
-          Tab(text: 'All Requests'),
-          Tab(text: 'Calendar'),
-        ],
+        tabs: isTopHr
+            ? const [Tab(text: 'All Requests'), Tab(text: 'Calendar')]
+            : const [Tab(text: 'Pending Approvals'), Tab(text: 'All Requests'), Tab(text: 'Calendar')],
       ),
     );
   }
@@ -637,7 +644,8 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
 // ── ALL REQUESTS TAB ──────────────────────────────────────────────────────────
 
 class _AllRequestsTab extends ConsumerStatefulWidget {
-  const _AllRequestsTab();
+  const _AllRequestsTab({this.showBranchFilter = false});
+  final bool showBranchFilter;
 
   @override
   ConsumerState<_AllRequestsTab> createState() => _AllRequestsTabState();
@@ -647,18 +655,23 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
   String _search = '';
   String _typeFilter = 'All';
   String _statusFilter = 'All';
+  String? _branchFilter;
 
   @override
   Widget build(BuildContext context) {
     final requestsAsync = ref.watch(allLeaveRequestsProvider);
     final all = requestsAsync.value ?? [];
+    final branches = widget.showBranchFilter
+        ? (ref.watch(branchesStreamProvider).valueOrNull ?? <BranchModel>[])
+        : <BranchModel>[];
 
     final filtered = all.where((r) {
       final q = _search.toLowerCase();
       final nameOk = q.isEmpty || r.employeeName.toLowerCase().contains(q);
       final typeOk = _typeFilter == 'All' || r.leaveType == _typeFilter;
       final statusOk = _statusFilter == 'All' || r.status == _statusFilter;
-      return nameOk && typeOk && statusOk;
+      final branchOk = _branchFilter == null || r.branchId == _branchFilter;
+      return nameOk && typeOk && statusOk && branchOk;
     }).toList();
 
     return Column(children: [
@@ -678,39 +691,31 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
                 style: TextStyle(color: context.appText, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'Search by name…',
-                  hintStyle: TextStyle(
-                      color: context.appSubtext, fontSize: 15),
-                  prefixIcon: Icon(Icons.search_rounded,
-                      size: 16, color: context.appSubtext),
+                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
+                  prefixIcon: Icon(Icons.search_rounded, size: 16, color: context.appSubtext),
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 10),
+          if (widget.showBranchFilter && branches.isNotEmpty) ...[
+            _FilterDrop(
+              value: _branchFilter ?? 'all',
+              items: ['all', ...branches.map((b) => b.id)],
+              labels: ['All Branches', ...branches.map((b) => b.name)],
+              onChanged: (v) => setState(() => _branchFilter = v == 'all' ? null : v),
+            ),
+            const SizedBox(width: 10),
+          ],
           _FilterDrop(
             value: _typeFilter,
             items: const [
-              'All',
-              'annual',
-              'sick',
-              'maternity',
-              'paternity',
-              'unpaid',
-              'emergency',
-              'compassionate'
+              'All', 'annual', 'sick', 'maternity', 'paternity', 'unpaid', 'emergency', 'compassionate'
             ],
             labels: const [
-              'All Types',
-              'Annual',
-              'Sick',
-              'Maternity',
-              'Paternity',
-              'Unpaid',
-              'Emergency',
-              'Compassionate'
+              'All Types', 'Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Emergency', 'Compassionate'
             ],
             onChanged: (v) => setState(() => _typeFilter = v),
           ),
@@ -722,10 +727,8 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
             onChanged: (v) => setState(() => _statusFilter = v),
           ),
           const SizedBox(width: 10),
-          Text(
-              '${filtered.length} result${filtered.length != 1 ? "s" : ""}',
-              style:
-                  TextStyle(color: context.appSubtext, fontSize: 15)),
+          Text('${filtered.length} result${filtered.length != 1 ? "s" : ""}',
+              style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
       ),
       Expanded(

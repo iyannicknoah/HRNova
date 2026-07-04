@@ -4,9 +4,13 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/download_helper.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../branches/models/branch_model.dart';
+import '../../branches/providers/branches_provider.dart';
 import '../../employees/models/employee_model.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
@@ -89,6 +93,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
   DateTime _selectedDate = DateTime.now();
   String _deptFilter = 'All';
   String _statusFilter = 'All';
+  String? _branchFilter;
 
   @override
   void initState() {
@@ -114,6 +119,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    final role = ref.watch(currentUserRoleProvider);
+    final companyType = ref.watch(companyTypeProvider).valueOrNull ?? AppConstants.companySingle;
+    final isMultiBranch = companyType == AppConstants.companyMultiBranch;
+    final isTopHr = role == AppConstants.roleGroupHrAdmin || role == AppConstants.roleHrAdmin;
+    final showBranchFilter = isMultiBranch && isTopHr;
+    final branches = showBranchFilter ? (ref.watch(branchesStreamProvider).value ?? <BranchModel>[]) : <BranchModel>[];
+
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(_selectedDate));
     final dateKey = leaveDateKey(_selectedDate);
@@ -121,13 +133,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         ref.watch(approvedLeavesByDateProvider(dateKey)).value ??
             const <String>{};
 
-    // Build joined rows from real data (or empty while loading)
+    // Build joined rows — filter employees by branch for top HR when branch selected
     final allRows = employeesAsync.when(
-      data: (employees) => recordsAsync.when(
-        data: (records) => _buildRows(employees, records, onLeaveIds),
-        loading: () => _buildRows(employees, [], onLeaveIds),
-        error: (_, __) => _buildRows(employees, [], onLeaveIds),
-      ),
+      data: (allEmps) {
+        final employees = (_branchFilter == null || !showBranchFilter)
+            ? allEmps
+            : allEmps.where((e) => e.branchId == _branchFilter).toList();
+        return recordsAsync.when(
+          data: (records) => _buildRows(employees, records, onLeaveIds),
+          loading: () => _buildRows(employees, [], onLeaveIds),
+          error: (_, __) => _buildRows(employees, [], onLeaveIds),
+        );
+      },
       loading: () => <_JR>[],
       error: (_, __) => <_JR>[],
     );
@@ -149,6 +166,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       return deptOk && statusOk;
     }).toList();
 
+    final selectedBranch = _branchFilter == null
+        ? null
+        : branches.where((b) => b.id == _branchFilter).firstOrNull;
+
     return Scaffold(
       backgroundColor: context.appBg,
       floatingActionButton: FloatingActionButton.extended(
@@ -161,7 +182,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Header(date: _selectedDate, onDatePick: _pickDate),
+          _Header(
+            date: _selectedDate,
+            onDatePick: _pickDate,
+            showBranchFilter: showBranchFilter,
+            branches: branches,
+            selectedBranchName: selectedBranch?.name,
+            onBranchPick: (id) => setState(() => _branchFilter = id),
+          ),
           _SummaryRow(
               present: present, late: late, absent: absent, onLeave: onLeave),
           _AttTabBar(controller: _tabs),
@@ -199,9 +227,44 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
 
 // ── Header ────────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
-  const _Header({required this.date, required this.onDatePick});
+  const _Header({
+    required this.date,
+    required this.onDatePick,
+    this.showBranchFilter = false,
+    this.branches = const [],
+    this.selectedBranchName,
+    this.onBranchPick,
+  });
   final DateTime date;
   final VoidCallback onDatePick;
+  final bool showBranchFilter;
+  final List<BranchModel> branches;
+  final String? selectedBranchName;
+  final ValueChanged<String?>? onBranchPick;
+
+  void _showBranchMenu(BuildContext context) async {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size   = renderBox.size;
+
+    final items = <PopupMenuEntry<String?>>[
+      const PopupMenuItem(value: null, child: Text('All Branches')),
+      const PopupMenuDivider(),
+      ...branches.map((b) => PopupMenuItem(value: b.id, child: Text(b.name))),
+    ];
+
+    final result = await showMenu<String?>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx, offset.dy + size.height + 4,
+        offset.dx + size.width, offset.dy + size.height + 300,
+      ),
+      items: items,
+      color: context.appCard,
+    );
+    onBranchPick?.call(result);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,12 +288,15 @@ class _Header extends StatelessWidget {
           label: DateFormat('MMM d, yyyy').format(date),
           onTap: onDatePick,
         ),
-        const SizedBox(width: 10),
-        _HeaderBtn(
-          icon: Icons.business_rounded,
-          label: 'All Branches',
-          trailing: Icons.keyboard_arrow_down_rounded,
-        ),
+        if (showBranchFilter) ...[
+          const SizedBox(width: 10),
+          Builder(builder: (ctx) => _HeaderBtn(
+            icon: Icons.business_rounded,
+            label: selectedBranchName ?? 'All Branches',
+            trailing: Icons.keyboard_arrow_down_rounded,
+            onTap: () => _showBranchMenu(ctx),
+          )),
+        ],
       ]),
     );
   }

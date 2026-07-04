@@ -117,10 +117,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     _existingPhotoUrl = e.profilePhotoUrl;
   }
 
-  void _initForAdd(List<String> departments) {
+  void _initForAdd(List<String> departments, {String? autoBranchId, String defaultRole = AppConstants.roleEmployee}) {
     if (_initialized) return;
     _initialized = true;
     if (departments.isNotEmpty) _dept = departments.first;
+    if (autoBranchId != null) _branchId = autoBranchId;
+    _role = defaultRole;
   }
 
   Future<void> _pickPhoto() async {
@@ -266,6 +268,8 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     final departments = settingsAsync.value?.departments ?? const [];
     final branchesAsync = ref.watch(branchesStreamProvider);
     final isMultiBranch = ref.watch(currentCompanyTypeProvider) == AppConstants.companyMultiBranch;
+    final userRole     = ref.watch(currentUserRoleProvider);
+    final userBranchId = ref.watch(currentBranchIdProvider);
 
     // Load employee for edit mode
     if (isEdit) {
@@ -278,7 +282,13 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       }
       empAsync.whenData((e) { if (e != null) _initFromEmployee(e); });
     } else {
-      _initForAdd(departments);
+      _initForAdd(
+        departments,
+        autoBranchId: userRole == AppConstants.roleBranchHrAdmin ? userBranchId : null,
+        defaultRole: (isMultiBranch && userRole == AppConstants.roleGroupHrAdmin)
+            ? AppConstants.roleBranchHrAdmin
+            : AppConstants.roleEmployee,
+      );
     }
 
     return Scaffold(
@@ -389,15 +399,9 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                     ]),
                     const SizedBox(height: 24),
                     _buildSection('System Access', [
-                      _dropField('Role', _role, const [
-                        DropdownMenuItem(value: 'employee', child: Text('Employee')),
-                        DropdownMenuItem(value: 'guard', child: Text('Guard (QR scanner)')),
-                        DropdownMenuItem(value: 'manager', child: Text('Manager')),
-                        DropdownMenuItem(value: 'hr_admin', child: Text('HR Admin')),
-                        DropdownMenuItem(value: 'branch_hr_admin', child: Text('Branch HR Admin')),
-                        DropdownMenuItem(value: 'director', child: Text('Director')),
-                        DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
-                      ], (v) => setState(() => _role = v ?? _role)),
+                      _dropField('Role', _role,
+                        _buildRoleItems(userRole ?? AppConstants.roleEmployee, isMultiBranch),
+                        (v) => setState(() => _role = v ?? _role)),
                       Container(
                         margin: const EdgeInsets.only(top: 8),
                         padding: const EdgeInsets.all(12),
@@ -609,6 +613,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         decoration: BoxDecoration(
           color: context.appField,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.appBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: DropdownButtonHideUnderline(
@@ -633,6 +638,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         decoration: BoxDecoration(
           color: context.appField,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.appBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: DropdownButtonHideUnderline(
@@ -647,6 +653,30 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         ),
       ),
     ]);
+  }
+
+  List<DropdownMenuItem<String>> _buildRoleItems(String userRole, bool isMultiBranch) {
+    if (isMultiBranch && userRole == AppConstants.roleGroupHrAdmin) {
+      return const [
+        DropdownMenuItem(value: 'branch_hr_admin', child: Text('Branch HR Admin')),
+        DropdownMenuItem(value: 'manager', child: Text('Manager')),
+      ];
+    }
+    if (isMultiBranch && userRole == AppConstants.roleBranchHrAdmin) {
+      return const [
+        DropdownMenuItem(value: 'employee', child: Text('Employee')),
+        DropdownMenuItem(value: 'manager', child: Text('Manager')),
+        DropdownMenuItem(value: 'director', child: Text('Director')),
+        DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
+      ];
+    }
+    return const [
+      DropdownMenuItem(value: 'employee', child: Text('Employee')),
+      DropdownMenuItem(value: 'manager', child: Text('Manager')),
+      DropdownMenuItem(value: 'director', child: Text('Director')),
+      DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
+      DropdownMenuItem(value: 'hr_admin', child: Text('HR Admin')),
+    ];
   }
 
   String _ctLabel(String c) => switch (c) {

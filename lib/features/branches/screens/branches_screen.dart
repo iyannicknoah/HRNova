@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../attendance/providers/attendance_provider.dart';
+import '../../employees/providers/employees_provider.dart';
+import '../../leave/providers/leave_provider.dart';
 import '../models/branch_model.dart';
 import '../providers/branches_provider.dart';
 
@@ -131,6 +134,10 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                                 await ref.read(branchesNotifierProvider.notifier)
                                     .setActive(filtered[i].id, isActive: active);
                               },
+                              onTap: () => showDialog(
+                                context: context,
+                                builder: (_) => _BranchDetailDialog(branch: filtered[i]),
+                              ),
                             ),
                           ),
                   ),
@@ -206,7 +213,23 @@ class _StatChip extends StatelessWidget {
 
 // ── Branch card ───────────────────────────────────────────────────────────────
 class _BranchCard extends StatelessWidget {
-  const _BranchCard({required this.branch, required this.onToggleActive});
+  const _BranchCard({required this.branch, required this.onToggleActive, this.onTap});
+  final BranchModel branch;
+  final ValueChanged<bool> onToggleActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: _BranchCardContent(branch: branch, onToggleActive: onToggleActive),
+    );
+  }
+}
+
+class _BranchCardContent extends StatelessWidget {
+  const _BranchCardContent({required this.branch, required this.onToggleActive});
   final BranchModel branch;
   final ValueChanged<bool> onToggleActive;
 
@@ -268,6 +291,153 @@ class _BranchCard extends StatelessWidget {
     const SizedBox(width: 6),
     Expanded(child: Text(text, style: TextStyle(color: context.appSubtext, fontSize: 14), overflow: TextOverflow.ellipsis)),
   ]));
+}
+
+// ── Branch detail dialog ──────────────────────────────────────────────────────
+class _BranchDetailDialog extends ConsumerWidget {
+  const _BranchDetailDialog({required this.branch});
+  final BranchModel branch;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = DateTime.now();
+    final allEmployees = ref.watch(employeesProvider).value ?? [];
+    final branchEmployees = allEmployees.where((e) => e.branchId == branch.id).toList();
+    final activeCount   = branchEmployees.where((e) => e.isActive).length;
+    final inactiveCount = branchEmployees.length - activeCount;
+
+    final records = ref.watch(attendanceByDateProvider(today)).value ?? [];
+    final branchRecords = records.where((r) => r.branchId == branch.id).toList();
+    final presentCount  = branchRecords.where((r) => r.checkInTime != null && !r.isAbsent && !r.isLate).length;
+    final lateCount     = branchRecords.where((r) => r.isLate).length;
+    final absentCount   = activeCount - presentCount - lateCount;
+
+    final allLeaves = ref.watch(allLeaveRequestsProvider).value ?? [];
+    final branchLeaves = allLeaves.where((l) => l.branchId == branch.id).toList();
+    final pendingLeaves  = branchLeaves.where((l) => l.status == 'pending').length;
+    final approvedLeaves = branchLeaves.where((l) => l.status == 'approved').length;
+
+    return Dialog(
+      backgroundColor: context.appCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            // Header
+            Row(children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: AppColors.gradientForName(branch.name), begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700))),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(branch.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: context.appText)),
+                if (branch.location.isNotEmpty)
+                  Text(branch.location, style: TextStyle(fontSize: 14, color: context.appSubtext)),
+              ])),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: branch.isActive ? AppColors.pillGreenBg : AppColors.pillRedBg,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(branch.isActive ? 'Active' : 'Inactive',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: branch.isActive ? AppColors.pillGreenText : AppColors.pillRedText)),
+              ),
+              const SizedBox(width: 10),
+              IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close_rounded, color: context.appSubtext)),
+            ]),
+            const SizedBox(height: 8),
+            if (branch.branchCode.isNotEmpty)
+              Text('Code: ${branch.branchCode}', style: TextStyle(fontSize: 13, color: context.appSubtext)),
+            if (branch.branchHrAdminEmail != null) ...[
+              const SizedBox(height: 4),
+              Row(children: [
+                Icon(Icons.email_outlined, size: 13, color: context.appSubtext),
+                const SizedBox(width: 6),
+                Text(branch.branchHrAdminEmail!, style: TextStyle(fontSize: 13, color: context.appSubtext)),
+              ]),
+            ],
+            Divider(color: context.appBorder, height: 28),
+            // Employee stats
+            Text('Employees', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+            const SizedBox(height: 10),
+            Row(children: [
+              _DetailStat('Total', '${branchEmployees.length}', AppColors.primaryBlue),
+              const SizedBox(width: 10),
+              _DetailStat('Active', '$activeCount', AppColors.successGreen),
+              const SizedBox(width: 10),
+              _DetailStat('Inactive', '$inactiveCount', AppColors.warningAmber),
+            ]),
+            const SizedBox(height: 20),
+            // Today's attendance
+            Text("Today's Attendance", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+            const SizedBox(height: 10),
+            Row(children: [
+              _DetailStat('Present', '$presentCount', AppColors.successGreen),
+              const SizedBox(width: 10),
+              _DetailStat('Late', '$lateCount', AppColors.warningAmber),
+              const SizedBox(width: 10),
+              _DetailStat('Absent', '${absentCount.clamp(0, activeCount)}', AppColors.errorRed),
+            ]),
+            const SizedBox(height: 20),
+            // Leave summary
+            Text('Leave Requests', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+            const SizedBox(height: 10),
+            Row(children: [
+              _DetailStat('Pending', '$pendingLeaves', AppColors.warningAmber),
+              const SizedBox(width: 10),
+              _DetailStat('Approved (all time)', '$approvedLeaves', AppColors.successGreen),
+            ]),
+            const SizedBox(height: 24),
+            // Attendance rate progress
+            if (activeCount > 0) ...[
+              Row(children: [
+                Text('Attendance Rate Today', style: TextStyle(fontSize: 14, color: context.appSubtext)),
+                const Spacer(),
+                Text('${(((presentCount + lateCount) / activeCount) * 100).round()}%',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primaryBlue)),
+              ]),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: ((presentCount + lateCount) / activeCount).clamp(0.0, 1.0),
+                  backgroundColor: context.appBorder,
+                  valueColor: const AlwaysStoppedAnimation(AppColors.primaryBlue),
+                  minHeight: 8,
+                ),
+              ),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailStat extends StatelessWidget {
+  const _DetailStat(this.label, this.value, this.color);
+  final String label, value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: color.withAlpha(15), borderRadius: BorderRadius.circular(10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+        Text(label, style: TextStyle(fontSize: 12, color: context.appSubtext)),
+      ]),
+    ),
+  );
 }
 
 // ── Add Branch dialog ─────────────────────────────────────────────────────────

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../branches/providers/branches_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
@@ -22,6 +25,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   String _deptFilter = 'all';
   String _contractFilter = 'all';
   String _statusFilter = 'all';
+  String? _branchFilter;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -45,6 +49,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
       if (_deptFilter != 'all' && e.department != _deptFilter) return false;
       if (_contractFilter != 'all' && e.contractType != _contractFilter) return false;
       if (_statusFilter != 'all' && e.status != _statusFilter) return false;
+      if (_branchFilter != null && e.branchId != _branchFilter) return false;
       return true;
     }).toList();
   }
@@ -57,6 +62,12 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
     final limitAsync = ref.watch(companyEmployeeLimitProvider);
     final limit = limitAsync.value ?? (current: 0, max: 0);
     final atLimit = limit.max > 0 && limit.current >= limit.max;
+    final role = ref.watch(currentUserRoleProvider);
+    final companyType = ref.watch(companyTypeProvider).valueOrNull ?? AppConstants.companySingle;
+    final isMultiBranch = companyType == AppConstants.companyMultiBranch;
+    final showBranchFilter = isMultiBranch &&
+        (role == AppConstants.roleGroupHrAdmin || role == AppConstants.roleHrAdmin);
+    final branches = showBranchFilter ? (ref.watch(branchesStreamProvider).value ?? []) : [];
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -79,6 +90,10 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
             onContract: (v) => setState(() => _contractFilter = v ?? 'all'),
             statusFilter: _statusFilter,
             onStatus: (v) => setState(() => _statusFilter = v ?? 'all'),
+            showBranchFilter: showBranchFilter,
+            branches: branches,
+            branchFilter: _branchFilter,
+            onBranch: (v) => setState(() => _branchFilter = v),
           ),
           Expanded(
             child: employeesAsync.when(
@@ -196,7 +211,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
               Navigator.pop(ctx);
               final messenger = ScaffoldMessenger.of(context);
               try {
-                await ref.read(employeesNotifierProvider.notifier).deleteEmployee(e.id);
+                await ref.read(employeesNotifierProvider.notifier).deleteEmployee(e.id, email: e.email.isNotEmpty ? e.email : null);
                 if (mounted) messenger.showSnackBar(
                   SnackBar(content: Text('${e.fullName} deleted'), backgroundColor: AppColors.successGreen),
                 );
@@ -336,6 +351,10 @@ class _FilterBar extends StatelessWidget {
     required this.departments, required this.deptFilter, required this.onDept,
     required this.contractFilter, required this.onContract,
     required this.statusFilter, required this.onStatus,
+    required this.showBranchFilter,
+    required this.branches,
+    required this.branchFilter,
+    required this.onBranch,
   });
 
   final TextEditingController searchCtrl;
@@ -347,6 +366,10 @@ class _FilterBar extends StatelessWidget {
   final ValueChanged<String?> onContract;
   final String statusFilter;
   final ValueChanged<String?> onStatus;
+  final bool showBranchFilter;
+  final List<dynamic> branches;
+  final String? branchFilter;
+  final ValueChanged<String?> onBranch;
 
   @override
   Widget build(BuildContext context) {
@@ -401,6 +424,15 @@ class _FilterBar extends StatelessWidget {
             ],
             onChanged: onStatus,
           ),
+          if (showBranchFilter)
+            _DropFilter(
+              value: branchFilter ?? 'all',
+              items: [
+                const DropdownMenuItem(value: 'all', child: Text('All Branches')),
+                ...branches.map((b) => DropdownMenuItem(value: b.id as String, child: Text(b.name as String))),
+              ],
+              onChanged: (v) => onBranch(v == 'all' ? null : v),
+            ),
         ],
       ),
     );

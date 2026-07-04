@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -13,6 +14,9 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../attendance/models/attendance_model.dart';
 import '../../attendance/providers/attendance_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../branches/models/branch_model.dart';
+import '../../branches/providers/branches_provider.dart';
 import '../../leave/models/leave_request_model.dart';
 import '../../leave/providers/leave_provider.dart';
 import '../models/employee_model.dart';
@@ -172,12 +176,12 @@ class _TabBar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Profile tab
 // ─────────────────────────────────────────────────────────────────────────────
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends ConsumerWidget {
   const _ProfileTab({required this.employee});
   final EmployeeModel employee;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -362,6 +366,42 @@ class _ProfileTab extends StatelessWidget {
                   ],
                 ),
               ],
+              if (employee.email.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _Section(
+                  title: 'Login Credentials',
+                  icon: Icons.key_rounded,
+                  children: [
+                    _CredRow(
+                      label: 'Email',
+                      value: employee.email,
+                    ),
+                    const SizedBox(height: 8),
+                    _CredRow(
+                      label: 'Initial Password',
+                      value: '${employee.companyId.length >= 4 ? employee.companyId.substring(0, 4) : employee.companyId}@${employee.id.length >= 6 ? employee.id.substring(0, 6) : employee.id}',
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningAmber.withAlpha(15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.warningAmber.withAlpha(50)),
+                      ),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Icon(Icons.info_outline_rounded, size: 13, color: AppColors.warningAmber),
+                        const SizedBox(width: 8),
+                        const Expanded(child: Text(
+                          'This is the initial password. May be outdated if the employee already changed it.',
+                          style: TextStyle(fontSize: 13, color: AppColors.warningAmber),
+                        )),
+                      ]),
+                    ),
+                  ],
+                ),
+              ],
+              _BranchTransferSection(employee: employee, ref: ref),
             ]),
           ),
         ]),
@@ -528,6 +568,295 @@ class _LeaveBalanceRow extends StatelessWidget {
   }
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Credential row with copy button (used in Profile tab)
+// ─────────────────────────────────────────────────────────────────────────────
+class _CredRow extends StatefulWidget {
+  const _CredRow({required this.label, required this.value});
+  final String label, value;
+
+  @override
+  State<_CredRow> createState() => _CredRowState();
+}
+
+class _CredRowState extends State<_CredRow> {
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.value));
+    setState(() => _copied = true);
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.appField,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.appBorder),
+      ),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.label, style: TextStyle(fontSize: 12, color: context.appSubtext, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 2),
+          Text(widget.value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText, fontFamily: 'monospace')),
+        ])),
+        GestureDetector(
+          onTap: _copy,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Icon(
+              _copied ? Icons.check_rounded : Icons.copy_rounded,
+              size: 15,
+              color: _copied ? AppColors.successGreen : context.appSubtext,
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Branch Transfer Section (shown on profile tab for multi-branch companies)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BranchTransferSection extends StatelessWidget {
+  const _BranchTransferSection({required this.employee, required this.ref});
+  final EmployeeModel employee;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final companyType = ref.watch(companyTypeProvider).valueOrNull ?? AppConstants.companySingle;
+    if (companyType != AppConstants.companyMultiBranch) return const SizedBox.shrink();
+
+    final userRole = ref.watch(currentUserRoleProvider) ?? '';
+    final canTransfer = userRole == AppConstants.roleGroupHrAdmin ||
+        userRole == AppConstants.roleHrAdmin ||
+        userRole == AppConstants.roleSuperAdmin;
+    if (!canTransfer) return const SizedBox.shrink();
+
+    final branches = ref.watch(branchesStreamProvider).valueOrNull ?? [];
+    final currentBranch = employee.branchId != null
+        ? branches.firstWhere((b) => b.id == employee.branchId,
+            orElse: () => BranchModel(
+                id: employee.branchId!, name: employee.branchId!, location: '', branchCode: '', companyId: '', isActive: true))
+        : null;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 14),
+      _Section(
+        title: 'Branch Assignment',
+        icon: Icons.business_rounded,
+        children: [
+          _Field('Current Branch', currentBranch?.name ?? '—'),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: branches.length < 2
+                  ? null
+                  : () => showDialog(
+                        context: context,
+                        builder: (_) => _TransferBranchDialog(
+                          employee: employee,
+                          branches: branches,
+                          currentBranchId: employee.branchId,
+                        ),
+                      ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primaryBlue),
+                foregroundColor: AppColors.primaryBlue,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+              label: const Text('Transfer to Another Branch', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    ]);
+  }
+}
+
+class _TransferBranchDialog extends ConsumerStatefulWidget {
+  const _TransferBranchDialog({
+    required this.employee,
+    required this.branches,
+    required this.currentBranchId,
+  });
+  final EmployeeModel employee;
+  final List<BranchModel> branches;
+  final String? currentBranchId;
+
+  @override
+  ConsumerState<_TransferBranchDialog> createState() => _TransferBranchDialogState();
+}
+
+class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
+  String? _selectedBranchId;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-select a different branch by default
+    final other = widget.branches.where((b) => b.id != widget.currentBranchId && b.isActive).toList();
+    if (other.isNotEmpty) _selectedBranchId = other.first.id;
+  }
+
+  Future<void> _confirm() async {
+    if (_selectedBranchId == null) return;
+    setState(() => _loading = true);
+    try {
+      await ref.read(employeesNotifierProvider.notifier).transferBranch(
+            widget.employee.id,
+            _selectedBranchId!,
+            email: widget.employee.email.isNotEmpty ? widget.employee.email : null,
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${widget.employee.fullName} transferred successfully'),
+          backgroundColor: AppColors.successGreen,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.errorRed,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final availableBranches =
+        widget.branches.where((b) => b.id != widget.currentBranchId && b.isActive).toList();
+
+    return Dialog(
+      backgroundColor: context.appCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                    color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.swap_horiz_rounded, color: AppColors.primaryBlue, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Transfer Employee',
+                    style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w700)),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(Icons.close_rounded, color: context.appSubtext),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Text('Transfer ${widget.employee.fullName} to another branch.',
+                style: TextStyle(color: context.appSubtext, fontSize: 15)),
+            const SizedBox(height: 20),
+            Text('Select destination branch',
+                style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 10),
+            if (availableBranches.isEmpty)
+              Text('No other active branches available.',
+                  style: TextStyle(color: context.appSubtext, fontSize: 14))
+            else
+              ...availableBranches.map((b) {
+                final selected = _selectedBranchId == b.id;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedBranchId = b.id),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.primaryBlue.withAlpha(15) : context.appField,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selected ? AppColors.primaryBlue : context.appBorder,
+                        width: selected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.business_rounded,
+                          size: 16,
+                          color: selected ? AppColors.primaryBlue : context.appSubtext),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(b.name,
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: selected ? AppColors.primaryBlue : context.appText)),
+                          if (b.location.isNotEmpty)
+                            Text(b.location,
+                                style: TextStyle(fontSize: 13, color: context.appSubtext)),
+                        ]),
+                      ),
+                      if (selected)
+                        const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primaryBlue),
+                    ]),
+                  ),
+                );
+              }),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: context.appBorder),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                  ),
+                  child: Text('Cancel', style: TextStyle(color: context.appText)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: (_loading || _selectedBranchId == null || availableBranches.isEmpty)
+                      ? null
+                      : _confirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Confirm Transfer',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  QR Code tab
@@ -1085,6 +1414,14 @@ class _LeaveProfileTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(employeeLeaveRequestsProvider(employee.id));
 
+    // Compute actual used days from approved leave requests
+    final usedMap = <String, int>{};
+    for (final r in requestsAsync.value ?? []) {
+      if (r.status == 'approved') {
+        usedMap[r.leaveType] = ((usedMap[r.leaveType] ?? 0) + r.totalDays) as int;
+      }
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1107,9 +1444,10 @@ class _LeaveProfileTab extends ConsumerWidget {
             ]),
             const SizedBox(height: 10),
             ..._balances.map((t) {
-              final bal = employee.leaveBalances[t.$1] ?? t.$5;
-              final used = (t.$5 - bal).clamp(0, t.$5);
-              final pct = t.$5 > 0 ? (bal / t.$5).clamp(0.0, 1.0) : 0.0;
+              final total = (employee.leaveBalances[t.$1] as num?)?.toInt() ?? t.$5;
+              final used  = usedMap[t.$1] ?? 0;
+              final remaining = ((total - used).clamp(0, total) as num).toInt();
+              final pct = total > 0 ? (remaining / total).clamp(0.0, 1.0) : 0.0;
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: context.cardDeco(14),
@@ -1128,11 +1466,11 @@ class _LeaveProfileTab extends ConsumerWidget {
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(t.$2, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
-                        Text('${used} used · ${t.$5} total',
+                        Text('$used used · $total total',
                             style: TextStyle(fontSize: 13, color: context.appSubtext)),
                       ])),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text('$bal', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: t.$3, height: 1)),
+                        Text('$remaining', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: t.$3, height: 1)),
                         Text('days left', style: TextStyle(fontSize: 12, color: context.appSubtext)),
                       ]),
                     ]),

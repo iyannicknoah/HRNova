@@ -19,17 +19,21 @@ final employeesProvider = StreamProvider.autoDispose<List<EmployeeModel>>((ref) 
   final role = ref.watch(currentUserRoleProvider);
   final branchId = ref.watch(currentBranchIdProvider);
 
-  var query = FirebaseService.employeesRef(companyId)
-      .where('status', whereNotIn: ['deleted']);
-
-  // Branch HR admin only sees their own branch
+  // Branch HR admin: filter by branchId only (no whereNotIn to avoid composite index),
+  // exclude deleted client-side.
   if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
-    query = FirebaseService.employeesRef(companyId)
-        .where('status', whereNotIn: ['deleted'])
-        .where('branchId', isEqualTo: branchId);
+    return FirebaseService.employeesRef(companyId)
+        .where('branchId', isEqualTo: branchId)
+        .orderBy('firstName')
+        .snapshots()
+        .map((s) => s.docs
+            .map((d) => EmployeeModel.fromDoc(d))
+            .where((e) => e.status != 'deleted')
+            .toList());
   }
 
-  return query
+  return FirebaseService.employeesRef(companyId)
+      .where('status', whereNotIn: ['deleted'])
       .orderBy('firstName')
       .snapshots()
       .map((s) => s.docs.map((d) => EmployeeModel.fromDoc(d)).toList());
@@ -233,14 +237,42 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> deleteEmployee(String employeeId) async {
+  Future<void> deleteEmployee(String employeeId, {String? email}) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      // Delete Firebase Auth account (non-fatal — Firestore delete proceeds regardless)
+      if (email != null && email.isNotEmpty) {
+        try {
+          await ApiService().delete('/api/auth/delete-user', data: {'email': email});
+        } catch (_) {}
+      }
+      await FirebaseService.employeesRef(companyId)
+          .doc(employeeId)
+          .update({'status': 'deleted', 'deletedAt': FieldValue.serverTimestamp()});
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> transferBranch(String employeeId, String newBranchId, {String? email}) async {
     state = const AsyncValue.loading();
     try {
       final companyId = _companyId;
       if (companyId == null) throw Exception('Not authenticated.');
       await FirebaseService.employeesRef(companyId)
           .doc(employeeId)
-          .update({'status': 'deleted', 'deletedAt': FieldValue.serverTimestamp()});
+          .update({'branchId': newBranchId});
+      // Update Auth claim so the employee's next login gets the correct branchId
+      if (email != null && email.isNotEmpty) {
+        try {
+          await ApiService().post('/api/auth/update-branch-claim',
+              data: {'email': email, 'branchId': newBranchId});
+        } catch (_) {}
+      }
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

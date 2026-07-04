@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
 
@@ -155,6 +157,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
 
     final settingsAsync = ref.watch(companySettingsProvider);
+    final role     = ref.watch(currentUserRoleProvider);
+    final canEdit  = role != AppConstants.roleBranchHrAdmin;
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -171,18 +175,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 2),
                 Text('Configure your company preferences', style: TextStyle(color: context.appSubtext, fontSize: 15)),
               ]),
+              if (!canEdit) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.pillAmberBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.lock_outline_rounded, color: AppColors.warningAmber, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(
+                      'Settings can only be changed by the company HR Admin. Contact them to update policies.',
+                      style: const TextStyle(color: AppColors.warningAmber, fontSize: 14, height: 1.4),
+                    )),
+                  ]),
+                ),
+              ],
               const SizedBox(height: 24),
-              _section('schedule', Icons.schedule_rounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody()),
+              _section('schedule', Icons.schedule_rounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody(canEdit)),
               const SizedBox(height: 14),
-              _section('leave', Icons.beach_access_rounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody()),
+              _section('leave', Icons.beach_access_rounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody(canEdit)),
               const SizedBox(height: 14),
-              _section('payroll', Icons.payments_rounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody()),
+              _section('payroll', Icons.payments_rounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody(canEdit)),
               const SizedBox(height: 14),
-              _section('departments', Icons.account_tree_rounded, 'Departments', 'Manage company departments', _deptsBody()),
+              _section('departments', Icons.account_tree_rounded, 'Departments', 'Manage company departments', _deptsBody(canEdit)),
               const SizedBox(height: 14),
-              _section('notifications', Icons.notifications_rounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notifBody()),
+              _section('notifications', Icons.notifications_rounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notifBody(canEdit)),
               const SizedBox(height: 14),
-              _section('performance', Icons.trending_up_rounded, 'Performance Criteria', 'Scoring criteria and weights — must total 100%', _criteriaBody()),
+              _section('performance', Icons.trending_up_rounded, 'Performance Criteria', 'Scoring criteria and weights — must total 100%', _criteriaBody(canEdit)),
             ],
           ),
         ),
@@ -227,7 +249,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ── Section bodies ────────────────────────────────────────────────────────
 
-  Widget _scheduleBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _scheduleBody(bool canEdit) => AbsorbPointer(
+    absorbing: !canEdit,
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: _timeField('Work Start', _startTime, () => _pickTime(true))),
       const SizedBox(width: 16),
@@ -255,15 +279,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }).toList()),
     const SizedBox(height: 20),
-    _saveBtn(() => _save('Work Schedule', {
+    if (canEdit) _saveBtn(() => _save('Work Schedule', {
       'workStartTime': _fmtTime(_startTime),
       'workEndTime': _fmtTime(_endTime),
       'gracePeriodMinutes': int.tryParse(_graceCtrl.text) ?? 10,
       'workingDays': _days.map((d) => _shortToLong[d] ?? d.toLowerCase()).toList(),
     })),
-  ]);
+  ]));
 
-  Widget _leaveBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _leaveBody(bool canEdit) => AbsorbPointer(
+    absorbing: !canEdit,
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: _field('Annual Leave Days', _annualCtrl, hint: '18', suffix: 'days', type: TextInputType.number)),
       const SizedBox(width: 16),
@@ -280,13 +306,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ]),
     ),
     const SizedBox(height: 16),
-    _saveBtn(() => _save('Leave Policy', {
+    if (canEdit) _saveBtn(() => _save('Leave Policy', {
       'annualLeaveDays': int.tryParse(_annualCtrl.text) ?? 18,
       'sickLeaveDays': int.tryParse(_sickCtrl.text) ?? 10,
     })),
-  ]);
+  ]));
 
-  Widget _payrollBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _payrollBody(bool canEdit) => AbsorbPointer(
+    absorbing: !canEdit,
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
@@ -319,15 +347,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(child: _field('Max Late Before Warning', _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
     ]),
     const SizedBox(height: 16),
-    _saveBtn(() => _save('Payroll Rules', {
+    if (canEdit) _saveBtn(() => _save('Payroll Rules', {
       'salaryPaymentDay': int.tryParse(_payDayCtrl.text) ?? 28,
       'overtimeMultiplier': _parseMultiplier(_overtime),
       'lateDeductionPerHourRwf': int.tryParse(_lateCtrl.text) ?? 500,
       'maxLateBeforeWarning': int.tryParse(_maxLateCtrl.text) ?? 3,
     })),
-  ]);
+  ]));
 
-  Widget _deptsBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _deptsBody(bool canEdit) => AbsorbPointer(
+    absorbing: !canEdit,
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(
         child: TextField(
@@ -369,10 +399,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       )).toList()),
     ],
     const SizedBox(height: 16),
-    _saveBtn(() => _save('Departments', {'departments': _depts})),
-  ]);
+    if (canEdit) _saveBtn(() => _save('Departments', {'departments': _depts})),
+  ]));
 
-  Widget _notifBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _notifBody(bool canEdit) => AbsorbPointer(
+    absorbing: !canEdit,
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
     const SizedBox(height: 14),
     _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
@@ -391,7 +423,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 16),
     _field('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX'),
     const SizedBox(height: 16),
-    _saveBtn(() => _save('Notifications & Contacts', {
+    if (canEdit) _saveBtn(() => _save('Notifications & Contacts', {
       'managerPhone': _mgrPhone.text.trim(),
       'hrAdminPhone': _hrPhone.text.trim(),
       'guardPhone': _guardPhone.text.trim(),
@@ -400,7 +432,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'notificationMethod': _notif,
       'rraTinNumber': _tinCtrl.text.trim(),
     })),
-  ]);
+  ]));
 
   // ── Shared widgets ────────────────────────────────────────────────────────
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
@@ -456,10 +488,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ),
   );
 
-  Widget _criteriaBody() {
+  Widget _criteriaBody(bool canEdit) {
     final total = _criteria.fold(0.0, (s, c) => s + c.weight);
     final isValid = (total - 100).abs() < 0.01;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return AbsorbPointer(
+      absorbing: !canEdit,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600))),
         Expanded(flex: 2, child: Text('Weight %', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600))),
@@ -502,10 +536,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ]),
       ),
       const SizedBox(height: 16),
-      _saveBtn(isValid ? () => _save('Performance Criteria', {
+      if (canEdit) _saveBtn(isValid ? () => _save('Performance Criteria', {
         'performanceCriteria': _criteria.map((c) => c.toMap()).toList(),
       }) : null),
-    ]);
+    ]));
   }
 }
 

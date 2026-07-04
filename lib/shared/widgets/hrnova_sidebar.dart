@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/branches/providers/branches_provider.dart';
 import 'employee_avatar.dart';
 import 'notification_bell.dart';
 
@@ -51,6 +52,8 @@ class HRNovaSidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentRoute = GoRouterState.of(context).uri.path;
+    final companyType = ref.watch(companyTypeProvider).valueOrNull ?? AppConstants.companySingle;
+    final isMultiBranch = companyType == AppConstants.companyMultiBranch;
 
     return Container(
       width: 220,
@@ -117,8 +120,11 @@ class HRNovaSidebar extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               children: _navItems
-                  .where((item) =>
-                      item.roles == null || item.roles!.contains(userRole))
+                  .where((item) {
+                    if (item.roles != null && !item.roles!.contains(userRole)) return false;
+                    if (item.route == '/branches' && !isMultiBranch) return false;
+                    return true;
+                  })
                   .map((item) => _SidebarItem(
                         item: item,
                         isActive: currentRoute == item.route ||

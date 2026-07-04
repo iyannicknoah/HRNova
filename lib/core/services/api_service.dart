@@ -52,10 +52,10 @@ class ApiService {
     }
   }
 
-  Future<Response> delete(String path) async {
+  Future<Response> delete(String path, {dynamic data}) async {
     final token = await _getToken();
     try {
-      return await _dio.delete(path, options: _authOptions(token));
+      return await _dio.delete(path, data: data, options: _authOptions(token));
     } on DioException catch (e) {
       throw _mapError(e);
     }

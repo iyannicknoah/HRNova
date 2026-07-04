@@ -118,4 +118,38 @@ router.post('/refresh-claims', verifyToken, async (req, res) => {
   }
 });
 
+// ── DELETE /api/auth/delete-user ──────────────────────────────────────────
+// Deletes a Firebase Auth account by email.
+router.delete('/delete-user', verifyToken, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const user = await getAuth().getUserByEmail(email.trim().toLowerCase());
+    await getAuth().deleteUser(user.uid);
+    console.log(`[Auth] Deleted user: ${email}`);
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') return res.json({ success: true });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/auth/update-branch-claim ────────────────────────────────────
+// Updates the branchId custom claim for a user by email (after branch transfer).
+router.post('/update-branch-claim', verifyToken, async (req, res) => {
+  try {
+    const { email, branchId } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const user = await getAuth().getUserByEmail(email.trim().toLowerCase());
+    const claims = { ...(user.customClaims || {}) };
+    if (branchId) claims.branchId = branchId;
+    else delete claims.branchId;
+    await getAuth().setCustomUserClaims(user.uid, claims);
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') return res.json({ success: true, skipped: true });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

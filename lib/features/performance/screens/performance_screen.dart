@@ -2,9 +2,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../branches/models/branch_model.dart';
+import '../../branches/providers/branches_provider.dart';
 import '../../employees/models/employee_model.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../settings/models/company_settings_model.dart';
@@ -21,6 +24,7 @@ class PerformanceScreen extends ConsumerStatefulWidget {
 
 class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  String? _branchFilter;
 
   String get _monthStr => DateFormat('yyyy-MM').format(_selectedMonth);
 
@@ -39,6 +43,13 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
   Widget build(BuildContext context) {
     final claimsAsync = ref.watch(userClaimsProvider);
     final role = claimsAsync.value?['role'] as String? ?? '';
+    final companyType = ref.watch(companyTypeProvider).valueOrNull ?? AppConstants.companySingle;
+    final isMultiBranch = companyType == AppConstants.companyMultiBranch;
+    final isTopHr = role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin;
+    final showBranchFilter = isTopHr && isMultiBranch && role != 'manager';
+    final branches = showBranchFilter
+        ? (ref.watch(branchesStreamProvider).valueOrNull ?? <BranchModel>[])
+        : <BranchModel>[];
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -62,6 +73,15 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                       style: TextStyle(color: context.appSubtext, fontSize: 15)),
                 ]),
                 const Spacer(),
+                // Branch filter (top HR only, multi-branch)
+                if (showBranchFilter && branches.isNotEmpty) ...[
+                  _BranchFilterDrop(
+                    value: _branchFilter,
+                    branches: branches,
+                    onChanged: (v) => setState(() => _branchFilter = v),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 // Month picker
                 _MonthPicker(
                   month: _selectedMonth,
@@ -75,7 +95,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
           Expanded(
             child: role == 'manager'
                 ? _ManagerScoringView(month: _monthStr)
-                : _HRDashboardView(month: _monthStr),
+                : _HRDashboardView(month: _monthStr, branchFilter: _branchFilter),
           ),
         ],
       ),
@@ -144,6 +164,49 @@ class _NavBtn extends StatelessWidget {
                   : context.appSubtext.withAlpha(100)),
         ),
       );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Branch Filter Dropdown
+// ─────────────────────────────────────────────────────────────────────────────
+class _BranchFilterDrop extends StatelessWidget {
+  const _BranchFilterDrop({required this.value, required this.branches, required this.onChanged});
+  final String? value;
+  final List<BranchModel> branches;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = value ?? 'all';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: value != null ? AppColors.primaryBlue : context.appBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: current,
+          isDense: true,
+          dropdownColor: context.appCard,
+          style: TextStyle(color: context.appText, fontSize: 14),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: context.appSubtext),
+          items: [
+            DropdownMenuItem(
+              value: 'all',
+              child: Text('All Branches', style: TextStyle(color: context.appText, fontSize: 14)),
+            ),
+            ...branches.map((b) => DropdownMenuItem(
+                  value: b.id,
+                  child: Text(b.name, style: TextStyle(color: context.appText, fontSize: 14)),
+                )),
+          ],
+          onChanged: (v) => onChanged(v == 'all' ? null : v),
+        ),
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,9 +333,11 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
     final criteria = settingsAsync.value?.performanceCriteria ??
         PerformanceCriterion.defaults;
 
-    final employees = employeesAsync.value ?? [];
+    final allEmployees = employeesAsync.value ?? [];
     final scores = scoresAsync.value ?? [];
     final scoreMap = {for (final s in scores) s.employeeId: s};
+    // Managers only score employees in their own branch (filtered by branchId claim via employeesProvider)
+    final employees = allEmployees;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
@@ -736,8 +801,9 @@ class _ScorePanel extends StatelessWidget {
 //  HR Dashboard View
 // ─────────────────────────────────────────────────────────────────────────────
 class _HRDashboardView extends ConsumerWidget {
-  const _HRDashboardView({required this.month});
+  const _HRDashboardView({required this.month, this.branchFilter});
   final String month;
+  final String? branchFilter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -745,9 +811,17 @@ class _HRDashboardView extends ConsumerWidget {
     final employeesAsync = ref.watch(employeesProvider);
     final settingsAsync = ref.watch(companySettingsProvider);
 
-    final scores = scoresAsync.value ?? [];
-    final employees = employeesAsync.value ?? [];
+    final allScores = scoresAsync.value ?? [];
+    final allEmployees = employeesAsync.value ?? [];
     final companyType = settingsAsync.value?.companyType ?? 'single';
+
+    // Apply branch filter when set
+    final scores = branchFilter == null
+        ? allScores
+        : allScores.where((s) => s.branchId == branchFilter).toList();
+    final employees = branchFilter == null
+        ? allEmployees
+        : allEmployees.where((e) => e.branchId == branchFilter).toList();
 
     // Compute previous month for comparison
     final monthDt = DateTime.parse('$month-01');
