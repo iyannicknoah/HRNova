@@ -42,6 +42,7 @@ app.use('/api/companies', require('./routes/companies'));
 app.use('/api/branches',  require('./routes/branches'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/exports',   require('./routes/exports'));
+app.use('/api/ai',        require('./routes/ai'));
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

@@ -1,3 +1,25 @@
+class PerformanceCriterion {
+  const PerformanceCriterion({required this.name, required this.weight});
+  final String name;
+  final double weight;
+
+  static const defaults = [
+    PerformanceCriterion(name: 'Attendance and Punctuality', weight: 20),
+    PerformanceCriterion(name: 'Quality of Work', weight: 25),
+    PerformanceCriterion(name: 'Teamwork', weight: 20),
+    PerformanceCriterion(name: 'Initiative', weight: 20),
+    PerformanceCriterion(name: 'Communication', weight: 15),
+  ];
+
+  factory PerformanceCriterion.fromMap(Map<String, dynamic> m) =>
+      PerformanceCriterion(
+        name: m['name'] as String? ?? '',
+        weight: (m['weight'] as num?)?.toDouble() ?? 0,
+      );
+
+  Map<String, dynamic> toMap() => {'name': name, 'weight': weight};
+}
+
 class CompanySettingsModel {
   const CompanySettingsModel({
     required this.companyId,
@@ -26,7 +48,7 @@ class CompanySettingsModel {
     this.notificationMethod = 'email',
     this.isOnboardingComplete = false,
     this.departments = const [],
-    this.performanceCriteria = const [],
+    this.performanceCriteria = PerformanceCriterion.defaults,
     this.managerPhone = '',
     this.hrAdminPhone = '',
     this.guardPhone = '',
@@ -98,7 +120,7 @@ class CompanySettingsModel {
 
   // Lists
   final List<String> departments;
-  final List<String> performanceCriteria;
+  final List<PerformanceCriterion> performanceCriteria;
 
   // Company info
   final String timezone;
@@ -142,7 +164,18 @@ class CompanySettingsModel {
       notificationMethod: map['notificationMethod'] as String? ?? 'email',
       isOnboardingComplete: map['isOnboardingComplete'] as bool? ?? false,
       departments: (map['departments'] as List?)?.cast<String>() ?? const [],
-      performanceCriteria: (map['performanceCriteria'] as List?)?.cast<String>() ?? const [],
+      performanceCriteria: () {
+        final raw = map['performanceCriteria'];
+        if (raw == null || (raw as List).isEmpty) return PerformanceCriterion.defaults;
+        final first = (raw as List).first;
+        if (first is String) {
+          // Legacy: just names, use default weights
+          return PerformanceCriterion.defaults;
+        }
+        return raw
+            .map((e) => PerformanceCriterion.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }(),
       managerPhone: map['managerPhone'] as String? ?? '',
       hrAdminPhone: map['hrAdminPhone'] as String? ?? '',
       guardPhone: map['guardPhone'] as String? ?? '',
@@ -194,7 +227,7 @@ class CompanySettingsModel {
     'notificationMethod': notificationMethod,
     'isOnboardingComplete': isOnboardingComplete,
     'departments': departments,
-    'performanceCriteria': performanceCriteria,
+    'performanceCriteria': performanceCriteria.map((c) => c.toMap()).toList(),
     'managerPhone': managerPhone,
     'hrAdminPhone': hrAdminPhone,
     'guardPhone': guardPhone,
@@ -236,7 +269,7 @@ class CompanySettingsModel {
     String? notificationMethod,
     bool? isOnboardingComplete,
     List<String>? departments,
-    List<String>? performanceCriteria,
+    List<PerformanceCriterion>? performanceCriteria,
     String? managerPhone,
     String? hrAdminPhone,
     String? guardPhone,

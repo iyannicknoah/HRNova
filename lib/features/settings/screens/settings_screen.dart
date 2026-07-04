@@ -18,7 +18,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Expansion state
   final Map<String, bool> _expanded = {
     'schedule': true, 'leave': false, 'payroll': false,
-    'departments': false, 'notifications': false,
+    'departments': false, 'notifications': false, 'performance': false,
   };
 
   // Work Schedule
@@ -49,6 +49,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _hrEmail    = TextEditingController();
   final _tinCtrl    = TextEditingController();
   String _notif     = 'email';
+
+  // Performance criteria
+  List<PerformanceCriterion> _criteria = List.from(PerformanceCriterion.defaults);
 
   static const _shortToLong = {
     'Mon': 'monday', 'Tue': 'tuesday', 'Wed': 'wednesday',
@@ -89,6 +92,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _depts = List.from(s.departments);
     _notif = s.notificationMethod;
     _overtime = _fmtMultiplier(s.overtimeMultiplier);
+    _criteria = s.performanceCriteria.isEmpty
+        ? List.from(PerformanceCriterion.defaults)
+        : List.from(s.performanceCriteria);
   }
 
   TimeOfDay _parseTime(String s) {
@@ -177,6 +183,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _section('departments', Icons.account_tree_rounded, 'Departments', 'Manage company departments', _deptsBody()),
               const SizedBox(height: 14),
               _section('notifications', Icons.notifications_rounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notifBody()),
+              const SizedBox(height: 14),
+              _section('performance', Icons.trending_up_rounded, 'Performance Criteria', 'Scoring criteria and weights — must total 100%', _criteriaBody()),
             ],
           ),
         ),
@@ -396,6 +404,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     })),
   ]);
 
+  Widget _criteriaBody() {
+    final total = _criteria.fold(0.0, (s, c) => s + c.weight);
+    final isValid = (total - 100).abs() < 0.01;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Header row
+      Row(children: [
+        const Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+        const Expanded(flex: 2, child: Text('Weight %', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+        const SizedBox(width: 40),
+      ]),
+      const SizedBox(height: 10),
+      // Criteria rows — each is a stateful widget to avoid controller-in-build issues
+      ...List.generate(_criteria.length, (i) {
+        final c = _criteria[i];
+        return _CriterionRow(
+          key: ValueKey('criterion_$i'),
+          criterion: c,
+          onWeightChanged: (w) {
+            setState(() => _criteria[i] = PerformanceCriterion(name: c.name, weight: w));
+          },
+          onRemove: () => setState(() => _criteria.removeAt(i)),
+          appText: context.appText,
+          appSubtext: context.appSubtext,
+          appField: context.appField,
+          appBorder: context.appBorder,
+        );
+      }),
+      // Add new criterion
+      const SizedBox(height: 8),
+      _AddCriterionRow(onAdd: (name, weight) {
+        setState(() => _criteria.add(PerformanceCriterion(name: name, weight: weight)));
+      }),
+      const SizedBox(height: 16),
+      // Weight total indicator
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isValid ? AppColors.pillGreenBg : AppColors.pillRedBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isValid ? AppColors.successGreen.withAlpha(80) : AppColors.errorRed.withAlpha(80)),
+        ),
+        child: Row(children: [
+          Icon(isValid ? Icons.check_circle_rounded : Icons.error_rounded,
+              color: isValid ? AppColors.successGreen : AppColors.errorRed, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            isValid ? 'Total: 100% ✓' : 'Total: ${total.toStringAsFixed(1)}% — must equal 100%',
+            style: TextStyle(
+              color: isValid ? AppColors.successGreen : AppColors.errorRed,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 16),
+      _saveBtn(isValid ? () => _save('Performance Criteria', {
+        'performanceCriteria': _criteria.map((c) => c.toMap()).toList(),
+      }) : null),
+    ]);
+  }
+
   // ── Shared widgets ────────────────────────────────────────────────────────
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -436,17 +507,193 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ]);
 
-  Widget _saveBtn(VoidCallback onTap) => Align(
+  Widget _saveBtn(VoidCallback? onTap) => Align(
     alignment: Alignment.centerRight,
     child: FilledButton.icon(
       onPressed: onTap,
       icon: const Icon(Icons.check_rounded, size: 16),
       label: const Text('Save Changes'),
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primaryBlue,
+        backgroundColor: onTap != null ? AppColors.primaryBlue : AppColors.textSecondary,
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
       ),
     ),
   );
+}
+
+// ── Criterion row — stateful to hold its own TextEditingController ─────────
+class _CriterionRow extends StatefulWidget {
+  const _CriterionRow({
+    super.key,
+    required this.criterion,
+    required this.onWeightChanged,
+    required this.onRemove,
+    required this.appText,
+    required this.appSubtext,
+    required this.appField,
+    required this.appBorder,
+  });
+  final PerformanceCriterion criterion;
+  final void Function(double weight) onWeightChanged;
+  final VoidCallback onRemove;
+  final Color appText, appSubtext, appField, appBorder;
+
+  @override
+  State<_CriterionRow> createState() => _CriterionRowState();
+}
+
+class _CriterionRowState extends State<_CriterionRow> {
+  late TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.criterion.weight.toStringAsFixed(0));
+  }
+
+  @override
+  void didUpdateWidget(_CriterionRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update controller if the weight actually changed externally
+    final newText = widget.criterion.weight.toStringAsFixed(0);
+    if (_ctrl.text != newText && double.tryParse(_ctrl.text) != widget.criterion.weight) {
+      _ctrl.text = newText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(children: [
+        Expanded(
+          flex: 5,
+          child: Text(widget.criterion.name,
+              style: TextStyle(color: widget.appText, fontSize: 14)),
+        ),
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: _ctrl,
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: widget.appText, fontSize: 14),
+            decoration: InputDecoration(
+              suffixText: '%',
+              suffixStyle: TextStyle(color: widget.appSubtext),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              filled: true,
+              fillColor: widget.appField,
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: widget.appBorder)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: widget.appBorder)),
+              focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+            ),
+            onChanged: (v) {
+              final w = double.tryParse(v);
+              if (w != null) widget.onWeightChanged(w);
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: widget.onRemove,
+          icon: const Icon(Icons.remove_circle_outline_rounded,
+              size: 20, color: AppColors.errorRed),
+          tooltip: 'Remove',
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Add criterion row ──────────────────────────────────────────────────────
+class _AddCriterionRow extends StatefulWidget {
+  const _AddCriterionRow({required this.onAdd});
+  final void Function(String name, double weight) onAdd;
+
+  @override
+  State<_AddCriterionRow> createState() => _AddCriterionRowState();
+}
+
+class _AddCriterionRowState extends State<_AddCriterionRow> {
+  final _nameCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _weightCtrl.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final name = _nameCtrl.text.trim();
+    final weight = double.tryParse(_weightCtrl.text) ?? 0;
+    if (name.isEmpty || weight <= 0) return;
+    widget.onAdd(name, weight);
+    _nameCtrl.clear();
+    _weightCtrl.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Expanded(
+        flex: 5,
+        child: TextField(
+          controller: _nameCtrl,
+          style: TextStyle(color: context.appText, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'New criterion name...',
+            hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true, fillColor: context.appField,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          ),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        flex: 2,
+        child: TextField(
+          controller: _weightCtrl,
+          keyboardType: TextInputType.number,
+          style: TextStyle(color: context.appText, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Weight%',
+            hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            filled: true, fillColor: context.appField,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      FilledButton(
+        onPressed: _add,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: const Text('Add'),
+      ),
+    ]);
+  }
 }
