@@ -71,7 +71,7 @@ app.use((err, req, res, next) => {
 cron.schedule('30 9 * * 1-6', async () => {
   console.log('[Cron] Running morning report cron:', new Date().toISOString());
   try {
-    const db = getFirestore();
+    const db = getFirestore('default');
     const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
     for (const companyDoc of companiesSnap.docs) {
       try {
@@ -122,7 +122,7 @@ cron.schedule('30 9 * * 1-6', async () => {
 cron.schedule('30 17 * * 1-6', async () => {
   console.log('[Cron] Running end of day report cron:', new Date().toISOString());
   try {
-    const db = getFirestore();
+    const db = getFirestore('default');
     const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
     for (const companyDoc of companiesSnap.docs) {
       try {
@@ -161,7 +161,7 @@ cron.schedule('30 17 * * 1-6', async () => {
 cron.schedule('0 0 * * *', async () => {
   console.log('[Cron] Running midnight photo deletion job...');
   try {
-    const db  = getFirestore();
+    const db  = getFirestore('default');
     const now = new Date();
 
     const companiesSnap = await db.collection('companies').get();
@@ -193,7 +193,7 @@ cron.schedule('0 0 * * *', async () => {
 cron.schedule('0 8 * * 1', async () => {
   console.log('[Cron] Running weekly anomaly check:', new Date().toISOString());
   try {
-    const db = getFirestore();
+    const db = getFirestore('default');
     const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
     for (const companyDoc of companiesSnap.docs) {
       try {
@@ -232,7 +232,7 @@ cron.schedule('0 8 * * 1', async () => {
 cron.schedule('30 9 * * 1', async () => {
   console.log('[Cron] Running weekly report cron:', new Date().toISOString());
   try {
-    const db = getFirestore();
+    const db = getFirestore('default');
     const today = new Date();
     const diff = today.getDay() || 7;
     const monday = new Date(today);
@@ -277,7 +277,7 @@ cron.schedule('0 20 28-31 * *', async () => {
   if (tomorrow.getDate() !== 1) return; // only last day of month
   console.log('[Cron] Running monthly report cron:', new Date().toISOString());
   try {
-    const db = getFirestore();
+    const db = getFirestore('default');
     const month = now.toISOString().slice(0, 7);
     const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
     for (const companyDoc of companiesSnap.docs) {

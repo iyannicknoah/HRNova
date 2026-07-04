@@ -125,6 +125,7 @@ class _Header extends StatelessWidget {
             unselectedLabelColor: context.appSubtext,
             labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+            dividerColor: Colors.transparent,
             tabs: labels.map((l) => Tab(text: l)).toList(),
           ),
           Divider(height: 1, color: context.appBorder),

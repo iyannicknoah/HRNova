@@ -48,7 +48,7 @@ async function _emailReport(db, companyId, reportText, typeLabel, toEmail) {
 // ── POST /api/reports/daily ──────────────────────────────────────────────────
 router.post('/daily', verifyToken, async (req, res) => {
   try {
-    const db        = getFirestore();
+    const db        = getFirestore('default');
     const companyId = req.body.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
 
@@ -78,7 +78,7 @@ router.post('/daily', verifyToken, async (req, res) => {
 // ── POST /api/reports/weekly ─────────────────────────────────────────────────
 router.post('/weekly', verifyToken, async (req, res) => {
   try {
-    const db        = getFirestore();
+    const db        = getFirestore('default');
     const companyId = req.body.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
 
@@ -108,7 +108,7 @@ router.post('/weekly', verifyToken, async (req, res) => {
 // ── POST /api/reports/monthly ────────────────────────────────────────────────
 router.post('/monthly', verifyToken, async (req, res) => {
   try {
-    const db        = getFirestore();
+    const db        = getFirestore('default');
     const companyId = req.body.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
 
@@ -145,7 +145,7 @@ router.post('/group-daily', verifyToken, async (req, res) => {
     if (!['group_hr_admin', 'super_admin'].includes(req.role)) {
       return res.status(403).json({ error: 'Group HR Admin access required' });
     }
-    const db        = getFirestore();
+    const db        = getFirestore('default');
     const companyId = req.body.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
 
@@ -174,7 +174,7 @@ router.post('/group-daily', verifyToken, async (req, res) => {
 // ── POST /api/reports/ask ────────────────────────────────────────────────────
 router.post('/ask', verifyToken, async (req, res) => {
   try {
-    const db        = getFirestore();
+    const db        = getFirestore('default');
     const companyId = req.body.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
 
@@ -247,7 +247,7 @@ router.post('/ask', verifyToken, async (req, res) => {
 // ── GET /api/reports/list ────────────────────────────────────────────────────
 router.get('/list', verifyToken, async (req, res) => {
   try {
-    const db        = getFirestore();
+    const db        = getFirestore('default');
     const companyId = req.query.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
 
@@ -268,7 +268,7 @@ router.get('/list', verifyToken, async (req, res) => {
 // ── POST /api/reports/anomaly-check ─────────────────────────────────────────
 router.post('/anomaly-check', verifyToken, async (req, res) => {
   try {
-    const db = getFirestore();
+    const db = getFirestore('default');
     const companyId = req.body.companyId || req.companyId;
     if (!companyId) return res.status(400).json({ error: 'companyId required' });
     const { buildAnomalySummary } = require('../services/dataProcessor');
