@@ -54,6 +54,8 @@ class CompanySettingsModel {
     this.guardPhone = '',
     this.managerEmail = '',
     this.hrAdminEmail = '',
+    this.directorEmail = '',
+    this.directorPhone = '',
     this.guardModeEnabled = true,
     this.rraExportEnabled = true,
     this.timezone = 'Africa/Kigali',
@@ -109,6 +111,8 @@ class CompanySettingsModel {
   final String guardPhone;
   final String managerEmail;
   final String hrAdminEmail;
+  final String directorEmail;
+  final String directorPhone;
 
   // Feature flags
   final bool isOnboardingComplete;
@@ -176,6 +180,8 @@ class CompanySettingsModel {
       guardPhone: map['guardPhone'] as String? ?? '',
       managerEmail: map['managerEmail'] as String? ?? '',
       hrAdminEmail: map['hrAdminEmail'] as String? ?? '',
+      directorEmail: map['directorEmail'] as String? ?? '',
+      directorPhone: map['directorPhone'] as String? ?? '',
       guardModeEnabled: map['guardModeEnabled'] as bool? ?? true,
       rraExportEnabled: map['rraExportEnabled'] as bool? ?? true,
       timezone: map['timezone'] as String? ?? 'Africa/Kigali',
@@ -228,6 +234,8 @@ class CompanySettingsModel {
     'guardPhone': guardPhone,
     'managerEmail': managerEmail,
     'hrAdminEmail': hrAdminEmail,
+    'directorEmail': directorEmail,
+    'directorPhone': directorPhone,
     'guardModeEnabled': guardModeEnabled,
     'rraExportEnabled': rraExportEnabled,
     'timezone': timezone,
@@ -270,6 +278,8 @@ class CompanySettingsModel {
     String? guardPhone,
     String? managerEmail,
     String? hrAdminEmail,
+    String? directorEmail,
+    String? directorPhone,
     bool? guardModeEnabled,
     bool? rraExportEnabled,
     String? phone,
@@ -309,6 +319,8 @@ class CompanySettingsModel {
         guardPhone: guardPhone ?? this.guardPhone,
         managerEmail: managerEmail ?? this.managerEmail,
         hrAdminEmail: hrAdminEmail ?? this.hrAdminEmail,
+        directorEmail: directorEmail ?? this.directorEmail,
+        directorPhone: directorPhone ?? this.directorPhone,
         guardModeEnabled: guardModeEnabled ?? this.guardModeEnabled,
         rraExportEnabled: rraExportEnabled ?? this.rraExportEnabled,
         timezone: timezone,

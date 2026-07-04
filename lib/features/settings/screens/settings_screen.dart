@@ -47,12 +47,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _deptCtrl = TextEditingController();
 
   // Notifications
-  final _mgrPhone   = TextEditingController();
-  final _hrPhone    = TextEditingController();
-  final _guardPhone = TextEditingController();
-  final _mgrEmail   = TextEditingController();
-  final _hrEmail    = TextEditingController();
-  final _tinCtrl    = TextEditingController();
+  final _mgrPhone       = TextEditingController();
+  final _hrPhone        = TextEditingController();
+  final _guardPhone     = TextEditingController();
+  final _mgrEmail       = TextEditingController();
+  final _hrEmail        = TextEditingController();
+  final _directorEmail  = TextEditingController();
+  final _directorPhone  = TextEditingController();
+  final _tinCtrl        = TextEditingController();
   String _notif     = 'email';
 
   static const _shortToLong = {
@@ -71,6 +73,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
     _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
     _guardPhone.dispose(); _mgrEmail.dispose(); _hrEmail.dispose();
+    _directorEmail.dispose(); _directorPhone.dispose();
     _tinCtrl.dispose();
     super.dispose();
   }
@@ -87,9 +90,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _mgrPhone.text   = s.managerPhone.isEmpty ? '+250' : s.managerPhone;
     _hrPhone.text    = s.hrAdminPhone.isEmpty ? '+250' : s.hrAdminPhone;
     _guardPhone.text = s.guardPhone.isEmpty ? '+250' : s.guardPhone;
-    _mgrEmail.text   = s.managerEmail;
-    _hrEmail.text    = s.hrAdminEmail;
-    _tinCtrl.text    = s.rraTinNumber ?? '';
+    _mgrEmail.text       = s.managerEmail;
+    _hrEmail.text        = s.hrAdminEmail;
+    _directorEmail.text  = s.directorEmail;
+    _directorPhone.text  = s.directorPhone.isEmpty ? '' : s.directorPhone;
+    _tinCtrl.text        = s.rraTinNumber ?? '';
     _days  = Set.from(s.workingDays.map((d) => _longToShort[d] ?? d).where((d) => d.isNotEmpty));
     _depts = List.from(s.departments);
     _notif = s.notificationMethod;
@@ -420,6 +425,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       const SizedBox(width: 14),
       Expanded(child: _field('HR Admin Email', _hrEmail, hint: 'hr@company.com', type: TextInputType.emailAddress)),
     ]),
+    const SizedBox(height: 12),
+    Row(children: [
+      Expanded(child: _field('Director Email', _directorEmail, hint: 'director@company.rw', type: TextInputType.emailAddress)),
+      const SizedBox(width: 14),
+      Expanded(child: _field('Director Phone', _directorPhone, hint: '+250 7XX XXX XXX')),
+    ]),
+    const SizedBox(height: 8),
+    Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.primaryBlue.withAlpha(50))),
+      child: const Row(children: [
+        Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 14),
+        SizedBox(width: 8),
+        Expanded(child: Text('Director receives weekly and monthly HR reports automatically.', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13))),
+      ]),
+    ),
     const SizedBox(height: 16),
     _field('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX'),
     const SizedBox(height: 16),
@@ -429,6 +450,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'guardPhone': _guardPhone.text.trim(),
       'managerEmail': _mgrEmail.text.trim(),
       'hrAdminEmail': _hrEmail.text.trim(),
+      'directorEmail': _directorEmail.text.trim(),
+      'directorPhone': _directorPhone.text.trim(),
       'notificationMethod': _notif,
       'rraTinNumber': _tinCtrl.text.trim(),
     })),

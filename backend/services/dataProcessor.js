@@ -187,4 +187,113 @@ async function buildGroupSummary(db, companyId, reportType, date) {
   return { overall, branches: branchResults, reportType, date };
 }
 
-module.exports = { buildDailySummary, buildWeeklySummary, buildMonthlySummary, buildGroupSummary };
+async function buildAnomalySummary(db, companyId) {
+  const anomalies = [];
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+
+  // Get all active employees
+  const empsSnap = await db.collection('companies').doc(companyId)
+    .collection('employees').where('status', '==', 'active').get().catch(() => ({ docs: [] }));
+
+  for (const empDoc of empsSnap.docs) {
+    const emp = empDoc.data();
+    const empId = empDoc.id;
+    const name = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown';
+    const dept = emp.department || '';
+    const startDate = emp.startDate ? new Date(emp.startDate) : null;
+
+    // CHECK 1 — Sick Monday pattern
+    try {
+      const sickSnap = await db.collection('companies').doc(companyId)
+        .collection('leave_requests')
+        .where('employeeId', '==', empId)
+        .where('leaveType', '==', 'sick')
+        .orderBy('requestedAt', 'desc')
+        .limit(12).get();
+      const dayCount = {};
+      for (const d of sickSnap.docs) {
+        const start = new Date(d.data().startDate);
+        const day = start.toLocaleDateString('en-US', { weekday: 'long' });
+        dayCount[day] = (dayCount[day] || 0) + 1;
+      }
+      for (const [day, count] of Object.entries(dayCount)) {
+        if (count >= 3) {
+          anomalies.push({ type: 'sick_pattern', employeeName: name, department: dept, pattern: day });
+        }
+      }
+    } catch (_) {}
+
+    // CHECK 2 — Burnout risk
+    if (startDate && startDate < sixMonthsAgo) {
+      const thisYear = now.getFullYear().toString();
+      const annualSnap = await db.collection('companies').doc(companyId)
+        .collection('leave_requests')
+        .where('employeeId', '==', empId)
+        .where('leaveType', '==', 'annual')
+        .where('status', '==', 'approved')
+        .get().catch(() => ({ docs: [] }));
+      const usedThisYear = annualSnap.docs.filter(d => {
+        const date = new Date(d.data().startDate);
+        return date.getFullYear().toString() === thisYear;
+      }).length;
+      if (usedThisYear === 0) {
+        const months = Math.floor((now - startDate) / (30 * 24 * 60 * 60 * 1000));
+        anomalies.push({ type: 'burnout_risk', employeeName: name, department: dept, monthsNoLeave: months });
+      }
+    }
+
+    // CHECK 3 — Chronic lateness (last 30 days)
+    try {
+      const lateSnap = await db.collection('companies').doc(companyId)
+        .collection('attendance')
+        .where('employeeId', '==', empId)
+        .where('isLate', '==', true)
+        .where('date', '>=', thirtyDaysAgo.toISOString().split('T')[0])
+        .get();
+      if (lateSnap.size >= 5) {
+        anomalies.push({ type: 'chronic_late', employeeName: name, department: dept, lateCount: lateSnap.size });
+      }
+    } catch (_) {}
+
+    // CHECK 4 — Frequent absence (last 30 days)
+    try {
+      const absentSnap = await db.collection('companies').doc(companyId)
+        .collection('attendance')
+        .where('employeeId', '==', empId)
+        .where('isAbsent', '==', true)
+        .where('date', '>=', thirtyDaysAgo.toISOString().split('T')[0])
+        .get();
+      if (absentSnap.size >= 3) {
+        anomalies.push({ type: 'frequent_absent', employeeName: name, department: dept, absentCount: absentSnap.size });
+      }
+    } catch (_) {}
+  }
+
+  // CHECK 5 — Department attendance below 85% last 7 days
+  try {
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const attendSnap = await db.collection('companies').doc(companyId)
+      .collection('attendance')
+      .where('date', '>=', sevenDaysAgo).get().catch(() => ({ docs: [] }));
+    const deptData = {};
+    for (const d of attendSnap.docs) {
+      const rec = d.data();
+      const dept = rec.department || 'Unknown';
+      if (!deptData[dept]) deptData[dept] = { present: 0, total: 0 };
+      deptData[dept].total++;
+      if (rec.checkInTime && !rec.isAbsent) deptData[dept].present++;
+    }
+    for (const [dept, data] of Object.entries(deptData)) {
+      if (data.total >= 5) {
+        const rate = Math.round(data.present / data.total * 100);
+        if (rate < 85) anomalies.push({ type: 'dept_attendance', department: dept, rate });
+      }
+    }
+  } catch (_) {}
+
+  return { anomalies, generatedAt: now.toISOString() };
+}
+
+module.exports = { buildDailySummary, buildWeeklySummary, buildMonthlySummary, buildGroupSummary, buildAnomalySummary };

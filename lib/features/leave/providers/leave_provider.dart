@@ -192,6 +192,9 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
     required String reason,
     String? branchId,
     String source = 'mobile_app',
+    String? attachmentUrl,
+    bool isExtension = false,
+    String? originalRequestId,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -218,6 +221,9 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
         'status': 'pending',
         'source': source,
         if (branchId != null) 'branchId': branchId,
+        if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
+        if (isExtension) 'isExtension': true,
+        if (originalRequestId != null) 'originalRequestId': originalRequestId,
         'requestedAt': FieldValue.serverTimestamp(),
       });
 

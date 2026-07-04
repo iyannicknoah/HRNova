@@ -321,8 +321,76 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
             const SizedBox(height: 10),
             ...docs.take(5).map((d) => _ReportCard(doc: d)),
           ],
+          const SizedBox(height: 20),
+          const _AnomalySection(),
         ],
       ),
+    );
+  }
+}
+
+// ── ANOMALY SECTION ───────────────────────────────────────────────────────────
+class _AnomalySection extends ConsumerWidget {
+  const _AnomalySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final docs = ref.watch(reportsStreamProvider('anomaly_alert')).valueOrNull ?? [];
+    if (docs.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmber, size: 16),
+          const SizedBox(width: 6),
+          Text('AI Anomaly Alerts', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+        ]),
+        const SizedBox(height: 10),
+        ...docs.take(5).map((d) => _AnomalyCard(doc: d)),
+      ],
+    );
+  }
+}
+
+class _AnomalyCard extends StatelessWidget {
+  const _AnomalyCard({required this.doc});
+  final Map<String, dynamic> doc;
+
+  @override
+  Widget build(BuildContext context) {
+    final report = (doc['report'] as String?) ?? (doc['summary'] as String?) ?? '';
+    final ts = doc['generatedAt'];
+    String dateLabel = '';
+    if (ts != null) {
+      try {
+        final dt = ts is DateTime ? ts : DateTime.tryParse(ts.toString());
+        if (dt != null) dateLabel = DateFormat('d MMM y, HH:mm').format(dt);
+      } catch (_) {}
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warningAmber.withAlpha(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(left: BorderSide(color: AppColors.warningAmber, width: 3)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.auto_awesome_rounded, color: AppColors.warningAmber, size: 14),
+          const SizedBox(width: 6),
+          const Text('Anomaly Alert', style: TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w600)),
+          const Spacer(),
+          if (dateLabel.isNotEmpty)
+            Text(dateLabel, style: TextStyle(color: context.appSubtext, fontSize: 12)),
+        ]),
+        if (report.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(report, style: TextStyle(color: context.appText, fontSize: 14, height: 1.45)),
+        ],
+      ]),
     );
   }
 }

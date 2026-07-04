@@ -182,6 +182,12 @@ class _ProfileTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(companySettingsProvider).value;
+    final annualEntitlement = settings?.annualLeaveDays ?? AppConstants.annualLeaveDaysPerYear;
+    final annualBalance = (employee.leaveBalances['annual'] as num?)?.toInt() ?? annualEntitlement;
+    final monthsSinceStart = DateTime.now().difference(employee.startDate).inDays ~/ 30;
+    final isBurnoutRisk = monthsSinceStart >= 5 && annualBalance >= annualEntitlement;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -265,18 +271,19 @@ class _ProfileTab extends ConsumerWidget {
                 ),
                 Transform.translate(
                   offset: const Offset(0, -16),
-                  child: Row(children: [
+                  child: Wrap(spacing: 8, runSpacing: 6, children: [
                     _StatChip(Icons.business_rounded, employee.department, AppColors.pillBlueBg, AppColors.pillBlueText),
-                    const SizedBox(width: 8),
                     _StatChip(
                       Icons.circle,
                       employee.isActive ? 'Active' : 'Inactive',
                       employee.isActive ? AppColors.pillGreenBg : AppColors.pillRedBg,
                       employee.isActive ? AppColors.pillGreenText : AppColors.pillRedText,
                     ),
-                    const SizedBox(width: 8),
                     _StatChip(Icons.calendar_today_rounded, 'Since ${_shortDate(employee.startDate)}',
                         AppColors.pillNavyBg, AppColors.pillNavyText),
+                    if (isBurnoutRisk)
+                      _StatChip(Icons.warning_amber_rounded, 'Burnout Risk',
+                          const Color(0xFFFFF3CD), const Color(0xFF7D4A00)),
                   ]),
                 ),
               ]),

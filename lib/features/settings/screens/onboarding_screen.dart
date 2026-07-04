@@ -43,6 +43,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _guardPhone = TextEditingController(text: '+250');
   final _mgrEmail = TextEditingController();
   final _hrEmail = TextEditingController();
+  final _directorEmail = TextEditingController();
+  final _directorPhone = TextEditingController();
   final _tinCtrl = TextEditingController();
   String _notif = 'email';
 
@@ -60,6 +62,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
     _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
     _guardPhone.dispose(); _mgrEmail.dispose(); _hrEmail.dispose();
+    _directorEmail.dispose(); _directorPhone.dispose();
     _tinCtrl.dispose();
     super.dispose();
   }
@@ -111,6 +114,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'guardPhone': _guardPhone.text.trim(),
         'managerEmail': _mgrEmail.text.trim(),
         'hrAdminEmail': _hrEmail.text.trim(),
+        'directorEmail': _directorEmail.text.trim(),
+        'directorPhone': _directorPhone.text.trim(),
         'notificationMethod': _notif,
         'rraTinNumber': _tinCtrl.text.trim(),
         'isOnboardingComplete': true,
@@ -455,6 +460,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const SizedBox(width: 16),
         Expanded(child: _textField('HR Admin Email', _hrEmail, hint: 'hr@company.com', type: TextInputType.emailAddress)),
       ]),
+      const SizedBox(height: 14),
+      Row(children: [
+        Expanded(child: _textField('Director Email', _directorEmail, hint: 'director@company.rw', type: TextInputType.emailAddress)),
+        const SizedBox(width: 16),
+        Expanded(child: _textField('Director Phone', _directorPhone, hint: '+250 7XX XXX XXX')),
+      ]),
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: _blue.withAlpha(15), borderRadius: BorderRadius.circular(10), border: Border.all(color: _blue.withAlpha(60))),
+        child: const Row(children: [
+          Icon(Icons.info_outline_rounded, color: _blue, size: 14),
+          SizedBox(width: 8),
+          Expanded(child: Text('Director receives weekly and monthly HR reports automatically.', style: TextStyle(color: _blue, fontSize: 13))),
+        ]),
+      ),
       const SizedBox(height: 24),
       const Divider(color: _border, height: 1),
       const SizedBox(height: 20),

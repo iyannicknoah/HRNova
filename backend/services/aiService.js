@@ -120,4 +120,15 @@ async function screenCv(cvText, jobRequirements) {
   );
 }
 
-module.exports = { callOpenRouter, generateReport, answerQuestion, generateCompletion, generatePerformanceReview, generateAnnualPerformance, screenCv };
+async function generateAnomalyAlert(anomalies, companyName) {
+  if (!anomalies || anomalies.length === 0) {
+    return 'No anomalies detected. All HR patterns are normal.';
+  }
+  const prompt = `You are HR assistant for ${companyName}. Review these HR anomalies and write a brief professional alert (under 200 words). Be specific about each person/department. Suggest one action per anomaly type.
+
+Anomalies:
+${JSON.stringify(anomalies, null, 2)}`;
+  return callOpenRouter(prompt, 400);
+}
+
+module.exports = { callOpenRouter, generateReport, answerQuestion, generateCompletion, generatePerformanceReview, generateAnnualPerformance, screenCv, generateAnomalyAlert };

@@ -189,6 +189,129 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
+// ── WEEKLY ANOMALY CHECK — Monday 8:00 AM ────────────────────────────────────
+cron.schedule('0 8 * * 1', async () => {
+  console.log('[Cron] Running weekly anomaly check:', new Date().toISOString());
+  try {
+    const db = getFirestore();
+    const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
+    for (const companyDoc of companiesSnap.docs) {
+      try {
+        const companyId = companyDoc.id;
+        const companyName = companyDoc.data().name || 'Company';
+        const result = await dataProcessor.buildAnomalySummary(db, companyId);
+        if (result.anomalies.length > 0) {
+          const alert = await aiService.generateAnomalyAlert(result.anomalies, companyName);
+          await db.collection('companies').doc(companyId).collection('reports').add({
+            type: 'anomaly_alert', report: alert, anomalies: result.anomalies,
+            generatedAt: new Date(), auto: true,
+          });
+          const settingsDoc = await db.collection('companies').doc(companyId)
+            .collection('settings').doc('config').get();
+          const settings = settingsDoc.data() || {};
+          if (settings.hrAdminEmail) {
+            await sendReportEmail(
+              [{ email: settings.hrAdminEmail, name: 'HR Admin' }],
+              'anomaly_alert', alert, companyName
+            );
+          }
+          console.log(`[Cron] Anomaly alert sent for: ${companyName} (${result.anomalies.length} anomalies)`);
+        } else {
+          console.log(`[Cron] No anomalies for: ${companyName}`);
+        }
+      } catch (err) {
+        console.error(`[Cron] Anomaly check failed for ${companyDoc.id}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Cron] Anomaly cron error:', err.message);
+  }
+});
+
+// ── WEEKLY REPORT — Every Monday at 9:30 AM ───────────────────────────────────
+cron.schedule('30 9 * * 1', async () => {
+  console.log('[Cron] Running weekly report cron:', new Date().toISOString());
+  try {
+    const db = getFirestore();
+    const today = new Date();
+    const diff = today.getDay() || 7;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - diff + 1);
+    const startDate = monday.toISOString().split('T')[0];
+    const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
+    for (const companyDoc of companiesSnap.docs) {
+      try {
+        const companyId = companyDoc.id;
+        const companyName = companyDoc.data().name || 'Company';
+        const settingsDoc = await db.collection('companies').doc(companyId).collection('settings').doc('config').get();
+        const settings = settingsDoc.data() || {};
+        const summary = await dataProcessor.buildWeeklySummary(db, companyId, startDate);
+        summary.companyName = companyName;
+        const report = await aiService.generateReport(summary, 'weekly', companyName);
+        await db.collection('companies').doc(companyId).collection('reports').add({
+          type: 'weekly', report, summary, startDate,
+          generatedAt: new Date(), sentAt: new Date(), auto: true,
+        });
+        const recipients = [];
+        if (settings.hrAdminEmail) recipients.push({ email: settings.hrAdminEmail, name: 'HR Admin' });
+        if (settings.managerEmail)  recipients.push({ email: settings.managerEmail,  name: 'Manager' });
+        if (settings.directorEmail) recipients.push({ email: settings.directorEmail, name: 'Director' });
+        if (recipients.length > 0) {
+          await sendReportEmail(recipients, 'weekly', report, companyName);
+        }
+        console.log(`[Cron] Weekly report sent for: ${companyName}`);
+      } catch (err) {
+        console.error(`[Cron] Weekly failed for ${companyDoc.id}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Cron] Weekly cron error:', err.message);
+  }
+});
+
+// ── MONTHLY REPORT — Last day of month at 8:00 PM ────────────────────────────
+cron.schedule('0 20 28-31 * *', async () => {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (tomorrow.getDate() !== 1) return; // only last day of month
+  console.log('[Cron] Running monthly report cron:', new Date().toISOString());
+  try {
+    const db = getFirestore();
+    const month = now.toISOString().slice(0, 7);
+    const companiesSnap = await db.collection('companies').where('status', '==', 'active').get();
+    for (const companyDoc of companiesSnap.docs) {
+      try {
+        const companyId = companyDoc.id;
+        const companyName = companyDoc.data().name || 'Company';
+        const settingsDoc = await db.collection('companies').doc(companyId).collection('settings').doc('config').get();
+        const settings = settingsDoc.data() || {};
+        const summary = await dataProcessor.buildMonthlySummary(db, companyId, month);
+        summary.companyName = companyName;
+        const report = await aiService.generateReport(summary, 'monthly', companyName);
+        const deletionDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+        await db.collection('companies').doc(companyId).collection('reports').add({
+          type: 'monthly', report, summary, month,
+          photoDeletionDate: deletionDate, photosDeleted: false,
+          generatedAt: new Date(), sentAt: new Date(), auto: true,
+        });
+        const recipients = [];
+        if (settings.hrAdminEmail) recipients.push({ email: settings.hrAdminEmail, name: 'HR Admin' });
+        if (settings.managerEmail)  recipients.push({ email: settings.managerEmail,  name: 'Manager' });
+        if (settings.directorEmail) recipients.push({ email: settings.directorEmail, name: 'Director' });
+        if (recipients.length > 0) {
+          await sendReportEmail(recipients, 'monthly', report, companyName);
+        }
+        console.log(`[Cron] Monthly report sent for: ${companyName}`);
+      } catch (err) {
+        console.error(`[Cron] Monthly failed for ${companyDoc.id}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Cron] Monthly cron error:', err.message);
+  }
+});
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`HRNova API running on http://localhost:${PORT}`);

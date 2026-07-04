@@ -38,6 +38,14 @@ const LEAVE_LABELS = {
   emergency: 'Emergency Leave',
 };
 
+const LEAVE_TYPES_RW = { '1': 'annual', '2': 'sick', '3': 'emergency', '4': 'unpaid' };
+const LEAVE_LABELS_RW = {
+  annual: 'Impushya za buri mwaka',
+  sick: "Uruhushya rw'uburwayi",
+  emergency: "Uruhushya rw'ibyihutirwa",
+  unpaid: 'Uruhushya rudafite umushahara',
+};
+
 // ── Send WhatsApp text message ─────────────────────────────────────────────────
 async function sendMessage(to, text) {
   if (!WA_TOKEN || !WA_PHONE_ID) {
@@ -171,38 +179,95 @@ async function handleIncomingMessage(phone, messageText, companyId) {
   const text = messageText.trim();
   const upper = text.toUpperCase();
 
-  // Cancel at any point
-  if (upper === 'CANCEL' || upper === 'STOP' || upper === 'QUIT') {
+  const isKinyarwanda = ['URUHUSHYA', 'IMPUSHYA'].includes(upper);
+
+  // Cancel at any point (including Kinyarwanda cancel words)
+  const session = await getSession(phone);
+  if (['CANCEL', 'STOP', 'QUIT', 'HAGARIKA', 'OYA'].includes(upper)) {
+    const cancelMsg = (session?.lang === 'rw')
+      ? '✅ Gusaba uruhushya guhagaritswe.\nSubiza URUHUSHYA niba ushaka kongera.'
+      : '❌ Leave request cancelled.\n\nSend *LEAVE* anytime to start a new request.';
     await clearSession(phone);
-    await sendMessage(phone,
-      '❌ Leave request cancelled.\n\nSend *LEAVE* anytime to start a new request.'
-    );
+    await sendMessage(phone, cancelMsg);
     return;
   }
 
-  const session = await getSession(phone);
+  // ── Kinyarwanda trigger ───────────────────────────────────────────────────
+  if (isKinyarwanda || (!session && upper === 'URUHUSHYA') || (!session && upper === 'IMPUSHYA')) {
+    await sendMessage(phone,
+      `Muraho! 👋 Murakaza neza kuri HRNova.\n\n` +
+      `Hitamo icyo ushaka:\n` +
+      `1️⃣ Gusaba uruhushya\n` +
+      `2️⃣ Kureba impushya nsigaranye\n\n` +
+      `Subiza 1 cyangwa 2.`
+    );
+    await saveSession(phone, { step: 'rw_menu', companyId, lang: 'rw' });
+    return;
+  }
 
-  // ── Step 0: No session or trigger word ───────────────────────────────────
+  // ── Kinyarwanda menu step ─────────────────────────────────────────────────
+  if (session && session.step === 'rw_menu') {
+    if (text === '2') {
+      // Balance check
+      const employee = await findEmployee(phone, session.companyId);
+      const balances = employee?.leaveBalances || {};
+      const annual = balances.annual ?? 18;
+      const sick = balances.sick ?? 10;
+      await sendMessage(phone,
+        `Impushya zawe nsigaranye:\n\n` +
+        `📅 Impushya za buri mwaka: ${annual} iminsi\n` +
+        `🏥 Uruhushya rw'uburwayi: ${sick} iminsi\n` +
+        `👶 Uruhushya rw'inda: 84 iminsi (amategeko ya Rwanda)\n` +
+        `👨 Uruhushya rw'se: 4 iminsi (amategeko ya Rwanda)\n\n` +
+        `Niba ufite ikibazo, vugana na HR wawe.`
+      );
+      await clearSession(phone);
+      return;
+    }
+    if (text === '1') {
+      await sendMessage(phone,
+        `Ni ubuhe bwoko bw'uruhushya usaba?\n\n` +
+        `1️⃣ Impushya za buri mwaka\n` +
+        `2️⃣ Uruhushya rw'uburwayi\n` +
+        `3️⃣ Uruhushya rw'ibyihutirwa\n` +
+        `4️⃣ Uruhushya rudafite umushahara\n\n` +
+        `Subiza 1, 2, 3, cyangwa 4.\n` +
+        `Subiza HAGARIKA niba ushaka guhagarika.`
+      );
+      await saveSession(phone, { step: 1, lang: 'rw', companyId: session.companyId });
+      return;
+    }
+    await sendMessage(phone, 'Subiza 1 cyangwa 2.');
+    return;
+  }
+
+  // ── English trigger (no session) ─────────────────────────────────────────
   if (!session || upper === 'LEAVE') {
     await sendMessage(phone,
       `👋 Welcome to HRNova Leave Portal!\n\nPlease select your leave type:\n\n` +
       `1️⃣ Annual Leave\n2️⃣ Sick Leave\n3️⃣ Maternity Leave\n4️⃣ Paternity Leave\n5️⃣ Unpaid Leave\n6️⃣ Emergency Leave\n\n` +
-      `Reply with the number (1-6) or send *CANCEL* to quit.`
+      `Reply with the number (1-6) or send *CANCEL* to quit.\n\n` +
+      `_Kinyarwanda: Subiza URUHUSHYA_`
     );
     await saveSession(phone, { step: 1, companyId });
     return;
   }
 
+  const isRw = session.lang === 'rw';
+
   // ── Step 1: Receive leave type ────────────────────────────────────────────
   if (session.step === 1) {
-    const leaveType = LEAVE_TYPES[text];
+    const leaveType = isRw ? LEAVE_TYPES_RW[text] : LEAVE_TYPES[text];
     if (!leaveType) {
-      await sendMessage(phone, '⚠️ Please reply with a number between 1 and 6.');
+      await sendMessage(phone, isRw
+        ? '⚠️ Subiza inomero iri hagati ya 1 na 4.'
+        : '⚠️ Please reply with a number between 1 and 6.');
       return;
     }
-    await sendMessage(phone,
-      `✅ *${LEAVE_LABELS[leaveType]}* selected.\n\nWhen does your leave start?\n` +
-      `Reply with the date in format: *DD/MM/YYYY*\n\n_Example: 15/07/2026_`
+    const label = isRw ? LEAVE_LABELS_RW[leaveType] : LEAVE_LABELS[leaveType];
+    await sendMessage(phone, isRw
+      ? `✅ *${label}* wahisemo.\n\nNi ryari uruhushya rugomba gutangira?\nAndika itariki: DD/MM/YYYY\nUrugero: 25/06/2026`
+      : `✅ *${label}* selected.\n\nWhen does your leave start?\nReply with the date in format: *DD/MM/YYYY*\n\n_Example: 15/07/2026_`
     );
     await saveSession(phone, { ...session, step: 2, leaveType });
     return;
@@ -212,15 +277,20 @@ async function handleIncomingMessage(phone, messageText, companyId) {
   if (session.step === 2) {
     const startDate = parseDate(text);
     if (!startDate) {
-      await sendMessage(phone, '⚠️ Invalid date format. Please use *DD/MM/YYYY*.\n\nExample: *15/07/2026*');
+      await sendMessage(phone, isRw
+        ? '⚠️ Itariki si yo. Andika: DD/MM/YYYY'
+        : '⚠️ Invalid date format. Please use *DD/MM/YYYY*.\n\nExample: *15/07/2026*');
       return;
     }
     if (startDate < new Date()) {
-      await sendMessage(phone, '⚠️ Start date cannot be in the past. Please enter a future date.');
+      await sendMessage(phone, isRw
+        ? '⚠️ Itariki yarangiye. Andika itariki izaza.'
+        : '⚠️ Start date cannot be in the past. Please enter a future date.');
       return;
     }
-    await sendMessage(phone,
-      `📅 Start date: *${fmtDate(startDate)}*\n\nWhen does your leave end?\nReply with: *DD/MM/YYYY*`
+    await sendMessage(phone, isRw
+      ? `📅 Itariki yo gutangira: *${fmtDate(startDate)}*\n\nNi ryari uruhushya rugomba kurangira?\nAndika itariki: DD/MM/YYYY\nCyangwa subiza RIMWE niba ari umunsi umwe gusa.`
+      : `📅 Start date: *${fmtDate(startDate)}*\n\nWhen does your leave end?\nReply with: *DD/MM/YYYY*`
     );
     await saveSession(phone, { ...session, step: 3, startDate: startDate.toISOString() });
     return;
@@ -228,25 +298,42 @@ async function handleIncomingMessage(phone, messageText, companyId) {
 
   // ── Step 3: Receive end date + show summary ───────────────────────────────
   if (session.step === 3) {
-    const endDate = parseDate(text);
     const startDate = new Date(session.startDate);
+    // Allow RIMWE (Kinyarwanda for "once/one day") to mean same day
+    let endDate;
+    if (isRw && upper === 'RIMWE') {
+      endDate = startDate;
+    } else {
+      endDate = parseDate(text);
+    }
     if (!endDate) {
-      await sendMessage(phone, '⚠️ Invalid date format. Please use *DD/MM/YYYY*.');
+      await sendMessage(phone, isRw
+        ? '⚠️ Itariki si yo. Andika: DD/MM/YYYY'
+        : '⚠️ Invalid date format. Please use *DD/MM/YYYY*.');
       return;
     }
     if (endDate < startDate) {
-      await sendMessage(phone, '⚠️ End date must be on or after the start date.');
+      await sendMessage(phone, isRw
+        ? '⚠️ Itariki yo kurangira igomba kuba nyuma y\'itariki yo gutangira.'
+        : '⚠️ End date must be on or after the start date.');
       return;
     }
     const totalDays = workingDaysBetween(startDate, endDate);
+    const label = isRw ? (LEAVE_LABELS_RW[session.leaveType] || session.leaveType) : (LEAVE_LABELS[session.leaveType] || session.leaveType);
 
-    await sendMessage(phone,
-      `📋 *Leave Request Summary*\n\n` +
-      `📌 Type: *${LEAVE_LABELS[session.leaveType]}*\n` +
-      `📅 From: *${fmtDate(startDate)}*\n` +
-      `📅 To: *${fmtDate(endDate)}*\n` +
-      `🗓️ Working Days: *${totalDays}*\n\n` +
-      `Reply *YES* to confirm or *CANCEL* to cancel.`
+    await sendMessage(phone, isRw
+      ? `📋 *Incamake y'ubusabe bwawe*\n\n` +
+        `📌 Ubwoko: *${label}*\n` +
+        `📅 Gutangira: *${fmtDate(startDate)}*\n` +
+        `📅 Kurangira: *${fmtDate(endDate)}*\n` +
+        `🗓️ Iminsi: *${totalDays}*\n\n` +
+        `Subiza *YEGO* kwemeza cyangwa *HAGARIKA* guhagarika.`
+      : `📋 *Leave Request Summary*\n\n` +
+        `📌 Type: *${label}*\n` +
+        `📅 From: *${fmtDate(startDate)}*\n` +
+        `📅 To: *${fmtDate(endDate)}*\n` +
+        `🗓️ Working Days: *${totalDays}*\n\n` +
+        `Reply *YES* to confirm or *CANCEL* to cancel.`
     );
     await saveSession(phone, { ...session, step: 4, endDate: endDate.toISOString(), totalDays });
     return;
@@ -254,15 +341,19 @@ async function handleIncomingMessage(phone, messageText, companyId) {
 
   // ── Step 4: Confirm ───────────────────────────────────────────────────────
   if (session.step === 4) {
-    if (upper !== 'YES' && upper !== 'Y' && upper !== 'CONFIRM') {
-      await sendMessage(phone, 'Reply *YES* to confirm your leave request, or *CANCEL* to cancel.');
+    const confirmed = ['YES', 'Y', 'CONFIRM', 'YEGO'].includes(upper);
+    if (!confirmed) {
+      await sendMessage(phone, isRw
+        ? 'Subiza *YEGO* kwemeza cyangwa *HAGARIKA* guhagarika.'
+        : 'Reply *YES* to confirm your leave request, or *CANCEL* to cancel.');
       return;
     }
 
     const employee = await findEmployee(phone, session.companyId);
     if (!employee) {
-      await sendMessage(phone,
-        '⚠️ Your phone number is not registered in our system. Please contact HR for assistance.'
+      await sendMessage(phone, isRw
+        ? '⚠️ Inomero yawe telefone ntabwo ibaruwe mu sisitemu. Vugana na HR wawe.'
+        : '⚠️ Your phone number is not registered in our system. Please contact HR for assistance.'
       );
       await clearSession(phone);
       return;
@@ -282,12 +373,17 @@ async function handleIncomingMessage(phone, messageText, companyId) {
       totalDays: session.totalDays,
     });
 
-    await sendMessage(phone,
-      `✅ *Leave request submitted successfully!*\n\n` +
-      `Your request has been sent to HR for approval.\n` +
-      `Reference: #${requestId.substring(0, 8).toUpperCase()}\n\n` +
-      `You will be notified once it is reviewed.\n\n` +
-      `Send *LEAVE* anytime to submit another request.`
+    await sendMessage(phone, isRw
+      ? `✅ *Ubusabe bwatanzwe neza!*\n\n` +
+        `Ubusabe bwawe bwoherejwe kuri HR.\n` +
+        `Numero: #${requestId.substring(0, 8).toUpperCase()}\n\n` +
+        `Uzabwirwa igihe bwemejwe.\n\n` +
+        `Subiza URUHUSHYA niba ushaka kongera gusaba.`
+      : `✅ *Leave request submitted successfully!*\n\n` +
+        `Your request has been sent to HR for approval.\n` +
+        `Reference: #${requestId.substring(0, 8).toUpperCase()}\n\n` +
+        `You will be notified once it is reviewed.\n\n` +
+        `Send *LEAVE* anytime to submit another request.`
     );
     await clearSession(phone);
     return;
@@ -295,7 +391,7 @@ async function handleIncomingMessage(phone, messageText, companyId) {
 
   // Fallback
   await sendMessage(phone,
-    'Send *LEAVE* to request leave, or *CANCEL* to cancel an ongoing request.'
+    'Send *LEAVE* to request leave, or *CANCEL* to cancel.\n_Kinyarwanda: Subiza URUHUSHYA_'
   );
 }
 

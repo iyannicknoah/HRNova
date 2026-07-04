@@ -265,4 +265,27 @@ router.get('/list', verifyToken, async (req, res) => {
   }
 });
 
+// ── POST /api/reports/anomaly-check ─────────────────────────────────────────
+router.post('/anomaly-check', verifyToken, async (req, res) => {
+  try {
+    const db = getFirestore();
+    const companyId = req.body.companyId || req.companyId;
+    if (!companyId) return res.status(400).json({ error: 'companyId required' });
+    const { buildAnomalySummary } = require('../services/dataProcessor');
+    const { generateAnomalyAlert } = require('../services/aiService');
+    const name = await _companyName(db, companyId);
+    const result = await buildAnomalySummary(db, companyId);
+    const alert = await generateAnomalyAlert(result.anomalies, name);
+    await db.collection('companies').doc(companyId).collection('reports').add({
+      type: 'anomaly_alert', report: alert, anomalies: result.anomalies,
+      generatedAt: new Date(), generatedBy: req.uid,
+    });
+    _emailReport(db, companyId, alert, 'HR Anomaly Alert', req.user?.email);
+    res.json({ alert, anomalies: result.anomalies });
+  } catch (e) {
+    console.error('[Reports] anomaly-check:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

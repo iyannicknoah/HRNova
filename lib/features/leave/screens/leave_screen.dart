@@ -424,6 +424,32 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                     ),
                   ]),
                 ),
+                if (req.isExtension || (req.leaveType == 'sick' && req.totalDays >= 3)) ...[
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 6, children: [
+                    if (req.isExtension)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFF1565C0).withAlpha(20), borderRadius: BorderRadius.circular(100)),
+                        child: const Text('Extension', style: TextStyle(color: Color(0xFF1565C0), fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    if (req.leaveType == 'sick' && req.totalDays >= 3)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: (req.attachmentUrl != null && req.attachmentUrl!.isNotEmpty) ? AppColors.pillGreenBg : AppColors.pillAmberBg,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          (req.attachmentUrl != null && req.attachmentUrl!.isNotEmpty) ? "Doctor's note attached" : "No doctor's note",
+                          style: TextStyle(
+                            color: (req.attachmentUrl != null && req.attachmentUrl!.isNotEmpty) ? AppColors.pillGreenText : AppColors.pillAmberText,
+                            fontSize: 12, fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ]),
+                ],
                 if (req.reason.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text('Reason: ${req.reason}',
@@ -869,6 +895,40 @@ class _RequestRowState extends State<_RequestRow> {
           color: context.appTint,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Extension badge
+            if (req.isExtension) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: const Color(0xFF1565C0).withAlpha(20), borderRadius: BorderRadius.circular(100)),
+                child: const Text('Leave Extension', style: TextStyle(color: Color(0xFF1565C0), fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ],
+            // Doctor's note badge for sick leave >= 3 days
+            if (req.leaveType == 'sick' && req.totalDays >= 3) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (req.attachmentUrl != null && req.attachmentUrl!.isNotEmpty)
+                      ? AppColors.pillGreenBg
+                      : AppColors.pillAmberBg,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  (req.attachmentUrl != null && req.attachmentUrl!.isNotEmpty)
+                      ? "Doctor's note attached"
+                      : "No doctor's note",
+                  style: TextStyle(
+                    color: (req.attachmentUrl != null && req.attachmentUrl!.isNotEmpty)
+                        ? AppColors.pillGreenText
+                        : AppColors.pillAmberText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
             if (req.reason.isNotEmpty)
               _detail('Reason', req.reason, context),
             if (req.rejectedReason != null)

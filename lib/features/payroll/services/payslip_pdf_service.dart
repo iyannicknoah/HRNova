@@ -92,6 +92,8 @@ class PayslipPdfService {
                   ? 'Bonus — ${ps.bonusDescription}'
                   : 'Bonus / Adjustment',
                _rwf(ps.bonuses)],
+            if (ps.overtimePay > 0)
+              ['Overtime (${ps.overtimeHours.toStringAsFixed(1)}h)', _rwf(ps.overtimePay)],
           ], totalLabel: 'Total Earnings', totalValue: _rwf(ps.totalEarnings)),
           pw.SizedBox(height: 10),
 

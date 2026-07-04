@@ -20,6 +20,8 @@ class PayslipModel {
     required this.housingAllowance,
     required this.bonuses,
     required this.totalEarnings,
+    this.overtimeHours = 0,
+    this.overtimePay = 0,
     // Deductions from gross
     required this.absentDays,
     required this.absentDeduction,
@@ -76,7 +78,9 @@ class PayslipModel {
   final double housingAllowance;
   final double bonuses;
   final String? bonusDescription;
-  final double totalEarnings; // baseSalary + transport + housing + bonuses
+  final double totalEarnings; // baseSalary + transport + housing + bonuses + overtimePay
+  final double overtimeHours;
+  final double overtimePay;
 
   // Pre-statutory deductions
   final int absentDays;
@@ -140,6 +144,8 @@ class PayslipModel {
       bonusDescription: map['bonusDescription'] as String?,
       totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ??
           (map['grossSalary'] as num?)?.toDouble() ?? 0,
+      overtimeHours: (map['overtimeHours'] as num?)?.toDouble() ?? 0,
+      overtimePay: (map['overtimePay'] as num?)?.toDouble() ?? 0,
       absentDays: map['absentDays'] as int? ?? 0,
       absentDeduction: (map['absentDeduction'] as num?)?.toDouble() ?? 0,
       totalLateMinutes: map['totalLateMinutes'] as int? ?? 0,
@@ -190,6 +196,8 @@ class PayslipModel {
         'bonuses': bonuses,
         if (bonusDescription != null) 'bonusDescription': bonusDescription,
         'totalEarnings': totalEarnings,
+        'overtimeHours': overtimeHours,
+        'overtimePay': overtimePay,
         'absentDays': absentDays,
         'absentDeduction': absentDeduction,
         'totalLateMinutes': totalLateMinutes,
@@ -242,7 +250,7 @@ class PayslipModel {
   }) {
     final newBonuses = bonuses ?? this.bonuses;
     final newExtraDeductions = extraDeductions ?? this.extraDeductions;
-    final newTotalEarnings = baseSalary + transportAllowance + housingAllowance + newBonuses;
+    final newTotalEarnings = baseSalary + transportAllowance + housingAllowance + newBonuses + overtimePay;
     final newAdjustedGross = newTotalEarnings - absentDeduction - lateDeduction;
     final newPensionEmp = _r(newAdjustedGross * 0.06);
     final newMaternityEmp = _r(newAdjustedGross * 0.003);
@@ -273,6 +281,8 @@ class PayslipModel {
       bonuses: newBonuses,
       bonusDescription: bonusDescription ?? this.bonusDescription,
       totalEarnings: newTotalEarnings,
+      overtimeHours: overtimeHours,
+      overtimePay: overtimePay,
       absentDays: absentDays,
       absentDeduction: absentDeduction,
       totalLateMinutes: totalLateMinutes,

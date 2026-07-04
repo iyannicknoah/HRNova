@@ -8,6 +8,8 @@ import '../../attendance/providers/attendance_provider.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../reports/providers/reports_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -355,9 +357,21 @@ class _AttendanceRow extends StatelessWidget {
 }
 
 // ── Quick actions ─────────────────────────────────────────────────────────────
-class _QuickActionsPanel extends StatelessWidget {
+class _QuickActionsPanel extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final employees = ref.watch(employeesProvider).value?.where((e) => e.isActive).toList() ?? [];
+    final settings = ref.watch(companySettingsProvider).value;
+    final annualEntitlement = settings?.annualLeaveDays ?? AppConstants.annualLeaveDaysPerYear;
+    final anomalyDocs = ref.watch(reportsStreamProvider('anomaly_alert')).valueOrNull ?? [];
+
+    // Count burnout risk employees
+    final burnoutCount = employees.where((emp) {
+      final months = DateTime.now().difference(emp.startDate).inDays ~/ 30;
+      final balance = (emp.leaveBalances['annual'] as num?)?.toInt() ?? annualEntitlement;
+      return months >= 5 && balance >= annualEntitlement;
+    }).length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -374,6 +388,61 @@ class _QuickActionsPanel extends StatelessWidget {
         const SizedBox(height: 10),
         _ActionCard('Generate Report', Icons.bar_chart_rounded, const Color(0xFF9B59B6),
             onTap: () => context.push('/reports')),
+        // ── Burnout risk card ──────────────────────────────────────────────────
+        if (burnoutCount > 0) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.warningAmber.withAlpha(18),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.warningAmber.withAlpha(60)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmber, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$burnoutCount employee${burnoutCount == 1 ? '' : 's'} at burnout risk — no leave taken in 5+ months',
+                  style: const TextStyle(color: AppColors.warningAmber, fontSize: 14, height: 1.3),
+                ),
+              ),
+            ]),
+          ),
+        ],
+        // ── Latest anomaly alert ──────────────────────────────────────────────
+        if (anomalyDocs.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.warningAmber.withAlpha(12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border(left: BorderSide(color: AppColors.warningAmber, width: 3)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.auto_awesome_rounded, color: AppColors.warningAmber, size: 15),
+                const SizedBox(width: 6),
+                const Text('AI Anomaly Alert', style: TextStyle(color: AppColors.warningAmber, fontSize: 14, fontWeight: FontWeight.w600)),
+              ]),
+              const SizedBox(height: 6),
+              Text(
+                (anomalyDocs.first['summary'] as String?) ??
+                    (anomalyDocs.first['report'] as String? ?? '').split('\n').take(3).join(' '),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: context.appSubtext, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => context.push('/reports'),
+                child: Text('View full report →',
+                    style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ]),
+          ),
+        ],
         const SizedBox(height: 20),
         Container(
           width: double.infinity,

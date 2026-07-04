@@ -111,10 +111,35 @@ class PayrollEngine {
         }
     }
 
+    // ── Step 1b — Overtime ──────────────────────────────────────────────────
+    double overtimeHours = 0;
+    double overtimePay = 0;
+
+    final workdayHours = _parseTimeH(settings.workEndTime) - _parseTimeH(settings.workStartTime);
+
+    if (workdayHours > 0 && employee.salaryType != 'hourly_rate') {
+      for (final rec in attendanceMap.values) {
+        if (rec.checkInTime != null && rec.checkOutTime != null) {
+          final hoursWorked = rec.checkOutTime!.difference(rec.checkInTime!).inMinutes / 60.0;
+          if (hoursWorked > workdayHours) {
+            overtimeHours += hoursWorked - workdayHours;
+          }
+        } else if (rec.workingHours != null && rec.workingHours! > workdayHours) {
+          overtimeHours += rec.workingHours! - workdayHours;
+        }
+      }
+      if (overtimeHours > 0) {
+        final hourlyRate = employee.salaryType == 'daily_rate'
+            ? employee.dailyRate / workdayHours
+            : employee.salaryAmount / (workingDayKeys.length * workdayHours);
+        overtimePay = _r(overtimeHours * hourlyRate * settings.overtimeMultiplier);
+      }
+    }
+
     // ── Step 2 — Gross ──────────────────────────────────────────────────────
     final transportAllowance = _r(employee.transportAllowance);
     final housingAllowance = _r(employee.housingAllowance);
-    final grossBeforeAdjustments = baseSalary + transportAllowance + housingAllowance + bonuses;
+    final grossBeforeAdjustments = baseSalary + transportAllowance + housingAllowance + bonuses + overtimePay;
 
     // ── Step 3 — Absent deduction (fixed_monthly only) ─────────────────────
     int absentDays = 0;
@@ -197,6 +222,8 @@ class PayrollEngine {
       bonuses: bonuses,
       bonusDescription: bonusDescription,
       totalEarnings: _r(grossBeforeAdjustments),
+      overtimeHours: overtimeHours,
+      overtimePay: overtimePay,
       absentDays: absentDays,
       absentDeduction: absentDeduction,
       totalLateMinutes: totalLateMinutes,
@@ -222,6 +249,15 @@ class PayrollEngine {
   }
 
   static double _r(double v) => v.roundToDouble();
+
+  /// Parse a time string like "08:00" or "17:30" to decimal hours.
+  static double _parseTimeH(String t) {
+    final parts = t.split(':');
+    if (parts.isEmpty) return 0;
+    final h = double.tryParse(parts[0]) ?? 0;
+    final m = parts.length > 1 ? (double.tryParse(parts[1]) ?? 0) / 60.0 : 0;
+    return h + m;
+  }
 
   // Rwanda public holidays — same list as AppConstants but used internally here
   static const _rwandaHolidays = {

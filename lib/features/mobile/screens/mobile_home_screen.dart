@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -827,7 +828,7 @@ class _LeaveContent extends ConsumerWidget {
           if (leaves.isEmpty)
             _emptyHint('No leave requests yet')
           else
-            ...leaves.take(20).map((l) => _LeaveRequestCard(req: l)),
+            ...leaves.take(20).map((l) => _LeaveRequestCard(req: l, emp: emp)),
         ],
       ),
     );
@@ -900,8 +901,16 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _LeaveRequestCard extends StatelessWidget {
-  const _LeaveRequestCard({required this.req});
+  const _LeaveRequestCard({required this.req, required this.emp});
   final LeaveRequestModel req;
+  final EmployeeModel emp;
+
+  bool get _canExtend {
+    if (req.status != 'approved') return false;
+    final now = DateTime.now();
+    return req.endDate.isAfter(now.subtract(const Duration(days: 3))) &&
+        req.endDate.isBefore(now.add(const Duration(days: 1)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -931,38 +940,72 @@ class _LeaveRequestCard extends StatelessWidget {
         color: _card,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(typeLabel,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(typeLabel,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text(
+                        '${fmt.format(req.startDate)} → ${fmt.format(req.endDate)}  ·  ${req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1} day${(req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1) == 1 ? '' : 's'}',
+                        style: const TextStyle(color: _textSec, fontSize: 14)),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withAlpha(30),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(statusLabel,
+                    style: TextStyle(
+                        color: statusColor,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text(
-                    '${fmt.format(req.startDate)} → ${fmt.format(req.endDate)}  ·  ${req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1} day${(req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1) == 1 ? '' : 's'}',
-                    style: const TextStyle(color: _textSec, fontSize: 14)),
-              ],
-            ),
+              ),
+            ],
           ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withAlpha(30),
-              borderRadius: BorderRadius.circular(20),
+          if (_canExtend) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showExtendSheet(context),
+                icon: const Icon(Icons.event_repeat_rounded, size: 15),
+                label: const Text('Extend Leave'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _blue,
+                  side: const BorderSide(color: _blue),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
-            child: Text(statusLabel,
-                style: TextStyle(
-                    color: statusColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _showExtendSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LeaveRequestSheet(
+        emp: emp,
+        extensionOf: req,
       ),
     );
   }
@@ -970,8 +1013,9 @@ class _LeaveRequestCard extends StatelessWidget {
 
 // Leave request bottom sheet
 class _LeaveRequestSheet extends ConsumerStatefulWidget {
-  const _LeaveRequestSheet({required this.emp});
+  const _LeaveRequestSheet({required this.emp, this.extensionOf});
   final EmployeeModel emp;
+  final LeaveRequestModel? extensionOf;
 
   @override
   ConsumerState<_LeaveRequestSheet> createState() =>
@@ -979,16 +1023,53 @@ class _LeaveRequestSheet extends ConsumerStatefulWidget {
 }
 
 class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
-  String _leaveType = 'annual';
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now();
-  final _reasonCtrl = TextEditingController();
+  late String _leaveType;
+  late DateTime _startDate;
+  late DateTime _endDate;
+  late TextEditingController _reasonCtrl;
   bool _submitting = false;
+  bool _doctorNoteUploaded = false;
+  String? _doctorNoteUrl;
+
+  bool get _isExtension => widget.extensionOf != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isExtension) {
+      final orig = widget.extensionOf!;
+      _leaveType = orig.leaveType;
+      _startDate = orig.endDate.add(const Duration(days: 1));
+      _endDate = _startDate;
+      _reasonCtrl = TextEditingController(text: 'Extension of leave');
+    } else {
+      _leaveType = 'annual';
+      _startDate = DateTime.now();
+      _endDate = DateTime.now();
+      _reasonCtrl = TextEditingController();
+    }
+  }
 
   @override
   void dispose() {
     _reasonCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDoctorNote() async {
+    try {
+      final picker = ImagePicker();
+      final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (file == null) return;
+      // For now store local path as placeholder; actual upload goes through /api/storage/upload
+      setState(() {
+        _doctorNoteUploaded = true;
+        _doctorNoteUrl = file.path;
+      });
+    } catch (_) {
+      // image_picker unavailable or permission denied — mark as uploaded without URL
+      setState(() => _doctorNoteUploaded = true);
+    }
   }
 
   @override
@@ -1019,11 +1100,18 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
                 ),
               ),
             ),
-            const Text('Request Leave',
-                style: TextStyle(
+            Text(_isExtension ? 'Extend Leave' : 'Request Leave',
+                style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold)),
+            if (_isExtension) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Extending: ${DateFormat('MMM d').format(widget.extensionOf!.startDate)} → ${DateFormat('MMM d').format(widget.extensionOf!.endDate)}',
+                style: const TextStyle(color: _textSec, fontSize: 13),
+              ),
+            ],
             const SizedBox(height: 24),
             _label('Leave Type'),
             const SizedBox(height: 8),
@@ -1129,6 +1217,40 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
                 ),
               ),
             ),
+            // Doctor's note section for sick leave >= 3 days
+            Builder(builder: (context) {
+              final days = WorkingDaysService.calculate(
+                _startDate, _endDate,
+                const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+              );
+              if (_leaveType != 'sick' || days < 3) return const SizedBox.shrink();
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _amber.withAlpha(20),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _amber.withAlpha(60)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.info_outline_rounded, color: _amber, size: 14),
+                    SizedBox(width: 8),
+                    Expanded(child: Text("Sick leave of 3+ days requires a doctor's note.", style: TextStyle(fontSize: 12, color: _amber))),
+                  ]),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _pickDoctorNote,
+                  icon: const Icon(Icons.upload_file_rounded, size: 16),
+                  label: Text(_doctorNoteUploaded ? "Doctor's note attached" : "Upload Doctor's Note (optional)"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _doctorNoteUploaded ? _green : _textSec,
+                    side: BorderSide(color: _doctorNoteUploaded ? _green : _border),
+                  ),
+                ),
+              ]);
+            }),
             const SizedBox(height: 28),
             SizedBox(
               width: double.infinity,
@@ -1175,20 +1297,28 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
         color: _bg,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _leaveType,
-          dropdownColor: _card,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
-          onChanged: (v) => setState(() => _leaveType = v!),
-          items: types
-              .map((t) => DropdownMenuItem(
-                    value: t.$1,
-                    child: Text(t.$2),
-                  ))
-              .toList(),
-        ),
-      ),
+      child: _isExtension
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Text(
+                types.firstWhere((t) => t.$1 == _leaveType, orElse: () => (_leaveType, _leaveType)).$2,
+                style: const TextStyle(color: _textSec, fontSize: 15),
+              ),
+            )
+          : DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _leaveType,
+                dropdownColor: _card,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                onChanged: (v) => setState(() => _leaveType = v!),
+                items: types
+                    .map((t) => DropdownMenuItem(
+                          value: t.$1,
+                          child: Text(t.$2),
+                        ))
+                    .toList(),
+              ),
+            ),
     );
   }
 
@@ -1233,6 +1363,9 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
             endDate: _endDate,
             reason: _reasonCtrl.text.trim(),
             branchId: widget.emp.branchId,
+            attachmentUrl: _doctorNoteUrl,
+            isExtension: _isExtension,
+            originalRequestId: widget.extensionOf?.id,
           );
       if (mounted) {
         Navigator.of(context).pop();

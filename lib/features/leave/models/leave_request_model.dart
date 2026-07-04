@@ -17,6 +17,8 @@ class LeaveRequestModel {
     this.approvedAt,
     this.rejectedReason,
     this.attachmentUrl,
+    this.isExtension = false,
+    this.originalRequestId,
   });
 
   final String id;
@@ -36,6 +38,8 @@ class LeaveRequestModel {
   final DateTime? approvedAt;
   final String? rejectedReason;
   final String? attachmentUrl;
+  final bool isExtension;
+  final String? originalRequestId;
 
   factory LeaveRequestModel.fromMap(String id, Map<String, dynamic> map) {
     return LeaveRequestModel(
@@ -56,6 +60,8 @@ class LeaveRequestModel {
       approvedAt: map['approvedAt'] != null ? _parseDate(map['approvedAt']) : null,
       rejectedReason: map['rejectedReason'] as String?,
       attachmentUrl: map['attachmentUrl'] as String?,
+      isExtension: map['isExtension'] as bool? ?? false,
+      originalRequestId: map['originalRequestId'] as String?,
     );
   }
 
@@ -77,8 +83,40 @@ class LeaveRequestModel {
       if (approvedAt != null) 'approvedAt': approvedAt!.toIso8601String(),
       if (rejectedReason != null) 'rejectedReason': rejectedReason,
       if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
+      'isExtension': isExtension,
+      if (originalRequestId != null) 'originalRequestId': originalRequestId,
     };
   }
+
+  LeaveRequestModel copyWith({
+    String? status,
+    String? approvedBy,
+    DateTime? approvedAt,
+    String? rejectedReason,
+    String? attachmentUrl,
+    bool? isExtension,
+    String? originalRequestId,
+  }) => LeaveRequestModel(
+    id: id,
+    companyId: companyId,
+    employeeId: employeeId,
+    employeeName: employeeName,
+    leaveType: leaveType,
+    startDate: startDate,
+    endDate: endDate,
+    totalDays: totalDays,
+    reason: reason,
+    status: status ?? this.status,
+    source: source,
+    requestedAt: requestedAt,
+    branchId: branchId,
+    approvedBy: approvedBy ?? this.approvedBy,
+    approvedAt: approvedAt ?? this.approvedAt,
+    rejectedReason: rejectedReason ?? this.rejectedReason,
+    attachmentUrl: attachmentUrl ?? this.attachmentUrl,
+    isExtension: isExtension ?? this.isExtension,
+    originalRequestId: originalRequestId ?? this.originalRequestId,
+  );
 
   static DateTime _parseDate(dynamic value) {
     if (value == null) return DateTime.now();
