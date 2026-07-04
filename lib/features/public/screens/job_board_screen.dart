@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
 class JobBoardScreen extends StatelessWidget {
@@ -31,7 +31,7 @@ class JobBoardScreen extends StatelessWidget {
                 style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w800,
-                    fontSize: 16)),
+                    fontSize: 17)),
           ],
         ),
         bottom: PreferredSize(
@@ -50,10 +50,10 @@ class JobBoardScreen extends StatelessWidget {
                     fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text('Company: $companySlug',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 15)),
             const SizedBox(height: 4),
             const Text('Public Job Board — Part 10',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
           ],
         ),
       ),

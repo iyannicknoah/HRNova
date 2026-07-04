@@ -1,16 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Collection group rule — required for collectionGroup('payslips') queries
+    match /{path=**}/payslips/{payslipId} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.companyId == resource.data.companyId
+      );
+    }
+
     // Rules for companies collection and subcollections
     match /companies/{companyId} {
       allow read, write: if request.auth != null && (
-        request.auth.token.role == 'super_admin' || 
+        request.auth.token.role == 'super_admin' ||
         request.auth.token.companyId == companyId
       );
-      
+
       match /{document=**} {
         allow read, write: if request.auth != null && (
-          request.auth.token.role == 'super_admin' || 
+          request.auth.token.role == 'super_admin' ||
           request.auth.token.companyId == companyId
         );
       }

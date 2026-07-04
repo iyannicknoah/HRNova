@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+﻿import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,7 +66,7 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.person_off_outlined, size: 64, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
-                const Text('Employee not found', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                const Text('Employee not found', style: TextStyle(fontSize: 17, color: AppColors.textSecondary)),
                 const SizedBox(height: 16),
                 OutlinedButton(onPressed: () => context.pop(), child: const Text('Go Back')),
               ]),
@@ -75,10 +75,6 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ProfileHeader(
-                employee: employee,
-                onEdit: () => context.push('/employees/new?editId=${employee.id}'),
-              ),
               _TabBar(controller: _tabs),
               Expanded(
                 child: TabBarView(
@@ -105,71 +101,6 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
 // ─────────────────────────────────────────────────────────────────────────────
 //  Profile header
 // ─────────────────────────────────────────────────────────────────────────────
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.employee, required this.onEdit});
-  final EmployeeModel employee;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-      color: context.appBg,
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () => context.pop(),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(Icons.arrow_back_ios_new, size: 16, color: context.appSubtext),
-            ),
-          ),
-          const SizedBox(width: 16),
-          _LargeAvatar(name: employee.fullName, photoUrl: employee.profilePhotoUrl),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(employee.fullName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: context.appText)),
-              const SizedBox(height: 4),
-              Text(employee.jobTitle.isEmpty ? employee.department : employee.jobTitle,
-                style: TextStyle(fontSize: 14, color: context.appSubtext)),
-              const SizedBox(height: 6),
-              Row(children: [
-                _Pill(employee.department, AppColors.pillBlueBg, AppColors.pillBlueText),
-                const SizedBox(width: 8),
-                _Pill(
-                  employee.isActive ? 'Active' : 'Inactive',
-                  employee.isActive ? AppColors.pillGreenBg : AppColors.pillRedBg,
-                  employee.isActive ? AppColors.pillGreenText : AppColors.pillRedText,
-                ),
-                if (employee.contractType != 'permanent') ...[
-                  const SizedBox(width: 8),
-                  _Pill(_ctLabel(employee.contractType), AppColors.pillNavyBg, AppColors.pillNavyText),
-                ],
-              ]),
-            ]),
-          ),
-          OutlinedButton.icon(
-            onPressed: onEdit,
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.primaryBlue),
-              foregroundColor: AppColors.primaryBlue,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            icon: const Icon(Icons.edit_outlined, size: 16),
-            label: const Text('Edit'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _ctLabel(String c) => switch (c) {
-    'fixed_term' => 'Fixed Term', 'probation' => 'Probation', 'part_time' => 'Part Time', _ => 'Permanent',
-  };
-}
-
 class _LargeAvatar extends StatelessWidget {
   const _LargeAvatar({required this.name, this.photoUrl});
   final String name;
@@ -204,7 +135,7 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+    child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg)),
   );
 }
 
@@ -224,8 +155,8 @@ class _TabBar extends StatelessWidget {
         isScrollable: true,
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 14),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: context.appBg,
@@ -258,7 +189,7 @@ class _ProfileTab extends StatelessWidget {
             border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
-            // Gradient top strip
+            // Gradient top strip with back + edit buttons
             Container(
               height: 72,
               decoration: BoxDecoration(
@@ -268,6 +199,36 @@ class _ProfileTab extends StatelessWidget {
                   end: Alignment.centerRight,
                 ),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: () => context.pop(),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(Icons.arrow_back_ios_new, size: 16,
+                          color: Colors.white.withAlpha(220)),
+                    ),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: () => context.push(
+                        '/employees/new?editId=${employee.id}'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFF59E0B),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.edit_rounded, size: 16),
+                    label: const Text('Edit Employee',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -293,7 +254,7 @@ class _ProfileTab extends StatelessWidget {
                               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
                           const SizedBox(height: 2),
                           Text(employee.jobTitle.isEmpty ? employee.department : employee.jobTitle,
-                              style: TextStyle(fontSize: 13, color: context.appSubtext)),
+                              style: TextStyle(fontSize: 15, color: context.appSubtext)),
                         ]),
                       ),
                     ),
@@ -398,7 +359,7 @@ class _ProfileTab extends StatelessWidget {
                   title: 'Notes',
                   icon: Icons.notes_rounded,
                   children: [
-                    Text(employee.notes!, style: TextStyle(fontSize: 13, color: context.appText, height: 1.5)),
+                    Text(employee.notes!, style: TextStyle(fontSize: 15, color: context.appText, height: 1.5)),
                   ],
                 ),
               ],
@@ -442,7 +403,7 @@ class _StatChip extends StatelessWidget {
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, size: 11, color: fg),
       const SizedBox(width: 5),
-      Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg)),
     ]),
   );
 }
@@ -469,9 +430,9 @@ class _QuickStat extends StatelessWidget {
       ),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(fontSize: 11, color: context.appSubtext)),
+        Text(label, style: TextStyle(fontSize: 13, color: context.appSubtext)),
         const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.appText),
+        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText),
             overflow: TextOverflow.ellipsis),
       ])),
     ]),
@@ -504,7 +465,7 @@ class _Section extends StatelessWidget {
             child: Icon(icon, size: 14, color: AppColors.primaryBlue),
           ),
           const SizedBox(width: 10),
-          Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.appText)),
+          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
         ]),
       ),
       Divider(height: 1, color: context.appBorder),
@@ -527,11 +488,11 @@ class _Field extends StatelessWidget {
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(
         width: 130,
-        child: Text(label, style: TextStyle(fontSize: 12, color: context.appSubtext)),
+        child: Text(label, style: TextStyle(fontSize: 14, color: context.appSubtext)),
       ),
       Expanded(
         child: Text(value ?? '—',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText)),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
       ),
     ]),
   );
@@ -550,10 +511,10 @@ class _LeaveBalanceRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(label, style: TextStyle(fontSize: 12, color: context.appSubtext)),
+          Text(label, style: TextStyle(fontSize: 14, color: context.appSubtext)),
           const Spacer(),
-          Text('$balance', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-          Text(' / $total d', style: TextStyle(fontSize: 11, color: context.appSubtext)),
+          Text('$balance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+          Text(' / $total d', style: TextStyle(fontSize: 13, color: context.appSubtext)),
         ]),
         const SizedBox(height: 4),
         ClipRRect(
@@ -622,9 +583,9 @@ class _QRTabState extends ConsumerState<_QRTab> {
               pw.SizedBox(height: 16),
               pw.Text(e.fullName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 4),
-              pw.Text('${e.department} · ${e.jobTitle}', style: const pw.TextStyle(fontSize: 12)),
+              pw.Text('${e.department} · ${e.jobTitle}', style: const pw.TextStyle(fontSize: 14)),
               pw.SizedBox(height: 4),
-              pw.Text(qrData, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+              pw.Text(qrData, style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey)),
             ]),
           ),
         ));
@@ -693,7 +654,7 @@ class _QRTabState extends ConsumerState<_QRTab> {
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
                     Icon(Icons.business_center, size: 16, color: Colors.white),
                     SizedBox(width: 8),
-                    Text('HRNova', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text('HRNova', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
                   ]),
                 ),
                 const SizedBox(height: 20),
@@ -708,9 +669,9 @@ class _QRTabState extends ConsumerState<_QRTab> {
                 Text(e.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
                 Text('${e.department} · ${e.jobTitle.isEmpty ? "Employee" : e.jobTitle}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
-                Text(qrData, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, letterSpacing: 1)),
+                Text(qrData, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 1)),
               ]),
             ),
           ),
@@ -846,7 +807,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                                 child: Text(d,
                                     style: TextStyle(
                                         color: context.appSubtext,
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 0.3)),
                               ),
@@ -926,13 +887,13 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
               flex: 10,
               child: Text(dayName,
                   style:
-                      TextStyle(color: context.appSubtext, fontSize: 12))),
+                      TextStyle(color: context.appSubtext, fontSize: 14))),
           Expanded(
               flex: 8,
               child: Text(dateLabel,
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500))),
           Expanded(
               flex: 10,
@@ -941,7 +902,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                       ? _fmtTime(rec.checkInTime!)
                       : '—',
                   style:
-                      TextStyle(color: context.appText, fontSize: 12))),
+                      TextStyle(color: context.appText, fontSize: 14))),
           Expanded(
               flex: 10,
               child: Text(
@@ -949,7 +910,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                       ? _fmtTime(rec.checkOutTime!)
                       : '—',
                   style:
-                      TextStyle(color: context.appText, fontSize: 12))),
+                      TextStyle(color: context.appText, fontSize: 14))),
           Expanded(flex: 10, child: _StatusChip(status)),
         ]),
       ));
@@ -980,7 +941,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
             color: bg, borderRadius: BorderRadius.circular(100)),
         child: Text(label,
             style: TextStyle(
-                color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
+                color: fg, fontSize: 14, fontWeight: FontWeight.w600)),
       );
 
   Widget _legendItem(String label, Color color) =>
@@ -993,13 +954,13 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
         const SizedBox(width: 6),
         Text(label,
             style: const TextStyle(
-                fontSize: 11, color: AppColors.textSecondary)),
+                fontSize: 13, color: AppColors.textSecondary)),
       ]);
 
   Text _hTxt(String t, BuildContext ctx) => Text(t,
       style: TextStyle(
           color: ctx.appSubtext,
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5));
 }
@@ -1052,7 +1013,7 @@ class _CalendarGrid extends StatelessWidget {
                   child: Text('$day',
                       style: TextStyle(
                           color: textColor,
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: isWeekend || status == null
                               ? FontWeight.w400
                               : FontWeight.w700)),
@@ -1093,7 +1054,7 @@ class _StatusChip extends StatelessWidget {
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
       child: Text(label,
           style:
-              TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
+              TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -1125,7 +1086,7 @@ class _LeaveProfileTab extends ConsumerWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Leave Balances',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
               TextButton.icon(
                 onPressed: () => _showAdjustDialog(context),
                 style: TextButton.styleFrom(
@@ -1133,7 +1094,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
                 icon: const Icon(Icons.tune_rounded, size: 14),
-                label: const Text('Adjust', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                label: const Text('Adjust', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ]),
             const SizedBox(height: 10),
@@ -1163,13 +1124,13 @@ class _LeaveProfileTab extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(t.$2, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText)),
+                        Text(t.$2, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
                         Text('${used} used · ${t.$5} total',
-                            style: TextStyle(fontSize: 11, color: context.appSubtext)),
+                            style: TextStyle(fontSize: 13, color: context.appSubtext)),
                       ])),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                         Text('$bal', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: t.$3, height: 1)),
-                        Text('days left', style: TextStyle(fontSize: 10, color: context.appSubtext)),
+                        Text('days left', style: TextStyle(fontSize: 12, color: context.appSubtext)),
                       ]),
                     ]),
                     const SizedBox(height: 10),
@@ -1187,7 +1148,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text('${(pct * 100).round()}%',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: t.$3)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.$3)),
                     ]),
                   ]),
                 ),
@@ -1201,7 +1162,7 @@ class _LeaveProfileTab extends ConsumerWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Text('Leave History',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
               const Spacer(),
               requestsAsync.when(
                 data: (r) => Container(
@@ -1211,7 +1172,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text('${r.length} request${r.length != 1 ? "s" : ""}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
                 ),
                 loading: () => const SizedBox(),
                 error: (_, __) => const SizedBox(),
@@ -1258,7 +1219,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
                           Icon(Icons.inbox_outlined, size: 40, color: context.appSubtext),
                           const SizedBox(height: 8),
-                          Text('No leave requests yet', style: TextStyle(fontSize: 13, color: context.appSubtext)),
+                          Text('No leave requests yet', style: TextStyle(fontSize: 15, color: context.appSubtext)),
                         ]),
                       ),
                     )
@@ -1283,7 +1244,7 @@ class _LeaveProfileTab extends ConsumerWidget {
   }
 
   Widget _hTxt(String t, BuildContext ctx) => Text(t,
-      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: ctx.appSubtext, letterSpacing: 0.5));
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ctx.appSubtext, letterSpacing: 0.5));
 
   void _showAdjustDialog(BuildContext context) {
     showDialog(
@@ -1338,7 +1299,7 @@ class _LeaveHistoryRow extends StatelessWidget {
               Expanded(
                 child: Text(
                     '${req.leaveType[0].toUpperCase()}${req.leaveType.substring(1)}',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
               ),
             ]),
           ),
@@ -1347,20 +1308,24 @@ class _LeaveHistoryRow extends StatelessWidget {
             flex: 4,
             child: Text(
               '${dateF.format(req.startDate)} – ${dateF.format(req.endDate)}',
-              style: TextStyle(fontSize: 12, color: context.appSubtext),
+              style: TextStyle(fontSize: 14, color: context.appSubtext),
             ),
           ),
-          // Days
+          // Days — fall back to calendar days if totalDays was stored as 0
           Expanded(
             flex: 1,
-            child: Text('${req.totalDays}d',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: context.appText)),
+            child: Text(() {
+              if (req.totalDays > 0) return '${req.totalDays}d';
+              final cal = req.endDate.difference(req.startDate).inDays + 1;
+              return '${cal}d';
+            }(),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
           ),
           // Source
           Expanded(
             flex: 2,
             child: Text(srcLabel,
-                style: TextStyle(fontSize: 11, color: context.appSubtext)),
+                style: TextStyle(fontSize: 13, color: context.appSubtext)),
           ),
           // Status
           Expanded(
@@ -1371,7 +1336,7 @@ class _LeaveHistoryRow extends StatelessWidget {
                 decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
                 child: Text(
                     '${req.status[0].toUpperCase()}${req.status.substring(1)}',
-                    style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
               ),
               if (req.status == 'rejected' && req.rejectedReason != null) ...[
                 const SizedBox(width: 4),
@@ -1526,11 +1491,11 @@ class _PayrollProfileTab extends ConsumerWidget {
               Text('No payslips yet',
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Text('Payslips will appear once payroll is run',
-                  style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                  style: TextStyle(color: context.appSubtext, fontSize: 15)),
             ]),
           );
         }
@@ -1551,7 +1516,7 @@ class _PayrollProfileTab extends ConsumerWidget {
               _SectionLabel('Payment History'),
               const Spacer(),
               Text('${payslips.length} payslip${payslips.length == 1 ? '' : 's'}',
-                  style: TextStyle(color: context.appSubtext, fontSize: 12)),
+                  style: TextStyle(color: context.appSubtext, fontSize: 14)),
             ]),
             const SizedBox(height: 12),
             Container(
@@ -1616,7 +1581,7 @@ class _LatestPayslipCard extends ConsumerWidget {
                   color: isApproved
                       ? AppColors.successGreen
                       : AppColors.warningAmber,
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600),
             ),
           ),
@@ -1628,7 +1593,7 @@ class _LatestPayslipCard extends ConsumerWidget {
             style: OutlinedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                textStyle: const TextStyle(fontSize: 12),
+                textStyle: const TextStyle(fontSize: 14),
                 side: BorderSide(color: context.appBorder)),
           ),
         ]),
@@ -1645,7 +1610,7 @@ class _LatestPayslipCard extends ConsumerWidget {
             Text('NET SALARY',
                 style: TextStyle(
                     color: context.appSubtext,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5)),
             const SizedBox(height: 4),
@@ -1665,7 +1630,7 @@ class _LatestPayslipCard extends ConsumerWidget {
               child: Text('${ps.absentDays} absent day${ps.absentDays == 1 ? '' : 's'}',
                   style: const TextStyle(
                       color: AppColors.errorRed,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600)),
             ),
         ]),
@@ -1706,19 +1671,19 @@ class _PayslipHistoryRow extends ConsumerWidget {
               Text(label,
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
               Text('${ps.workingDays} working days · ${ps.presentDays} present',
                   style: TextStyle(
-                      color: context.appSubtext, fontSize: 11)),
+                      color: context.appSubtext, fontSize: 13)),
             ]),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text(_rwf(ps.netSalary),
                 style: const TextStyle(
                     color: AppColors.successGreen,
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 2),
             Container(
@@ -1731,7 +1696,7 @@ class _PayslipHistoryRow extends ConsumerWidget {
               child: Text(
                 isApproved ? 'Approved' : 'Draft',
                 style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     color: isApproved
                         ? AppColors.successGreen
                         : AppColors.warningAmber,
@@ -1784,13 +1749,13 @@ class _LineItem extends StatelessWidget {
         Text(label,
             style: TextStyle(
                 color: context.appSubtext,
-                fontSize: 10,
+                fontSize: 12,
                 letterSpacing: 0.3)),
         const SizedBox(height: 3),
         Text(value,
             style: TextStyle(
                 color: context.appText,
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
       ]),
     );
@@ -1805,7 +1770,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(text,
       style: TextStyle(
           color: context.appText,
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: FontWeight.w700));
 }
 
@@ -1853,7 +1818,7 @@ class _LoansTabState extends ConsumerState<_LoansTab> {
               ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.account_balance_outlined, size: 56, color: context.appSubtext),
                   const SizedBox(height: 12),
-                  Text('No loans recorded', style: TextStyle(fontSize: 15, color: context.appSubtext)),
+                  Text('No loans recorded', style: TextStyle(fontSize: 16, color: context.appSubtext)),
                 ]))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -1889,12 +1854,12 @@ class _LoanCard extends StatelessWidget {
             child: const Icon(Icons.account_balance_outlined, size: 20, color: AppColors.primaryBlue)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(description, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: context.appText)),
-            Text('RWF ${_fmt(monthly)}/month deduction', style: TextStyle(fontSize: 12, color: context.appSubtext)),
+            Text(description, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: context.appText)),
+            Text('RWF ${_fmt(monthly)}/month deduction', style: TextStyle(fontSize: 14, color: context.appSubtext)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('RWF ${_fmt(remaining)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: context.appText)),
-            Text('remaining', style: TextStyle(fontSize: 11, color: context.appSubtext)),
+            Text('RWF ${_fmt(remaining)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: context.appText)),
+            Text('remaining', style: TextStyle(fontSize: 13, color: context.appSubtext)),
           ]),
         ]),
         const SizedBox(height: 12),
@@ -1903,10 +1868,10 @@ class _LoanCard extends StatelessWidget {
             child: LinearProgressIndicator(value: progress, backgroundColor: context.appBorder,
               valueColor: const AlwaysStoppedAnimation(AppColors.successGreen), minHeight: 6))),
           const SizedBox(width: 10),
-          Text('${(progress * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: context.appSubtext)),
+          Text('${(progress * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appSubtext)),
         ]),
         const SizedBox(height: 4),
-        Text('Paid RWF ${_fmt(paid)} of RWF ${_fmt(total)}', style: TextStyle(fontSize: 11, color: context.appSubtext)),
+        Text('Paid RWF ${_fmt(paid)} of RWF ${_fmt(total)}', style: TextStyle(fontSize: 13, color: context.appSubtext)),
       ]),
     );
   }
@@ -1997,11 +1962,11 @@ class _DlgField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText)),
+    Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
     const SizedBox(height: 5),
-    TextFormField(controller: ctrl, keyboardType: keyboard, style: TextStyle(fontSize: 13, color: context.appText),
+    TextFormField(controller: ctrl, keyboardType: keyboard, style: TextStyle(fontSize: 15, color: context.appText),
       decoration: InputDecoration(
-        hintText: hint, hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+        hintText: hint, hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
         filled: true, fillColor: context.appField,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: context.appBorder)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: context.appBorder)),
@@ -2092,11 +2057,11 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
               Text('No performance records yet',
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Text('Scores will appear once a manager evaluates this employee',
-                  style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                  style: TextStyle(color: context.appSubtext, fontSize: 15)),
             ]),
           );
         }
@@ -2135,7 +2100,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
               Text(trendLabel,
                   style: TextStyle(
                       color: trendColor,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600)),
             ]),
           );
@@ -2148,7 +2113,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
               Text('Performance History',
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w700)),
               const Spacer(),
               trendWidget,
@@ -2201,7 +2166,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                     Text('Score Trend',
                         style: TextStyle(
                             color: context.appText,
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600)),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -2229,14 +2194,14 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                         Text('Annual Performance Narrative',
                             style: TextStyle(
                                 color: context.appText,
-                                fontSize: 13,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700)),
                       ]),
                       const SizedBox(height: 10),
                       Text(_annualNarrative!,
                           style: TextStyle(
                               color: context.appText,
-                              fontSize: 13,
+                              fontSize: 15,
                               height: 1.6)),
                     ]),
               ),
@@ -2245,7 +2210,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
             Text('Monthly Reviews',
                 style: TextStyle(
                     color: context.appText,
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             ...records.map((r) => _MonthlyReviewCard(record: r)),
@@ -2295,7 +2260,7 @@ class _PerformanceLineChart extends StatelessWidget {
               reservedSize: 28,
               getTitlesWidget: (v, _) => Text(
                 v.toInt().toString(),
-                style: TextStyle(color: context.appSubtext, fontSize: 10),
+                style: TextStyle(color: context.appSubtext, fontSize: 12),
               ),
             ),
           ),
@@ -2420,7 +2385,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                 child: Text(monthLabel,
                     style: const TextStyle(
                         color: AppColors.primaryBlue,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700)),
               ),
               const SizedBox(width: 12),
@@ -2436,7 +2401,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                 child: Text(_ratingLabel,
                     style: TextStyle(
                         color: _scoreColor,
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 10),
@@ -2458,7 +2423,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color: context.appSubtext, fontSize: 12, height: 1.5),
+                  color: context.appSubtext, fontSize: 14, height: 1.5),
             ),
           ),
         if (_expanded) ...[
@@ -2472,7 +2437,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                     Text('Criterion Breakdown',
                         style: TextStyle(
                             color: context.appText,
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
                     ...r.scores.entries.map((e) {
@@ -2490,7 +2455,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                             child: Text(e.key,
                                 style: TextStyle(
                                     color: context.appSubtext,
-                                    fontSize: 11)),
+                                    fontSize: 13)),
                           ),
                           Expanded(
                             flex: 5,
@@ -2512,13 +2477,13 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                                 textAlign: TextAlign.end,
                                 style: TextStyle(
                                     color: barColor,
-                                    fontSize: 12,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w700)),
                           ),
                           Text('/5',
                               style: TextStyle(
                                   color: context.appSubtext,
-                                  fontSize: 10)),
+                                  fontSize: 12)),
                         ]),
                       );
                     }),
@@ -2532,14 +2497,14 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                       Text('AI Review',
                           style: TextStyle(
                               color: context.appText,
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 6),
                     Text(r.aiReview!,
                         style: TextStyle(
                             color: context.appText,
-                            fontSize: 12,
+                            fontSize: 14,
                             height: 1.6)),
                     const SizedBox(height: 10),
                   ],
@@ -2552,14 +2517,14 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                       Text('Manager Notes',
                           style: TextStyle(
                               color: context.appText,
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 6),
                     Text(r.managerNotes!,
                         style: TextStyle(
                             color: context.appSubtext,
-                            fontSize: 12,
+                            fontSize: 14,
                             height: 1.5)),
                   ],
                 ]),
@@ -2598,7 +2563,7 @@ class _PerformanceStars extends StatelessWidget {
       const SizedBox(width: 5),
       Text(score.toStringAsFixed(1),
           style: TextStyle(
-              color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+              color: color, fontSize: 14, fontWeight: FontWeight.w700)),
     ]);
   }
 }

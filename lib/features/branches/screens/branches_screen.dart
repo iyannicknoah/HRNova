@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -59,7 +59,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Branches', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                       const SizedBox(height: 2),
-                      Text('Manage your company branches', style: TextStyle(color: context.appSubtext, fontSize: 14)),
+                      Text('Manage your company branches', style: TextStyle(color: context.appSubtext, fontSize: 15)),
                     ]),
                     const Spacer(),
                     FilledButton.icon(
@@ -89,7 +89,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                   decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
                   child: TextField(
                     onChanged: (v) => setState(() => _search = v),
-                    style: TextStyle(color: context.appText, fontSize: 14),
+                    style: TextStyle(color: context.appText, fontSize: 15),
                     decoration: InputDecoration(
                       hintText: 'Search branches...',
                       hintStyle: TextStyle(color: context.appSubtext),
@@ -109,7 +109,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                             const SizedBox(height: 12),
                             Text(
                               branches.isEmpty ? 'No branches yet — add one to get started' : 'No branches match your search',
-                              style: TextStyle(color: context.appSubtext, fontSize: 15),
+                              style: TextStyle(color: context.appSubtext, fontSize: 16),
                             ),
                           ]),
                         )
@@ -150,7 +150,7 @@ class _StatChip extends StatelessWidget {
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, color: color, size: 15),
       const SizedBox(width: 6),
-      Text(label, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+      Text(label, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w600)),
     ]),
   );
 }
@@ -177,13 +177,13 @@ class _BranchCard extends StatelessWidget {
                   gradient: LinearGradient(colors: AppColors.gradientForName(branch.name), begin: Alignment.topLeft, end: Alignment.bottomRight),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700))),
+                child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700))),
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(branch.name, style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                Text(branch.name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 if (branch.branchCode.isNotEmpty)
-                  Text(branch.branchCode, style: TextStyle(color: context.appSubtext, fontSize: 11)),
+                  Text(branch.branchCode, style: TextStyle(color: context.appSubtext, fontSize: 13)),
               ])),
               GestureDetector(
                 onTap: () => onToggleActive(!branch.isActive),
@@ -195,7 +195,7 @@ class _BranchCard extends StatelessWidget {
                   ),
                   child: Text(
                     branch.isActive ? 'Active' : 'Inactive',
-                    style: TextStyle(color: branch.isActive ? AppColors.pillGreenText : AppColors.pillRedText, fontSize: 11, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: branch.isActive ? AppColors.pillGreenText : AppColors.pillRedText, fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -217,7 +217,7 @@ class _BranchCard extends StatelessWidget {
   Widget _row(IconData icon, String text) => Builder(builder: (context) => Row(children: [
     Icon(icon, size: 14, color: context.appSubtext),
     const SizedBox(width: 6),
-    Expanded(child: Text(text, style: TextStyle(color: context.appSubtext, fontSize: 12), overflow: TextOverflow.ellipsis)),
+    Expanded(child: Text(text, style: TextStyle(color: context.appSubtext, fontSize: 14), overflow: TextOverflow.ellipsis)),
   ]));
 }
 
@@ -329,7 +329,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                     Icon(_addAdmin ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
                         color: _addAdmin ? AppColors.primaryBlue : context.appSubtext, size: 20),
                     const SizedBox(width: 10),
-                    Text('Create Branch HR Admin account', style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text('Create Branch HR Admin account', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
                   ]),
                 ),
               ),
@@ -338,12 +338,12 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                 _dlgField('Admin Email', _emailCtrl, hint: 'hr@company.rw', type: TextInputType.emailAddress),
                 const SizedBox(height: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Temporary Password', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+                  Text('Temporary Password', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _passCtrl,
                     obscureText: _obscure,
-                    style: TextStyle(color: context.appText, fontSize: 14),
+                    style: TextStyle(color: context.appText, fontSize: 15),
                     decoration: InputDecoration(
                       hintText: 'Min 8 characters',
                       hintStyle: TextStyle(color: context.appSubtext),
@@ -368,7 +368,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                   child: Row(children: [
                     const Icon(Icons.error_outline_rounded, color: AppColors.errorRed, size: 16),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.errorRed, fontSize: 13))),
+                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.errorRed, fontSize: 15))),
                   ]),
                 ),
               ],
@@ -410,11 +410,11 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
 
   Widget _dlgField(String label, TextEditingController ctrl, {String? hint, TextInputType? type}) =>
       Builder(builder: (context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,
-          style: TextStyle(color: context.appText, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 15),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: context.appSubtext),

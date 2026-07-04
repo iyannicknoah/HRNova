@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/utils/download_helper.dart';
 import '../../employees/models/employee_model.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
@@ -213,7 +217,7 @@ class _Header extends StatelessWidget {
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
           Text('Real-time employee attendance tracking',
-              style: TextStyle(color: context.appSubtext, fontSize: 14)),
+              style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
         const Spacer(),
         _HeaderBtn(
@@ -257,7 +261,7 @@ class _HeaderBtn extends StatelessWidget {
           Text(label,
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w500)),
           if (trailing != null) ...[
             const SizedBox(width: 4),
@@ -337,7 +341,7 @@ class _SCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(label,
                     style:
-                        TextStyle(color: context.appSubtext, fontSize: 12)),
+                        TextStyle(color: context.appSubtext, fontSize: 14)),
               ]),
         ),
       ]),
@@ -363,9 +367,9 @@ class _AttTabBar extends StatelessWidget {
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
         labelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+            const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
@@ -455,7 +459,7 @@ class _TodayTab extends StatelessWidget {
                               Text('No employees found',
                                   style: TextStyle(
                                       color: context.appSubtext,
-                                      fontSize: 15)),
+                                      fontSize: 16)),
                             ]))
                       : ListView.separated(
                           itemCount: rows.length,
@@ -474,7 +478,7 @@ class _TodayTab extends StatelessWidget {
   Widget _tableHeader(BuildContext context) {
     final s = TextStyle(
         color: context.appSubtext,
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.5);
     return Row(children: [
@@ -512,14 +516,14 @@ class _DropFilter extends StatelessWidget {
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(prefix,
-            style: TextStyle(color: context.appSubtext, fontSize: 12)),
+            style: TextStyle(color: context.appSubtext, fontSize: 14)),
         const SizedBox(width: 6),
         DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: safeValue,
             isDense: true,
             dropdownColor: context.appCard,
-            style: TextStyle(color: context.appText, fontSize: 12),
+            style: TextStyle(color: context.appText, fontSize: 14),
             icon: Icon(Icons.keyboard_arrow_down_rounded,
                 size: 14, color: context.appSubtext),
             items: items
@@ -532,7 +536,7 @@ class _DropFilter extends StatelessWidget {
                               ? labels![e.key]
                               : e.value,
                           style: TextStyle(
-                              color: context.appText, fontSize: 12)),
+                              color: context.appText, fontSize: 14)),
                     ))
                 .toList(),
             onChanged: (v) => onChanged(v!),
@@ -568,13 +572,13 @@ class _AttRow extends StatelessWidget {
                       Text(row.name,
                           style: TextStyle(
                               color: context.appText,
-                              fontSize: 13,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 1),
                       Text(row.dept,
                           style: TextStyle(
-                              color: context.appSubtext, fontSize: 11)),
+                              color: context.appSubtext, fontSize: 13)),
                     ]),
               ),
             ]),
@@ -588,7 +592,7 @@ class _AttRow extends StatelessWidget {
                   color: row.checkIn != null
                       ? context.appText
                       : context.appSubtext,
-                  fontSize: 13),
+                  fontSize: 15),
             ),
           ),
           // Check Out
@@ -597,7 +601,7 @@ class _AttRow extends StatelessWidget {
             child: row.checkOut != null
                 ? Text(row.checkOut!,
                     style:
-                        TextStyle(color: context.appText, fontSize: 13))
+                        TextStyle(color: context.appText, fontSize: 15))
                 : row.stillIn
                     ? Row(children: [
                         Container(
@@ -610,11 +614,11 @@ class _AttRow extends StatelessWidget {
                         const Text('Still in',
                             style: TextStyle(
                                 color: AppColors.warningAmber,
-                                fontSize: 12)),
+                                fontSize: 14)),
                       ])
                     : Text('—',
                         style: TextStyle(
-                            color: context.appSubtext, fontSize: 13)),
+                            color: context.appSubtext, fontSize: 15)),
           ),
           // Status badge
           Expanded(
@@ -669,7 +673,7 @@ class _SBadge extends StatelessWidget {
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
       child: Text(label,
           style:
-              TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
+              TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -766,7 +770,7 @@ class _HistoryTab extends ConsumerWidget {
                 Text(DateFormat('EEEE, MMM d, yyyy').format(date),
                     style: TextStyle(
                         color: context.appText,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(width: 6),
                 Icon(Icons.keyboard_arrow_down_rounded,
@@ -776,7 +780,7 @@ class _HistoryTab extends ConsumerWidget {
           ),
           const Spacer(),
           Text('${rows.length} employees',
-              style: TextStyle(color: context.appSubtext, fontSize: 13)),
+              style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
       ),
       Expanded(
@@ -823,7 +827,7 @@ class _HistoryTab extends ConsumerWidget {
   Text _hTxt(String t, BuildContext ctx) => Text(t,
       style: TextStyle(
           color: ctx.appSubtext,
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5));
 }
@@ -836,6 +840,77 @@ class _SummaryTab extends ConsumerStatefulWidget {
 
 class _SummaryTabState extends ConsumerState<_SummaryTab> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  bool _exporting = false;
+
+  Future<void> _exportPdf(List<_SRow> rows) async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Generating PDF…'),
+      duration: Duration(seconds: 60),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      final monthLabel = DateFormat('MMMM yyyy').format(_month);
+      final font = await PdfGoogleFonts.interRegular();
+      final bold = await PdfGoogleFonts.interBold();
+
+      final doc = pw.Document();
+      doc.addPage(pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(32),
+        build: (ctx) => [
+          pw.Text('Attendance Summary — $monthLabel',
+              style: pw.TextStyle(font: bold, fontSize: 18)),
+          pw.SizedBox(height: 16),
+          pw.TableHelper.fromTextArray(
+            headers: ['Employee', 'Department', 'Present', 'Late', 'Absent', 'On Leave', 'Hours'],
+            headerStyle: pw.TextStyle(font: bold, fontSize: 12, color: PdfColors.white),
+            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF1A6FD4)),
+            cellStyle: pw.TextStyle(font: font, fontSize: 12),
+            rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+            oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF5F7FA)),
+            data: rows.map((r) => [
+              r.name,
+              r.dept,
+              '${r.present}',
+              '${r.late}',
+              '${r.absent}',
+              '${r.onLeave}',
+              '${r.hours.toStringAsFixed(1)}h',
+            ]).toList(),
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text('Generated by HRNova · ${DateFormat('d MMM yyyy, HH:mm').format(DateTime.now())}',
+              style: pw.TextStyle(font: font, fontSize: 8, color: PdfColors.grey600)),
+        ],
+      ));
+
+      final bytes = await doc.save();
+      downloadBytes(bytes, 'Attendance_Summary_${DateFormat('yyyy-MM').format(_month)}.pdf', 'application/pdf');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('PDF downloaded successfully ✓'),
+          backgroundColor: AppColors.successGreen,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -868,7 +943,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
           Text(DateFormat('MMMM yyyy').format(_month),
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600)),
           const SizedBox(width: 12),
           _navBtn(Icons.chevron_right_rounded,
@@ -877,16 +952,26 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
           const Spacer(),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.primaryBlue),
-              foregroundColor: AppColors.primaryBlue,
+              side: BorderSide(
+                  color: _exporting ? context.appBorder : AppColors.primaryBlue),
+              foregroundColor:
+                  _exporting ? context.appSubtext : AppColors.primaryBlue,
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(100)),
             ),
-            onPressed: () {},
-            icon: const Icon(Icons.download_rounded, size: 16),
-            label: const Text('Export PDF'),
+            onPressed: _exporting || summaryRows.isEmpty
+                ? null
+                : () => _exportPdf(summaryRows),
+            icon: _exporting
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.primaryBlue))
+                : const Icon(Icons.download_rounded, size: 16),
+            label: Text(_exporting ? 'Generating…' : 'Export PDF'),
           ),
         ]),
       ),
@@ -924,7 +1009,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
                       ? Center(
                           child: Text('No records for this month',
                               style: TextStyle(
-                                  color: context.appSubtext, fontSize: 14)))
+                                  color: context.appSubtext, fontSize: 15)))
                       : ListView.separated(
                           itemCount: summaryRows.length,
                           separatorBuilder: (_, __) =>
@@ -958,7 +1043,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
   Widget _h(String t, BuildContext ctx) => Text(t,
       style: TextStyle(
           color: ctx.appSubtext,
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5));
 
@@ -1025,7 +1110,7 @@ class _SummaryRow2 extends StatelessWidget {
               child: Text(row.name,
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis),
             ),
@@ -1035,7 +1120,7 @@ class _SummaryRow2 extends StatelessWidget {
             flex: 10,
             child: Text(row.dept,
                 style:
-                    TextStyle(color: context.appSubtext, fontSize: 12))),
+                    TextStyle(color: context.appSubtext, fontSize: 14))),
         Expanded(flex: 8, child: _num('${row.present}', AppColors.successGreen)),
         Expanded(flex: 6, child: _num('${row.late}', AppColors.warningAmber)),
         Expanded(flex: 6, child: _num('${row.absent}', AppColors.errorRed)),
@@ -1045,7 +1130,7 @@ class _SummaryRow2 extends StatelessWidget {
             child: Text('${row.hours.toStringAsFixed(1)}h',
                 style: TextStyle(
                     color: context.appText,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600))),
       ]),
     );
@@ -1053,7 +1138,7 @@ class _SummaryRow2 extends StatelessWidget {
 
   Widget _num(String v, Color color) => Text(v,
       style:
-          TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700));
+          TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w700));
 }
 
 // ── Manual Entry Dialog ───────────────────────────────────────────────────────
@@ -1200,7 +1285,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                     value: _selectedEmployee,
                     hint: Text('Select employee',
                         style: TextStyle(
-                            color: context.appSubtext, fontSize: 13)),
+                            color: context.appSubtext, fontSize: 15)),
                     dropdownColor: context.appCard,
                     isExpanded: true,
                     icon: Icon(Icons.keyboard_arrow_down_rounded,
@@ -1211,7 +1296,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                               child: Text(e.fullName,
                                   style: TextStyle(
                                       color: context.appText,
-                                      fontSize: 13)),
+                                      fontSize: 15)),
                             ))
                         .toList(),
                     onChanged: (v) =>
@@ -1282,7 +1367,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                   const SizedBox(width: 8),
                   Text('Add check-out time',
                       style: TextStyle(
-                          color: context.appSubtext, fontSize: 13)),
+                          color: context.appSubtext, fontSize: 15)),
                 ]),
               ),
               const SizedBox(height: 14),
@@ -1291,7 +1376,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
               TextField(
                 controller: _reasonCtrl,
                 maxLines: 3,
-                style: TextStyle(color: context.appText, fontSize: 13),
+                style: TextStyle(color: context.appText, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'e.g. System was down, forgot to scan...',
                   hintStyle: TextStyle(color: context.appSubtext),
@@ -1381,7 +1466,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
             const SizedBox(width: 10),
             Text(label,
                 style: TextStyle(
-                    color: labelColor ?? context.appText, fontSize: 13)),
+                    color: labelColor ?? context.appText, fontSize: 15)),
           ]),
         ),
       );
@@ -1389,6 +1474,6 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
   Widget _dlgLabel(String t, BuildContext ctx) => Text(t,
       style: TextStyle(
           color: ctx.appSubtext,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w500));
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class HRNovaTextField extends StatelessWidget {
@@ -49,7 +49,7 @@ class HRNovaTextField extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
             letterSpacing: 0.2,
@@ -70,7 +70,7 @@ class HRNovaTextField extends StatelessWidget {
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 16,
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w500,
           ),

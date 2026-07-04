@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class LoadingWidget extends StatelessWidget {
@@ -40,7 +40,7 @@ class LoadingWidget extends StatelessWidget {
               message!,
               style: const TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),

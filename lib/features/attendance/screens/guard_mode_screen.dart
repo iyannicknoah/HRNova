@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -299,7 +299,7 @@ class _TopBar extends StatelessWidget {
           const Text('Guard Mode',
               style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w700)),
           const Spacer(),
           Expanded(
@@ -307,14 +307,14 @@ class _TopBar extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500)),
           ),
           const Spacer(),
           Text(timeStr,
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
                   fontFamily: 'monospace')),
         ]),
@@ -327,7 +327,7 @@ class _TopBar extends StatelessWidget {
                   color: AppColors.successGreen, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text('Today: $checkedIn checked in',
-              style: const TextStyle(color: Colors.white60, fontSize: 12)),
+              style: const TextStyle(color: Colors.white60, fontSize: 14)),
         ]),
       ]),
     );
@@ -392,7 +392,7 @@ class _FramePainter extends CustomPainter {
       text: const TextSpan(
         text: 'Position employee QR code inside the frame',
         style: TextStyle(
-            color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w400),
+            color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w400),
       ),
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
@@ -425,7 +425,7 @@ class _BottomHint extends StatelessWidget {
                   color: AppColors.primaryBlue, size: 18),
               SizedBox(width: 8),
               Text('Scan QR code to check in / check out',
-                  style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  style: TextStyle(color: Colors.white54, fontSize: 15)),
             ]),
       ),
     );
@@ -471,7 +471,7 @@ class _NotFoundOverlay extends StatelessWidget {
                   fontWeight: FontWeight.w800)),
           SizedBox(height: 8),
           Text('Please contact HR Admin',
-              style: TextStyle(color: Colors.white70, fontSize: 16)),
+              style: TextStyle(color: Colors.white70, fontSize: 17)),
         ]),
       ),
     );
@@ -515,7 +515,7 @@ class _CheckInOverlay extends StatelessWidget {
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
                 style: const TextStyle(
-                    color: Colors.white70, fontSize: 16)),
+                    color: Colors.white70, fontSize: 17)),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(
@@ -526,7 +526,7 @@ class _CheckInOverlay extends StatelessWidget {
               child: const Text('CHECK IN',
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2)),
             ),
@@ -540,7 +540,7 @@ class _CheckInOverlay extends StatelessWidget {
               const SizedBox(height: 4),
               Text(t,
                   style: const TextStyle(
-                      color: Colors.white70, fontSize: 16)),
+                      color: Colors.white70, fontSize: 17)),
             ] else ...[
               Text(t,
                   style: const TextStyle(
@@ -557,7 +557,7 @@ class _CheckInOverlay extends StatelessWidget {
                 child: const Text('ON TIME',
                     style: TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.5)),
               ),
@@ -605,7 +605,7 @@ class _CheckOutOverlay extends StatelessWidget {
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
                 style: const TextStyle(
-                    color: Colors.white70, fontSize: 16)),
+                    color: Colors.white70, fontSize: 17)),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(
@@ -616,7 +616,7 @@ class _CheckOutOverlay extends StatelessWidget {
               child: const Text('CHECK OUT',
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2)),
             ),
@@ -658,11 +658,11 @@ class _AlreadyDoneOverlay extends StatelessWidget {
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           const Text('Already completed today',
-              style: TextStyle(color: Colors.white70, fontSize: 16)),
+              style: TextStyle(color: Colors.white70, fontSize: 17)),
           const SizedBox(height: 6),
           Text('Checked in at ${result.checkInTimeStr}',
               style: const TextStyle(
-                  color: Colors.white54, fontSize: 14)),
+                  color: Colors.white54, fontSize: 15)),
         ]),
       ),
     );
@@ -694,7 +694,7 @@ class _AfterHoursOverlay extends StatelessWidget {
                     color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
-                style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                style: const TextStyle(color: Colors.white70, fontSize: 17)),
             const SizedBox(height: 22),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -704,7 +704,7 @@ class _AfterHoursOverlay extends StatelessWidget {
               child: const Text('ABSENT — AFTER HOURS',
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2)),
             ),
@@ -714,7 +714,7 @@ class _AfterHoursOverlay extends StatelessWidget {
                     color: Colors.white70, fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             const Text('Check-in is no longer accepted for today',
-                style: TextStyle(color: Colors.white54, fontSize: 14)),
+                style: TextStyle(color: Colors.white54, fontSize: 15)),
           ]),
         ),
       ]),

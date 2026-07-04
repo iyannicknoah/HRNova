@@ -1,4 +1,4 @@
-import 'package:fl_chart/fl_chart.dart';
+﻿import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -59,7 +59,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                           letterSpacing: -0.5)),
                   const SizedBox(height: 2),
                   Text('Track and evaluate employee performance',
-                      style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                      style: TextStyle(color: context.appSubtext, fontSize: 15)),
                 ]),
                 const Spacer(),
                 // Month picker
@@ -110,7 +110,7 @@ class _MonthPicker extends StatelessWidget {
           child: Text(DateFormat('MMMM yyyy').format(month),
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600)),
         ),
         _NavBtn(
@@ -339,7 +339,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                             child: Text(e.fullName,
                                                 style: TextStyle(
                                                     color: context.appText,
-                                                    fontSize: 13,
+                                                    fontSize: 15,
                                                     fontWeight: FontWeight.w600),
                                                 overflow: TextOverflow.ellipsis),
                                           ),
@@ -351,7 +351,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                         child: Text(e.department,
                                             style: TextStyle(
                                                 color: context.appSubtext,
-                                                fontSize: 12),
+                                                fontSize: 14),
                                             overflow: TextOverflow.ellipsis),
                                       ),
                                       // Score
@@ -362,7 +362,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                             : Text('—',
                                                 style: TextStyle(
                                                     color: context.appSubtext,
-                                                    fontSize: 12)),
+                                                    fontSize: 14)),
                                       ),
                                       // Action
                                       SizedBox(
@@ -384,7 +384,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                           ),
                                           child: Text(
                                               existing != null ? 'Edit' : 'Score',
-                                              style: const TextStyle(fontSize: 12)),
+                                              style: const TextStyle(fontSize: 14)),
                                         ),
                                       ),
                                     ]),
@@ -432,7 +432,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
   Widget _hdr(String t, BuildContext ctx) => Text(t,
       style: TextStyle(
           color: ctx.appSubtext,
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5));
 }
@@ -497,10 +497,10 @@ class _ScorePanel extends StatelessWidget {
               Text(employee.fullName,
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700)),
               Text(employee.department,
-                  style: TextStyle(color: context.appSubtext, fontSize: 12)),
+                  style: TextStyle(color: context.appSubtext, fontSize: 14)),
             ])),
             // Overall score bubble
             Container(
@@ -517,7 +517,7 @@ class _ScorePanel extends StatelessWidget {
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         height: 1)),
-                Text('/ 5', style: TextStyle(color: _overallColor, fontSize: 11)),
+                Text('/ 5', style: TextStyle(color: _overallColor, fontSize: 13)),
               ]),
             ),
             const SizedBox(width: 8),
@@ -533,7 +533,7 @@ class _ScorePanel extends StatelessWidget {
           Text('Scoring Criteria',
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           ...criteria.map((c) {
@@ -557,7 +557,7 @@ class _ScorePanel extends StatelessWidget {
                     child: Text(c.name,
                         style: TextStyle(
                             color: context.appText,
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500)),
                   ),
                   Container(
@@ -568,11 +568,11 @@ class _ScorePanel extends StatelessWidget {
                     ),
                     child: Text(label,
                         style: TextStyle(
-                            color: sliderColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                            color: sliderColor, fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(width: 8),
                   Text('${contribution.toStringAsFixed(2)} pts',
-                      style: TextStyle(color: context.appSubtext, fontSize: 11)),
+                      style: TextStyle(color: context.appSubtext, fontSize: 13)),
                 ]),
                 const SizedBox(height: 4),
                 Row(children: [
@@ -602,13 +602,13 @@ class _ScorePanel extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: sliderColor,
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.w800),
                     ),
                   ),
                 ]),
                 Text('Weight: ${c.weight.toStringAsFixed(0)}%',
-                    style: TextStyle(color: context.appSubtext, fontSize: 10)),
+                    style: TextStyle(color: context.appSubtext, fontSize: 12)),
               ]),
             );
           }),
@@ -618,15 +618,15 @@ class _ScorePanel extends StatelessWidget {
           // Manager notes
           Text('Manager Notes',
               style: TextStyle(
-                  color: context.appText, fontSize: 13, fontWeight: FontWeight.w600)),
+                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           TextField(
             controller: notesCtrl,
             maxLines: 3,
-            style: TextStyle(color: context.appText, fontSize: 13),
+            style: TextStyle(color: context.appText, fontSize: 15),
             decoration: InputDecoration(
               hintText: 'Optional notes for this employee...',
-              hintStyle: TextStyle(color: context.appSubtext, fontSize: 12),
+              hintStyle: TextStyle(color: context.appSubtext, fontSize: 14),
               filled: true,
               fillColor: context.appField,
               contentPadding: const EdgeInsets.all(12),
@@ -645,7 +645,7 @@ class _ScorePanel extends StatelessWidget {
           // AI Review section
           Text('AI Performance Review',
               style: TextStyle(
-                  color: context.appText, fontSize: 13, fontWeight: FontWeight.w600)),
+                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           if (generatingAi)
             Container(
@@ -663,7 +663,7 @@ class _ScorePanel extends StatelessWidget {
                         strokeWidth: 2, color: AppColors.primaryBlue)),
                 const SizedBox(width: 12),
                 Text('Generating AI review...',
-                    style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                    style: TextStyle(color: context.appSubtext, fontSize: 15)),
               ]),
             )
           else if (aiReview != null && aiReview!.isNotEmpty)
@@ -672,7 +672,7 @@ class _ScorePanel extends StatelessWidget {
                 controller: TextEditingController(text: aiReview),
                 maxLines: 5,
                 onChanged: onAiTextChanged,
-                style: TextStyle(color: context.appText, fontSize: 13, height: 1.5),
+                style: TextStyle(color: context.appText, fontSize: 15, height: 1.5),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.primaryBlue.withAlpha(8),
@@ -692,7 +692,7 @@ class _ScorePanel extends StatelessWidget {
               TextButton.icon(
                 onPressed: generatingAi ? null : onGenerateAi,
                 icon: const Icon(Icons.refresh_rounded, size: 14),
-                label: const Text('Regenerate', style: TextStyle(fontSize: 12)),
+                label: const Text('Regenerate', style: TextStyle(fontSize: 14)),
                 style: TextButton.styleFrom(foregroundColor: AppColors.primaryBlue),
               ),
             ])
@@ -854,7 +854,7 @@ class _HRDashboardView extends ConsumerWidget {
                       Text('Department Performance',
                           style: TextStyle(
                               color: context.appText,
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700)),
                       const SizedBox(height: 20),
                       SizedBox(
@@ -881,13 +881,13 @@ class _HRDashboardView extends ConsumerWidget {
                       Text('Top Performers',
                           style: TextStyle(
                               color: context.appText,
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700)),
                       const SizedBox(height: 14),
                       if (top5.isEmpty)
                         Text('No scores this month',
                             style: TextStyle(
-                                color: context.appSubtext, fontSize: 13))
+                                color: context.appSubtext, fontSize: 15))
                       else
                         ...top5.asMap().entries.map((e) => Padding(
                               padding: const EdgeInsets.only(bottom: 12),
@@ -907,7 +907,7 @@ class _HRDashboardView extends ConsumerWidget {
                                             color: e.key == 0
                                                 ? const Color(0xFFFFD700)
                                                 : context.appSubtext,
-                                            fontSize: 11,
+                                            fontSize: 13,
                                             fontWeight: FontWeight.w700)),
                                   ),
                                 ),
@@ -920,13 +920,13 @@ class _HRDashboardView extends ConsumerWidget {
                                         Text(e.value.employeeName,
                                             style: TextStyle(
                                                 color: context.appText,
-                                                fontSize: 12,
+                                                fontSize: 14,
                                                 fontWeight: FontWeight.w600),
                                             overflow: TextOverflow.ellipsis),
                                         Text(e.value.department,
                                             style: TextStyle(
                                                 color: context.appSubtext,
-                                                fontSize: 11)),
+                                                fontSize: 13)),
                                       ]),
                                 ),
                                 _ScoreStars(e.value.overallScore, size: 10),
@@ -997,7 +997,7 @@ class _KpiCard extends StatelessWidget {
                 Text(label,
                     style: TextStyle(
                         color: context.appSubtext,
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 3),
                 Text(value,
@@ -1009,7 +1009,7 @@ class _KpiCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(sub,
                     style:
-                        TextStyle(color: context.appSubtext, fontSize: 11)),
+                        TextStyle(color: context.appSubtext, fontSize: 13)),
               ]),
             ),
           ]),
@@ -1050,7 +1050,7 @@ class _DeptBarChart extends StatelessWidget {
               reservedSize: 28,
               getTitlesWidget: (v, _) => Text(
                 v.toInt().toString(),
-                style: TextStyle(color: context.appSubtext, fontSize: 10),
+                style: TextStyle(color: context.appSubtext, fontSize: 12),
               ),
             ),
           ),
@@ -1128,7 +1128,7 @@ class _BranchComparisonCard extends StatelessWidget {
         Text('Branch Comparison',
             style: TextStyle(
                 color: context.appText,
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w700)),
         const SizedBox(height: 16),
         SizedBox(
@@ -1166,7 +1166,7 @@ class _AttentionCard extends StatelessWidget {
           Text('Needs Attention (${scores.length})',
               style: const TextStyle(
                   color: AppColors.warningAmber,
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 14),
@@ -1191,11 +1191,11 @@ class _AttentionCard extends StatelessWidget {
                 Text(s.employeeName,
                     style: TextStyle(
                         color: context.appText,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600)),
                 Text(reason,
                     style: const TextStyle(
-                        color: AppColors.warningAmber, fontSize: 11)),
+                        color: AppColors.warningAmber, fontSize: 13)),
               ])),
               _ScoreStars(s.overallScore),
             ]),
@@ -1229,7 +1229,7 @@ class _NotScoredCard extends StatelessWidget {
           Text('Not Yet Scored (${employees.length})',
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 12),
@@ -1247,7 +1247,7 @@ class _NotScoredCard extends StatelessWidget {
               _SmallAvatar(name: e.fullName, size: 20),
               const SizedBox(width: 8),
               Text(e.fullName,
-                  style: TextStyle(color: context.appText, fontSize: 12)),
+                  style: TextStyle(color: context.appText, fontSize: 14)),
             ]),
           )).toList(),
         ),

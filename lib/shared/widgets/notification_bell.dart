@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -116,7 +116,7 @@ class _NotificationPanelCard extends StatelessWidget {
               const Text('Notifications',
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700)),
               const Spacer(),
               if (hasUnread)
@@ -124,7 +124,7 @@ class _NotificationPanelCard extends StatelessWidget {
                   onTap: onReadAll,
                   child: const Text('Mark all read',
                       style: TextStyle(
-                          color: AppColors.primaryBlue, fontSize: 12)),
+                          color: AppColors.primaryBlue, fontSize: 14)),
                 ),
               const SizedBox(width: 10),
               GestureDetector(
@@ -148,7 +148,7 @@ class _NotificationPanelCard extends StatelessWidget {
                         Text('No notifications',
                             style: TextStyle(
                                 color: AppColors.textSecondary,
-                                fontSize: 13)),
+                                fontSize: 15)),
                       ],
                     ),
                   )
@@ -192,7 +192,7 @@ class _NotificationPanelCard extends StatelessWidget {
                                     Text(n['title'] as String? ?? '',
                                         style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: 12,
+                                            fontSize: 14,
                                             fontWeight: isUnread
                                                 ? FontWeight.w600
                                                 : FontWeight.w400)),
@@ -202,12 +202,12 @@ class _NotificationPanelCard extends StatelessWidget {
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                             color: AppColors.textSecondary,
-                                            fontSize: 11)),
+                                            fontSize: 13)),
                                     const SizedBox(height: 3),
                                     Text(_timeAgo(n['createdAt']),
                                         style: const TextStyle(
                                             color: AppColors.textSecondary,
-                                            fontSize: 10)),
+                                            fontSize: 12)),
                                   ],
                                 ),
                               ),

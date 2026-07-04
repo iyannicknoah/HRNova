@@ -17,6 +17,10 @@ class WorkingDaysService {
       }
       current = current.add(const Duration(days: 1));
     }
+    // Fall back to calendar days so weekends/holidays still count as leave days
+    if (count == 0) {
+      count = last.difference(DateTime(start.year, start.month, start.day)).inDays + 1;
+    }
     return count;
   }
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 enum StatusType { success, warning, error, info, neutral }
@@ -44,7 +44,7 @@ class StatusBadge extends StatelessWidget {
         _capitalize(text),
         style: TextStyle(
           color: colors.$2,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,
         ),

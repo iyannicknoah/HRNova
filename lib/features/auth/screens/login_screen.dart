@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/hrnova_button.dart';
@@ -157,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: Text(
                                     'Your HR Team, Supercharged',
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w500,
                                       color: AppColors.textSecondary,
                                       letterSpacing: 0.2,
@@ -240,7 +240,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             errorMsg,
                                             style: const TextStyle(
                                               color: AppColors.errorRed,
-                                              fontSize: 13,
+                                              fontSize: 15,
                                               height: 1.4,
                                             ),
                                           ),

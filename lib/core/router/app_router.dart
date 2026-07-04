@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +8,8 @@ import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/settings/providers/settings_provider.dart';
 
+import '../../features/mobile/screens/mobile_home_screen.dart';
+import '../../features/mobile/screens/mobile_onboarding_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/suspension_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
@@ -30,8 +32,6 @@ import '../../features/public/screens/application_success_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/onboarding_screen.dart';
 import '../../features/super_admin/screens/super_admin_screen.dart';
-import '../../features/mobile/screens/mobile_home_screen.dart';
-import '../../features/mobile/screens/mobile_onboarding_screen.dart';
 import '../../features/branches/screens/branches_screen.dart';
 import '../../shared/widgets/hrnova_sidebar.dart';
 
@@ -42,10 +42,6 @@ bool _isPublicRoute(String path) {
 }
 
 // ── Router notifier ────────────────────────────────────────────────────────
-// Holds the GoRouter as its state. Uses ref.listen (not ref.watch) so build()
-// runs exactly once — the GoRouter is created once and never recreated.
-// When auth/claims/status change, state.refresh() is called directly on the
-// GoRouter, which is guaranteed to re-invoke redirect() on the next frame.
 class AppRouterNotifier extends Notifier<GoRouter> {
   @override
   GoRouter build() {
@@ -61,7 +57,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     ref.listen<AsyncValue<bool>>(isOnboardingCompleteProvider, (_, next) {
       Future.microtask(() => state.refresh());
     });
-    ref.listen<bool>(onboardingCompleteOverrideProvider, (_, __) {
+    ref.listen<bool>(onboardingCompleteOverrideProvider, (prev, next) {
       Future.microtask(() => state.refresh());
     });
 
@@ -84,13 +80,8 @@ class AppRouterNotifier extends Notifier<GoRouter> {
 
     final user = authAsync.value;
     if (user == null) {
-      if (!kIsWeb) {
-        // Mobile: onboarding is the entry point; login is also allowed (after card tap)
-        if (path == '/mobile-onboarding' || path == '/login') return null;
-        return '/mobile-onboarding';
-      }
-      // Web: straight to login
-      return path == '/login' ? null : '/login';
+      if (kIsWeb) return path == '/login' ? null : '/login';
+      return (path == '/login' || path == '/mobile-onboarding') ? null : '/mobile-onboarding';
     }
 
     final claimsAsync = ref.read(userClaimsProvider);
@@ -101,7 +92,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     final role = claims?['role'] as String?;
     final companyId = claims?['companyId'] as String?;
 
-    // Super admin — unrestricted (no company scope)
+    // Super admin — unrestricted
     if (role == AppConstants.roleSuperAdmin) {
       if (path == '/login' || path == '/suspended' || path == '/') {
         return '/super-admin';
@@ -109,7 +100,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       return null;
     }
 
-    // Unknown role — sign out and return to login
+    // Unknown role — sign out
     if (role == null) {
       FirebaseAuth.instance.signOut();
       return path == '/login' ? null : '/login';
@@ -143,30 +134,23 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     // From /login or /mobile-onboarding → role-based home
     if (path == '/login' || path == '/mobile-onboarding') return _homeForRole(role);
 
-    // On mobile: HR Admin + other management roles → guard-mode only (no full dashboard on mobile)
-    if (!kIsWeb && _isMobileGuardRole(role) && path != '/guard-mode' && path != '/onboarding') {
-      return '/guard-mode';
-    }
-
-    // Guard role is always restricted to guard-mode
+    // Guard is always restricted to guard-mode
     if (role == AppConstants.roleGuard && path != '/guard-mode') return '/guard-mode';
 
-    // Employee is restricted to mobile-home only
-    if (role == AppConstants.roleEmployee && path != '/mobile-home') return '/mobile-home';
+    // On mobile, employee stays in /mobile-home
+    if (!kIsWeb && role == AppConstants.roleEmployee && path != '/mobile-home') {
+      return '/mobile-home';
+    }
 
     return null;
   }
 
   String _homeForRole(String? role) {
     if (role == AppConstants.roleSuperAdmin) return '/super-admin';
-    if (role == AppConstants.roleEmployee) return '/mobile-home';
     if (role == AppConstants.roleGuard) return '/guard-mode';
-    // On mobile, all management/admin roles go to guard-mode (QR attendance)
-    if (!kIsWeb && _isMobileGuardRole(role)) return '/guard-mode';
+    if (!kIsWeb && role == AppConstants.roleEmployee) return '/mobile-home';
     return '/dashboard';
   }
-
-  static bool _isMobileGuardRole(String? role) => role != null && role != AppConstants.roleEmployee && role != AppConstants.roleSuperAdmin;
 }
 
 final appRouterProvider =
@@ -207,18 +191,20 @@ List<RouteBase> _buildRoutes() => [
         builder: (context, state) => const OnboardingScreen(),
       ),
 
-      // ── Standalone authenticated routes (no sidebar) ─────────────────────
+      // ── Mobile-only routes (no sidebar) ─────────────────────────────────
       GoRoute(
         path: '/mobile-onboarding',
         builder: (context, state) => const MobileOnboardingScreen(),
       ),
       GoRoute(
-        path: '/guard-mode',
-        builder: (context, state) => const GuardModeScreen(),
-      ),
-      GoRoute(
         path: '/mobile-home',
         builder: (context, state) => const MobileHomeScreen(),
+      ),
+
+      // ── Standalone authenticated routes (no sidebar) ─────────────────────
+      GoRoute(
+        path: '/guard-mode',
+        builder: (context, state) => const GuardModeScreen(),
       ),
       GoRoute(
         path: '/super-admin',
@@ -367,7 +353,7 @@ class _RouterErrorScreen extends StatelessWidget {
               Text(
                 error.toString(),
                 style:
-                    const TextStyle(color: Color(0xFF6B7A99), fontSize: 13),
+                    const TextStyle(color: Color(0xFF6B7A99), fontSize: 15),
                 textAlign: TextAlign.center,
               ),
             ],

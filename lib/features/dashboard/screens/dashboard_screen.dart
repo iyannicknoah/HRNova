@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -68,7 +68,7 @@ class _DashHeader extends ConsumerWidget {
             const SizedBox(height: 2),
             Text(
               today,
-              style: TextStyle(color: context.appSubtext, fontSize: 14),
+              style: TextStyle(color: context.appSubtext, fontSize: 15),
             ),
           ],
         ),
@@ -86,7 +86,7 @@ class _DashHeader extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 companyName,
-                style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -108,7 +108,7 @@ class _DashHeader extends ConsumerWidget {
                 companyStatus == 'active' ? 'Active' : companyStatus,
                 style: TextStyle(
                   color: companyStatus == 'active' ? AppColors.successGreen : AppColors.warningAmber,
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -195,7 +195,7 @@ class _KpiCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: AppColors.pillGreenBg, borderRadius: BorderRadius.circular(100)),
-                  child: Text(data.badge!, style: const TextStyle(color: AppColors.successGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                  child: Text(data.badge!, style: const TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ],
             ],
@@ -203,7 +203,7 @@ class _KpiCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(data.value, style: TextStyle(color: context.appText, fontSize: 30, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
-          Text(data.label, style: TextStyle(color: context.appSubtext, fontSize: 12)),
+          Text(data.label, style: TextStyle(color: context.appSubtext, fontSize: 14)),
         ],
       ),
     );
@@ -255,11 +255,11 @@ class _AttendanceTable extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
             child: Row(
               children: [
-                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 TextButton(
                   onPressed: () => context.push('/attendance'),
-                  child: const Text('View All', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13)),
+                  child: const Text('View All', style: TextStyle(color: AppColors.primaryBlue, fontSize: 15)),
                 ),
               ],
             ),
@@ -270,9 +270,9 @@ class _AttendanceTable extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
               children: [
-                Expanded(flex: 3, child: Text('Employee', style: TextStyle(color: context.appSubtext, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text('Clock In', style: TextStyle(color: context.appSubtext, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text('Status', style: TextStyle(color: context.appSubtext, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text('Employee', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Clock In', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Status', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
               ],
             ),
           ),
@@ -287,7 +287,7 @@ class _AttendanceTable extends ConsumerWidget {
               child: Center(
                 child: Text(
                   'No attendance records yet for today',
-                  style: TextStyle(color: context.appSubtext, fontSize: 13),
+                  style: TextStyle(color: context.appSubtext, fontSize: 15),
                 ),
               ),
             )
@@ -340,14 +340,14 @@ class _AttendanceRow extends StatelessWidget {
                     gradient: LinearGradient(colors: AppColors.gradientForName(name), begin: Alignment.topLeft, end: Alignment.bottomRight),
                     shape: BoxShape.circle,
                   ),
-                  child: Center(child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700))),
+                  child: Center(child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700))),
                 ),
                 const SizedBox(width: 10),
-                Expanded(child: Text(name, style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
               ],
             ),
           ),
-          Expanded(flex: 2, child: Text(time, style: TextStyle(color: context.appSubtext, fontSize: 13))),
+          Expanded(flex: 2, child: Text(time, style: TextStyle(color: context.appSubtext, fontSize: 15))),
           Expanded(
             flex: 2,
             child: Align(
@@ -355,7 +355,7 @@ class _AttendanceRow extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: pillBg, borderRadius: BorderRadius.circular(100)),
-                child: Text(status, style: TextStyle(color: pillText, fontSize: 12, fontWeight: FontWeight.w500)),
+                child: Text(status, style: TextStyle(color: pillText, fontSize: 14, fontWeight: FontWeight.w500)),
               ),
             ),
           ),
@@ -372,7 +372,7 @@ class _QuickActionsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
         const SizedBox(height: 14),
         _ActionCard('Add Employee', Icons.person_add_rounded, AppColors.primaryBlue,
             onTap: () => context.push('/employees/new')),
@@ -406,16 +406,16 @@ class _QuickActionsPanel extends StatelessWidget {
                 child: const Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 20),
               ),
               const SizedBox(height: 12),
-              const Text('Nova AI Assistant', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              const Text('Nova AI Assistant', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
-              const Text('Get insights on attendance patterns and workforce analytics.', style: TextStyle(color: Color(0xFF8899BB), fontSize: 12, height: 1.4)),
+              const Text('Get insights on attendance patterns and workforce analytics.', style: TextStyle(color: Color(0xFF8899BB), fontSize: 14, height: 1.4)),
               const SizedBox(height: 14),
               GestureDetector(
                 onTap: () => context.push('/nova-ai'),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                   decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(100)),
-                  child: const Text('Ask Nova', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: const Text('Ask Nova', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -454,7 +454,7 @@ class _ActionCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500))),
+              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500))),
               Icon(Icons.arrow_forward_ios_rounded, color: context.appSubtext, size: 13),
             ],
           ),
@@ -501,10 +501,10 @@ class _DeptStats extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
           if (top.isEmpty)
-            Text('No department data yet', style: TextStyle(color: context.appSubtext, fontSize: 13))
+            Text('No department data yet', style: TextStyle(color: context.appSubtext, fontSize: 15))
           else
             ...top.asMap().entries.map((entry) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
@@ -535,9 +535,9 @@ class _DeptBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(name, style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
             const Spacer(),
-            Text('$count employee${count == 1 ? '' : 's'}', style: TextStyle(color: context.appSubtext, fontSize: 12)),
+            Text('$count employee${count == 1 ? '' : 's'}', style: TextStyle(color: context.appSubtext, fontSize: 14)),
           ],
         ),
         const SizedBox(height: 6),

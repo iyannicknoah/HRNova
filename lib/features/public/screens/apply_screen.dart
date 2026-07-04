@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
 class ApplyScreen extends StatelessWidget {
@@ -34,7 +34,7 @@ class ApplyScreen extends StatelessWidget {
             const SizedBox(width: 8),
             const Text('HRNova',
                 style: TextStyle(
-                    color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
+                    color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 17)),
           ],
         ),
         bottom: PreferredSize(
@@ -53,10 +53,10 @@ class ApplyScreen extends StatelessWidget {
                     fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text('$companySlug / $jobSlug',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 15)),
             const SizedBox(height: 4),
             const Text('Application Form — Part 10',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
           ],
         ),
       ),

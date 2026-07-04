@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
@@ -104,7 +104,7 @@ class _LeaveHeader extends StatelessWidget {
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
           Text('Review, approve and track employee leave',
-              style: TextStyle(color: context.appSubtext, fontSize: 14)),
+              style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
       ]),
     );
@@ -130,9 +130,9 @@ class _LeaveTabBar extends StatelessWidget {
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
         labelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+            const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
@@ -169,7 +169,7 @@ class _StatusBadge extends StatelessWidget {
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
       child: Text(label,
           style: TextStyle(
-              color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
+              color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -188,7 +188,7 @@ class _TypeBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(100)),
       child: Text(_typeLabel(type),
           style: TextStyle(
-              color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+              color: color, fontSize: 13, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -253,19 +253,20 @@ class _PendingTab extends ConsumerWidget {
                 const SizedBox(height: 6),
                 Text('All leave requests have been processed.',
                     style: TextStyle(
-                        color: context.appSubtext, fontSize: 13)),
+                        color: context.appSubtext, fontSize: 15)),
               ]),
             )
-          : Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                  itemCount: requests.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _PendingCard(request: requests[i]),
-                ),
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: requests
+                    .map((r) => SizedBox(
+                          width: 400,
+                          child: _PendingCard(request: r),
+                        ))
+                    .toList(),
               ),
             ),
     );
@@ -350,16 +351,18 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                           Text(req.employeeName,
                               style: TextStyle(
                                   color: context.appText,
-                                  fontSize: 15,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w700)),
                           const SizedBox(height: 4),
                           Row(children: [
                             _TypeBadge(req.leaveType),
                             const SizedBox(width: 8),
-                            Text(
-                                '${req.totalDays} day${req.totalDays != 1 ? "s" : ""}',
+                            Text(() {
+                                  final d = req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1;
+                                  return '$d day${d != 1 ? "s" : ""}';
+                                }(),
                                 style: TextStyle(
-                                    color: context.appSubtext, fontSize: 12)),
+                                    color: context.appSubtext, fontSize: 14)),
                             const SizedBox(width: 6),
                             Container(
                                 width: 4,
@@ -371,13 +374,13 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                             Text(_srcLabel(req.source),
                                 style: TextStyle(
                                     color: context.appSubtext,
-                                    fontSize: 12)),
+                                    fontSize: 14)),
                           ]),
                         ]),
                   ),
                   Text(_dateF.format(req.requestedAt),
                       style: TextStyle(
-                          color: context.appSubtext, fontSize: 12)),
+                          color: context.appSubtext, fontSize: 14)),
                 ]),
                 const SizedBox(height: 14),
                 Container(
@@ -394,14 +397,14 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                             Text('FROM',
                                 style: TextStyle(
                                     color: context.appSubtext,
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.5)),
                             const SizedBox(height: 3),
                             Text(_dateF.format(req.startDate),
                                 style: TextStyle(
                                     color: context.appText,
-                                    fontSize: 13,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w600)),
                           ]),
                     ),
@@ -414,14 +417,14 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                             Text('TO',
                                 style: TextStyle(
                                     color: context.appSubtext,
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.5)),
                             const SizedBox(height: 3),
                             Text(_dateF.format(req.endDate),
                                 style: TextStyle(
                                     color: context.appText,
-                                    fontSize: 13,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w600)),
                           ]),
                     ),
@@ -431,7 +434,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                   const SizedBox(height: 12),
                   Text('Reason: ${req.reason}',
                       style: TextStyle(
-                          color: context.appSubtext, fontSize: 12),
+                          color: context.appSubtext, fontSize: 14),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                 ],
@@ -442,27 +445,27 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: AppColors.errorRed.withAlpha(180)),
                       foregroundColor: AppColors.errorRed,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      minimumSize: Size.zero,
+                      minimumSize: const Size(90, 44),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                   ),
                   const SizedBox(width: 10),
                   FilledButton(
                     onPressed: _loading ? null : _approve,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.successGreen,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      minimumSize: Size.zero,
+                      minimumSize: const Size(90, 44),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child: _loading
                         ? const SizedBox(width: 14, height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                        : const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
                   ),
                 ]),
               ]),
@@ -562,19 +565,19 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
                 Text(
                     'Declining ${widget.request.employeeName}\'s ${_typeLabel(widget.request.leaveType)} leave request.',
                     style: TextStyle(
-                        color: context.appSubtext, fontSize: 13)),
+                        color: context.appSubtext, fontSize: 15)),
                 const SizedBox(height: 16),
                 Text('Reason for declining *',
                     style: TextStyle(
                         color: context.appSubtext,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: _ctrl,
                   maxLines: 3,
                   autofocus: true,
-                  style: TextStyle(color: context.appText, fontSize: 13),
+                  style: TextStyle(color: context.appText, fontSize: 15),
                   decoration: InputDecoration(
                     hintText:
                         'e.g. Critical deadline, insufficient notice…',
@@ -686,11 +689,11 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
               ),
               child: TextField(
                 onChanged: (v) => setState(() => _search = v),
-                style: TextStyle(color: context.appText, fontSize: 13),
+                style: TextStyle(color: context.appText, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'Search by name…',
                   hintStyle: TextStyle(
-                      color: context.appSubtext, fontSize: 13),
+                      color: context.appSubtext, fontSize: 15),
                   prefixIcon: Icon(Icons.search_rounded,
                       size: 16, color: context.appSubtext),
                   border: InputBorder.none,
@@ -736,7 +739,7 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
           Text(
               '${filtered.length} result${filtered.length != 1 ? "s" : ""}',
               style:
-                  TextStyle(color: context.appSubtext, fontSize: 13)),
+                  TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
       ),
       Expanded(
@@ -767,7 +770,7 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
                           child: Text('No requests found',
                               style: TextStyle(
                                   color: context.appSubtext,
-                                  fontSize: 14)))
+                                  fontSize: 15)))
                       : ListView.separated(
                           itemCount: filtered.length,
                           separatorBuilder: (_, __) =>
@@ -785,7 +788,7 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
   Widget _tableHeader(BuildContext context) {
     final s = TextStyle(
         color: context.appSubtext,
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.5);
     return Row(children: [
@@ -832,7 +835,7 @@ class _RequestRowState extends State<_RequestRow> {
                   child: Text(req.employeeName,
                       style: TextStyle(
                           color: context.appText,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w500),
                       overflow: TextOverflow.ellipsis),
                 ),
@@ -843,20 +846,23 @@ class _RequestRowState extends State<_RequestRow> {
               flex: 12,
               child: Text(_dateF.format(req.startDate),
                   style: TextStyle(
-                      color: context.appText, fontSize: 12)),
+                      color: context.appText, fontSize: 14)),
             ),
             Expanded(
               flex: 12,
               child: Text(_dateF.format(req.endDate),
                   style: TextStyle(
-                      color: context.appText, fontSize: 12)),
+                      color: context.appText, fontSize: 14)),
             ),
             Expanded(
               flex: 7,
-              child: Text('${req.totalDays}d',
+              child: Text(() {
+                  final d = req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1;
+                  return '${d}d';
+                }(),
                   style: TextStyle(
                       color: context.appText,
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600)),
             ),
             Expanded(flex: 10, child: Align(alignment: Alignment.centerLeft, child: _StatusBadge(req.status))),
@@ -864,7 +870,7 @@ class _RequestRowState extends State<_RequestRow> {
               flex: 7,
               child: Text(_srcLabel(req.source),
                   style: TextStyle(
-                      color: context.appSubtext, fontSize: 12)),
+                      color: context.appSubtext, fontSize: 14)),
             ),
           ]),
         ),
@@ -903,14 +909,14 @@ class _RequestRowState extends State<_RequestRow> {
             child: Text(label,
                 style: TextStyle(
                     color: context.appSubtext,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500)),
           ),
           Expanded(
               child: Text(value,
                   style: TextStyle(
                       color: color ?? context.appText,
-                      fontSize: 12))),
+                      fontSize: 14))),
         ]),
       );
 }
@@ -942,7 +948,7 @@ class _FilterDrop extends StatelessWidget {
           value: safe,
           isDense: true,
           dropdownColor: context.appCard,
-          style: TextStyle(color: context.appText, fontSize: 12),
+          style: TextStyle(color: context.appText, fontSize: 14),
           icon: Icon(Icons.keyboard_arrow_down_rounded,
               size: 14, color: context.appSubtext),
           items: items
@@ -952,7 +958,7 @@ class _FilterDrop extends StatelessWidget {
                     value: e.value,
                     child: Text(labels[e.key],
                         style: TextStyle(
-                            color: context.appText, fontSize: 12)),
+                            color: context.appText, fontSize: 14)),
                   ))
               .toList(),
           onChanged: (v) => onChanged(v!),
@@ -1008,7 +1014,7 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
           Text(DateFormat('MMMM yyyy').format(_month),
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600)),
           const SizedBox(width: 12),
           _navBtn(Icons.chevron_right_rounded,
@@ -1033,7 +1039,7 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
                   const SizedBox(width: 5),
                   Text(item.$1,
                       style: TextStyle(
-                          color: context.appSubtext, fontSize: 11)),
+                          color: context.appSubtext, fontSize: 13)),
                 ]),
               )),
         ]),
@@ -1063,7 +1069,7 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     color: context.appSubtext,
-                                    fontSize: 11,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w700)),
                           ),
                         ))
@@ -1152,7 +1158,7 @@ class _CalendarCell extends StatelessWidget {
             child: Text('$day',
                 style: TextStyle(
                     color: isToday ? Colors.white : context.appSubtext,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight:
                         isToday ? FontWeight.w700 : FontWeight.w400)),
           ),

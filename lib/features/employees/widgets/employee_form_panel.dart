@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -263,7 +263,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                     ),
                     const SizedBox(height: 4),
                     Text(_photoBytes != null ? 'Photo selected' : 'JPEG or PNG, max 5 MB',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                   ]),
                 ]),
                 const SizedBox(height: 20),
@@ -307,7 +307,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                       SizedBox(width: 8),
                       Expanded(child: Text(
                         'A temporary password will be auto-generated and sent to the employee email.',
-                        style: TextStyle(fontSize: 12, color: AppColors.primaryBlue),
+                        style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
                       )),
                     ]),
                   ),
@@ -360,7 +360,7 @@ class _SecTitle extends StatelessWidget {
   final String t;
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(t, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primaryBlue)),
+    Text(t, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primaryBlue)),
     const SizedBox(height: 6),
     const Divider(color: AppColors.cardBorder, height: 1),
   ]);
@@ -385,14 +385,14 @@ class _PField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
     const SizedBox(height: 5),
     TextFormField(
       controller: ctrl, keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 13),
+      style: const TextStyle(fontSize: 15),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
         filled: true, fillColor: AppColors.lightBlue50,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
@@ -412,11 +412,11 @@ class _DatePField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
     const SizedBox(height: 5),
     TextFormField(
       controller: ctrl, readOnly: true,
-      style: const TextStyle(fontSize: 13),
+      style: const TextStyle(fontSize: 15),
       onTap: () async {
         final picked = await showDatePicker(
           context: context,
@@ -427,7 +427,7 @@ class _DatePField extends StatelessWidget {
       },
       decoration: InputDecoration(
         hintText: 'Select date',
-        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
         suffixIcon: const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textSecondary),
         filled: true, fillColor: AppColors.lightBlue50,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
@@ -449,7 +449,7 @@ class _DropPField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
     const SizedBox(height: 5),
     Container(
       decoration: BoxDecoration(color: AppColors.lightBlue50, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.cardBorder)),
@@ -458,7 +458,7 @@ class _DropPField extends StatelessWidget {
         child: DropdownButton<String>(
           value: items.any((i) => i.value == value) ? value : null,
           items: items, onChanged: onChanged, isExpanded: true,
-          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
           icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.textSecondary),
         ),
       ),

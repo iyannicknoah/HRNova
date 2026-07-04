@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
@@ -89,13 +89,13 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                       const SizedBox(height: 12),
                       Text(
                         isSearching ? 'No employees match your filters' : 'No employees yet',
-                        style: TextStyle(color: context.appSubtext, fontSize: 15),
+                        style: TextStyle(color: context.appSubtext, fontSize: 16),
                       ),
                       if (!isSearching) ...[
                         const SizedBox(height: 8),
                         Text(
                           'Get started by adding your first employee',
-                          style: TextStyle(color: context.appSubtext, fontSize: 13),
+                          style: TextStyle(color: context.appSubtext, fontSize: 15),
                         ),
                         const SizedBox(height: 20),
                         _PillBtn(label: 'Add First Employee', onTap: _openAdd),
@@ -158,7 +158,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
             child: const Icon(Icons.delete_outline_rounded, color: AppColors.errorRed, size: 20),
           ),
           const SizedBox(width: 12),
-          Text('Delete Employee?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: ctx.appText)),
+          Text('Delete Employee?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: ctx.appText)),
         ]),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text.rich(TextSpan(children: [
@@ -178,7 +178,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text('This action cannot be undone. Attendance and leave records are preserved.',
-                    style: TextStyle(fontSize: 12, color: ctx.appText)),
+                    style: TextStyle(fontSize: 14, color: ctx.appText)),
               ),
             ]),
           ),
@@ -233,7 +233,7 @@ class _Header extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(20)),
-            child: Text('$count Active', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
+            child: Text('$count Active', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
           ),
           const Spacer(),
           _PillBtn(label: 'Add Employee', onTap: onAdd),
@@ -279,7 +279,7 @@ class _FilterBar extends StatelessWidget {
               onChanged: onSearch,
               decoration: InputDecoration(
                 hintText: 'Search name, ID or email…',
-                hintStyle: TextStyle(color: context.appSubtext, fontSize: 14),
+                hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
                 prefixIcon: Icon(Icons.search, size: 18, color: context.appSubtext),
                 filled: true, fillColor: context.appCard,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: context.appBorder)),
@@ -340,7 +340,7 @@ class _DropFilter extends StatelessWidget {
         child: DropdownButton<String>(
           value: value, items: items, onChanged: onChanged,
           dropdownColor: context.appCard,
-          style: TextStyle(color: context.appText, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 15),
           icon: Icon(Icons.keyboard_arrow_down, size: 18, color: context.appSubtext),
         ),
       ),
@@ -398,14 +398,14 @@ class _EmployeeTable extends StatelessWidget {
                         _Avatar(name: e.fullName, photoUrl: e.profilePhotoUrl, size: 34),
                         const SizedBox(width: 10),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(e.fullName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: context.appText), overflow: TextOverflow.ellipsis),
-                          Text(e.email, style: TextStyle(fontSize: 13, color: context.appSubtext), overflow: TextOverflow.ellipsis),
+                          Text(e.fullName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: context.appText), overflow: TextOverflow.ellipsis),
+                          Text(e.email, style: TextStyle(fontSize: 15, color: context.appSubtext), overflow: TextOverflow.ellipsis),
                         ])),
                       ])),
-                      Expanded(flex: 18, child: Text(e.department, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: context.appText))),
-                      Expanded(flex: 18, child: Text(e.jobTitle.isEmpty ? '—' : e.jobTitle, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: context.appText), overflow: TextOverflow.ellipsis)),
+                      Expanded(flex: 18, child: Text(e.department, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.appText))),
+                      Expanded(flex: 18, child: Text(e.jobTitle.isEmpty ? '—' : e.jobTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.appText), overflow: TextOverflow.ellipsis)),
                       Expanded(flex: 15, child: Align(alignment: Alignment.centerLeft, child: _Chip(_ctLabel(e.contractType), AppColors.pillBlueBg, AppColors.pillBlueText))),
-                      Expanded(flex: 17, child: Text(_salaryStr(e), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText))),
+                      Expanded(flex: 17, child: Text(_salaryStr(e), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText))),
                       Expanded(flex: 12, child: Align(alignment: Alignment.centerLeft, child: _StatusBadge(e.status))),
                       Expanded(flex: 14, child: Row(children: [
                         _ActionBtn(Icons.visibility_outlined, 'View Profile', () => onView(e)),
@@ -424,7 +424,7 @@ class _EmployeeTable extends StatelessWidget {
     );
   }
 
-  static TextStyle _hStyle(BuildContext context) => TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: context.appSubtext, letterSpacing: 0.5);
+  static TextStyle _hStyle(BuildContext context) => TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appSubtext, letterSpacing: 0.5);
 
   static String _ctLabel(String c) => switch (c) {
     'fixed_term' => 'Fixed Term', 'probation' => 'Probation', 'part_time' => 'Part Time', _ => 'Permanent',
@@ -450,7 +450,7 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: fg)),
+    child: Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg)),
   );
 }
 
@@ -530,7 +530,7 @@ class _PillBtn extends StatelessWidget {
           children: [
             const Icon(Icons.add, size: 18, color: Colors.white),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
           ],
         ),
       ),

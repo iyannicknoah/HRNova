@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+﻿import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../models/payroll_model.dart';
@@ -31,12 +31,12 @@ class PayslipPdfService {
                         fontSize: 18, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 2),
                 pw.Text('PAYSLIP — $monthLabel',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+                    style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey700)),
               ]),
               pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
                 pw.Text('HRNova',
                     style: pw.TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: pw.FontWeight.bold,
                         color: _blue)),
                 pw.Text('hr-management-system',
@@ -143,12 +143,12 @@ class PayslipPdfService {
                 pw.Text('NET SALARY',
                     style: pw.TextStyle(
                         color: PdfColors.white,
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: pw.FontWeight.bold)),
                 pw.Text(_rwf(ps.netSalary),
                     style: pw.TextStyle(
                         color: PdfColors.white,
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: pw.FontWeight.bold)),
               ],
             ),
@@ -222,7 +222,7 @@ class PayslipPdfService {
   static pw.Widget _sectionTitle(String title) => pw.Text(
         title,
         style: pw.TextStyle(
-            fontSize: 10, fontWeight: pw.FontWeight.bold, color: _blue),
+            fontSize: 12, fontWeight: pw.FontWeight.bold, color: _blue),
       );
 
   static pw.Widget _infoRow(String label, String value) => pw.Padding(

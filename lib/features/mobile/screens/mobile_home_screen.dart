@@ -1,21 +1,40 @@
-import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../employees/models/employee_model.dart';
-import '../../employees/providers/employees_provider.dart';
-import '../../leave/models/leave_request_model.dart';
-import '../../leave/providers/leave_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
+import '../../../features/attendance/models/attendance_model.dart';
+import '../../../features/attendance/providers/attendance_provider.dart';
+import '../../../features/employees/models/employee_model.dart';
+import '../../../features/employees/providers/employees_provider.dart';
+import '../../../features/leave/models/leave_request_model.dart';
+import '../../../features/leave/providers/leave_provider.dart';
+import '../../../features/payroll/models/payroll_model.dart';
+import '../../../features/payroll/providers/payroll_provider.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/services/working_days_service.dart';
+import '../../../features/auth/providers/auth_provider.dart';
+
+const _bg = Color(0xFF070E1C);
+const _card = Color(0xFF0D1628);
+const _border = Color(0xFF1A2E4A);
+const _blue = Color(0xFF4A9EFF);
+const _green = Color(0xFF22C55E);
+const _red = Color(0xFFE5534B);
+const _amber = Color(0xFFF59E0B);
+const _textSec = Color(0xFF6B7A99);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Root screen
 // ─────────────────────────────────────────────────────────────────────────────
 
 class MobileHomeScreen extends ConsumerStatefulWidget {
   const MobileHomeScreen({super.key});
+
   @override
   ConsumerState<MobileHomeScreen> createState() => _MobileHomeScreenState();
 }
@@ -25,652 +44,271 @@ class _MobileHomeScreenState extends ConsumerState<MobileHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final employeeAsync = ref.watch(currentEmployeeProvider);
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: _bg,
-        body: employeeAsync.when(
-          loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryBlue)),
-          error: (e, _) => Center(
-              child: Text('Error: $e',
-                  style: const TextStyle(color: AppColors.textSecondary))),
-          data: (employee) {
-            if (employee == null) {
-              return const Center(
-                child: Text('Employee profile not found.',
-                    style: TextStyle(color: AppColors.textSecondary)),
-              );
-            }
-            return Column(children: [
-              Expanded(
-                child: IndexedStack(
-                  index: _tab,
-                  children: [
-                    _HomeTab(employee: employee),
-                    _LeaveTab(employee: employee),
-                    _ProfileTab(employee: employee),
-                  ],
-                ),
-              ),
-              _BottomNav(current: _tab, onTap: (i) => setState(() => _tab = i)),
-            ]);
-          },
-        ),
+    return Scaffold(
+      backgroundColor: _bg,
+      body: IndexedStack(
+        index: _tab,
+        children: const [
+          _HomeTab(),
+          _AttendanceTab(),
+          _LeaveTab(),
+          _PayslipTab(),
+          _ProfileTab(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _tab,
+        onTap: (i) => setState(() => _tab = i),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: _card,
+        selectedItemColor: _blue,
+        unselectedItemColor: _textSec,
+        selectedLabelStyle:
+            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 13),
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_rounded), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month_rounded), label: 'Attendance'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.beach_access_rounded), label: 'Leave'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long_rounded), label: 'Payslip'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded), label: 'Profile'),
+        ],
       ),
     );
   }
 }
 
-// ─── Colours ─────────────────────────────────────────────────────────────────
-const _bg       = Color(0xFF070E1C);
-const _card     = Color(0xFF0D1628);
-// ignore: unused_element — reserved for nested card variant
-// const _cardAlt  = Color(0xFF111E35);
-const _border   = Color(0xFF1A2E4A);
-const _sub      = AppColors.textSecondary;
-const _blue     = AppColors.primaryBlue;
+// ─────────────────────────────────────────────────────────────────────────────
+// HOME TAB
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Bottom Nav ───────────────────────────────────────────────────────────────
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.current, required this.onTap});
-  final int current;
-  final ValueChanged<int> onTap;
+class _HomeTab extends ConsumerWidget {
+  const _HomeTab();
 
-  static const _items = [
-    (Icons.home_rounded, Icons.home_outlined, 'Home'),
-    (Icons.beach_access_rounded, Icons.beach_access_outlined, 'Leave'),
-    (Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).padding.bottom;
-    return Container(
-      decoration: BoxDecoration(
-        color: _card,
-        border: Border(top: BorderSide(color: _border.withAlpha(120), width: 1)),
-      ),
-      padding: EdgeInsets.only(bottom: bottom > 0 ? bottom : 8, top: 8),
-      child: Row(
-        children: List.generate(_items.length, (i) {
-          final active = current == i;
-          final item = _items[i];
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: active ? _blue.withAlpha(25) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      active ? item.$1 : item.$2,
-                      size: 22,
-                      color: active ? _blue : _sub,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(item.$3,
-                      style: TextStyle(
-                          color: active ? _blue : _sub,
-                          fontSize: 11,
-                          fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-// ─── HOME TAB ─────────────────────────────────────────────────────────────────
-class _HomeTab extends StatelessWidget {
-  const _HomeTab({required this.employee});
-  final EmployeeModel employee;
-
-  String get _greeting {
+  String _greeting() {
     final h = DateTime.now().hour;
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
   }
 
-  void _showQrSheet(BuildContext context, EmployeeModel emp) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _QrSheet(employee: emp),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    return SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // ── Transparent top bar ──────────────────────────────────────────
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, top + 16, 20, 0),
-          child: Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(_greeting,
-                    style: TextStyle(
-                        color: Colors.white.withAlpha(120),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400)),
-                const SizedBox(height: 2),
-                Text(employee.fullName,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4),
-                    overflow: TextOverflow.ellipsis),
-              ]),
-            ),
-            _Av(name: employee.fullName, photoUrl: employee.profilePhotoUrl, size: 42),
-          ]),
-        ),
-
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-            // ── Role card ───────────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [_blue.withAlpha(200), const Color(0xFF6B5FE8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(children: [
-                Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(25),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.work_rounded, color: Colors.white, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(employee.jobTitle,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700),
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 3),
-                  Text(employee.department,
-                      style: TextStyle(
-                          color: Colors.white.withAlpha(180), fontSize: 13)),
-                ])),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(30),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: const Text('Active',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600)),
-                ),
-              ]),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ── QR Code button ──────────────────────────────────────────
-            GestureDetector(
-              onTap: () => _showQrSheet(context, employee),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(
-                  color: _card,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _border),
-                ),
-                child: Row(children: [
-                  Container(
-                    width: 38, height: 38,
-                    decoration: BoxDecoration(
-                      color: AppColors.successGreen.withAlpha(20),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.qr_code_rounded,
-                        color: AppColors.successGreen, size: 20),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('My QR Code',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600)),
-                      SizedBox(height: 2),
-                      Text('Tap to show — use instead of your card',
-                          style: TextStyle(color: _sub, fontSize: 11)),
-                    ]),
-                  ),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 18, color: Colors.white.withAlpha(60)),
-                ]),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // ── Leave balance ───────────────────────────────────────────
-            const Text('Leave Balance',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2)),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(
-                child: _LeaveBalanceTile(
-                  label: 'Annual',
-                  days: employee.leaveBalances['annual'] ?? 18,
-                  total: AppConstants.annualLeaveDaysPerYear,
-                  color: _blue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _LeaveBalanceTile(
-                  label: 'Sick',
-                  days: employee.leaveBalances['sick'] ?? 10,
-                  total: 10,
-                  color: AppColors.successGreen,
-                ),
-              ),
-            ]),
-
-            const SizedBox(height: 28),
-
-            // ── Quick Info ──────────────────────────────────────────────
-            const Text('My Info',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2)),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _border),
-              ),
-              child: Column(children: [
-                _InfoRow(icon: Icons.badge_outlined, label: 'Employee ID',
-                    value: employee.id.length >= 8
-                        ? employee.id.substring(0, 8).toUpperCase()
-                        : employee.id.toUpperCase()),
-                Divider(height: 1, color: _border),
-                _InfoRow(icon: Icons.email_outlined, label: 'Email', value: employee.email),
-                if (employee.phone.isNotEmpty) ...[
-                  Divider(height: 1, color: _border),
-                  _InfoRow(icon: Icons.phone_outlined, label: 'Phone', value: employee.phone),
-                ],
-              ]),
-            ),
-
-            const SizedBox(height: 24),
-          ]),
-        ),
-      ]),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final empAsync = ref.watch(currentEmployeeProvider);
+    return empAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: _blue)),
+      error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: _red))),
+      data: (emp) {
+        if (emp == null) {
+          return const Center(
+              child: Text('Profile not found',
+                  style: TextStyle(color: _textSec)));
+        }
+        return _HomeContent(emp: emp, greeting: _greeting());
+      },
     );
   }
 }
 
-class _LeaveBalanceTile extends StatelessWidget {
-  const _LeaveBalanceTile({
-    required this.label, required this.days,
-    required this.total, required this.color,
-  });
-  final String label;
-  final int days, total;
-  final Color color;
+class _HomeContent extends ConsumerWidget {
+  const _HomeContent({required this.emp, required this.greeting});
+
+  final EmployeeModel emp;
+  final String greeting;
 
   @override
-  Widget build(BuildContext context) {
-    final pct = total > 0 ? (days / total).clamp(0.0, 1.0) : 0.0;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final monthParam = (employeeId: emp.id, year: now.year, month: now.month);
+    final attAsync = ref.watch(employeeAttendanceByMonthProvider(monthParam));
+    final leaveAsync = ref.watch(employeeLeaveRequestsProvider(emp.id));
+
+    final records = attAsync.value ?? [];
+    final leaves = leaveAsync.value ?? [];
+
+    final today = attAsync.value?.where((a) {
+      final d = a.date;
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }).firstOrNull;
+
+    final presentCount =
+        records.where((a) => !a.isAbsent && !a.isOnLeave).length;
+    final lateCount = records.where((a) => a.isLate).length;
+    final annualBalance =
+        (emp.leaveBalances['annual'] as num?)?.toInt() ?? AppConstants.annualLeaveDaysPerYear;
+    final pendingLeaves = leaves.where((l) => l.status == 'pending').length;
+
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _buildHeader(emp, greeting),
+          const SizedBox(height: 20),
+          _buildTodayCard(today, now),
+          const SizedBox(height: 20),
+          _buildStatsGrid(presentCount, lateCount, annualBalance, pendingLeaves),
+          const SizedBox(height: 24),
+          const Text('Recent Attendance',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          if (records.isEmpty)
+            _emptyHint('No attendance records this month')
+          else
+            ...records.take(5).map((a) => _AttendanceRow(att: a)),
+          const SizedBox(height: 20),
+        ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Text('$days',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1)),
-        Text('of $total days',
-            style: const TextStyle(color: _sub, fontSize: 11)),
-        const SizedBox(height: 10),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: pct,
-            backgroundColor: Colors.white.withAlpha(18),
-            valueColor: AlwaysStoppedAnimation(color),
-            minHeight: 5,
-          ),
-        ),
-      ]),
     );
   }
-}
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
-  final IconData icon;
-  final String label, value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(children: [
-        Icon(icon, size: 18, color: _blue),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 90,
-          child: Text(label,
-              style: const TextStyle(color: _sub, fontSize: 13)),
-        ),
+  Widget _buildHeader(EmployeeModel emp, String greeting) {
+    return Row(
+      children: [
         Expanded(
-          child: Text(value,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.right),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(greeting,
+                  style: const TextStyle(color: _textSec, fontSize: 15)),
+              const SizedBox(height: 2),
+              Text('${emp.firstName} ${emp.lastName}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold)),
+              Text(emp.jobTitle,
+                  style: const TextStyle(color: _textSec, fontSize: 15)),
+            ],
+          ),
         ),
-      ]),
+        _Avatar(emp: emp, radius: 24),
+      ],
     );
   }
-}
 
-// ─── LEAVE TAB ────────────────────────────────────────────────────────────────
-class _LeaveTab extends ConsumerStatefulWidget {
-  const _LeaveTab({required this.employee});
-  final EmployeeModel employee;
-  @override
-  ConsumerState<_LeaveTab> createState() => _LeaveTabState();
-}
+  Widget _buildTodayCard(AttendanceModel? today, DateTime now) {
+    final fmt = DateFormat('hh:mm a');
+    String status;
+    String sub;
+    IconData icon;
 
-class _LeaveTabState extends ConsumerState<_LeaveTab> {
-  bool _showForm = false;
+    if (today == null) {
+      status = 'Not checked in';
+      sub = DateFormat('EEEE, d MMMM y').format(now);
+      icon = Icons.login_rounded;
+    } else if (today.isOnLeave) {
+      status = 'On Approved Leave';
+      sub = 'Have a great rest!';
+      icon = Icons.beach_access_rounded;
+    } else if (today.checkInTime != null) {
+      status = today.isLate ? 'Checked in (Late)' : 'Checked in';
+      final out = today.checkOutTime != null
+          ? ' · Out ${fmt.format(today.checkOutTime!)}'
+          : '';
+      sub = 'In ${fmt.format(today.checkInTime!)}$out';
+      icon = Icons.check_circle_rounded;
+    } else {
+      status = 'Absent';
+      sub = DateFormat('EEEE, d MMMM y').format(now);
+      icon = Icons.cancel_rounded;
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    final requestsAsync =
-        ref.watch(employeeLeaveRequestsProvider(widget.employee.id));
-
-    return Stack(children: [
-      CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, top + 20, 20, 0),
-              child: const Text('Leave',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5)),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _BoardingPassCard(
-                  type: 'Annual Leave',
-                  icon: Icons.flight_takeoff_rounded,
-                  days: widget.employee.leaveBalances['annual'] ?? 18,
-                  total: AppConstants.annualLeaveDaysPerYear,
-                  gradient: const [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-                ),
-                const SizedBox(height: 10),
-                _BoardingPassCard(
-                  type: 'Sick Leave',
-                  icon: Icons.local_hospital_rounded,
-                  days: widget.employee.leaveBalances['sick'] ?? 10,
-                  total: 10,
-                  gradient: const [Color(0xFF065F46), Color(0xFF10B981)],
-                ),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(
-                    child: _SmallPassCard(
-                      type: 'Maternity',
-                      icon: Icons.child_care_rounded,
-                      days: widget.employee.leaveBalances['maternity'] ?? 84,
-                      total: AppConstants.maternityLeaveDays,
-                      color: const Color(0xFF9C27B0),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _SmallPassCard(
-                      type: 'Paternity',
-                      icon: Icons.family_restroom_rounded,
-                      days: widget.employee.leaveBalances['paternity'] ?? 4,
-                      total: AppConstants.paternityLeaveDays,
-                      color: const Color(0xFF00897B),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => setState(() => _showForm = true),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _blue,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.add_rounded, color: Colors.white),
-                    label: const Text('Request Leave',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15)),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text('My Requests',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
-              ]),
-            ),
-          ),
-          requestsAsync.when(
-            loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator(color: _blue))),
-            error: (e, _) => SliverFillRemaining(
-                child: Center(
-                    child: Text('$e',
-                        style: const TextStyle(color: _sub)))),
-            data: (requests) => requests.isEmpty
-                ? SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
-                    sliver: SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.all(28),
-                        decoration: BoxDecoration(
-                          color: _card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: _border),
-                        ),
-                        child: const Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.inbox_rounded, size: 36, color: _sub),
-                          SizedBox(height: 8),
-                          Text('No leave requests yet',
-                              style: TextStyle(color: _sub, fontSize: 13)),
-                        ]),
-                      ),
-                    ),
-                  )
-                : SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (_, i) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _RequestCard(request: requests[i]),
-                        ),
-                        childCount: requests.length,
-                      ),
-                    ),
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4A9EFF), Color(0xFF2E7DE8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _blue.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      if (_showForm)
-        _LeaveRequestSheet(
-          employee: widget.employee,
-          onClose: () => setState(() => _showForm = false),
-        ),
-    ]);
-  }
-}
-
-// ─── Boarding Pass Cards ──────────────────────────────────────────────────────
-class _BoardingPassCard extends StatelessWidget {
-  const _BoardingPassCard({
-    required this.type, required this.icon,
-    required this.days, required this.total, required this.gradient,
-  });
-  final String type;
-  final IconData icon;
-  final int days, total;
-  final List<Color> gradient;
-
-  @override
-  Widget build(BuildContext context) {
-    final used = (total - days).clamp(0, total);
-    final pct = total > 0 ? (days / total).clamp(0.0, 1.0) : 0.0;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: gradient,
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(children: [
-        Expanded(
-          flex: 3,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Icon(icon, size: 14, color: Colors.white.withAlpha(200)),
-                const SizedBox(width: 6),
-                Text(type.toUpperCase(),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 40),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(status,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(sub,
                     style: TextStyle(
-                        color: Colors.white.withAlpha(200),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8)),
-              ]),
-              const SizedBox(height: 8),
-              Text('$days',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 40,
-                      fontWeight: FontWeight.w900,
-                      height: 1)),
-              Text('days remaining',
-                  style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 12)),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  backgroundColor: Colors.white.withAlpha(40),
-                  valueColor: const AlwaysStoppedAnimation(Colors.white),
-                  minHeight: 4,
-                ),
-              ),
-            ]),
+                        color: Colors.white.withOpacity(0.8), fontSize: 15)),
+              ],
+            ),
           ),
-        ),
-        SizedBox(
-          width: 16,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(8, (_) => Container(
-              width: 5, height: 5,
-              margin: const EdgeInsets.symmetric(vertical: 3),
-              decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(50), shape: BoxShape.circle),
-            )),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 16, 18, 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('TOTAL', style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-              const SizedBox(height: 2),
-              Text('$total days', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              Text('USED', style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-              const SizedBox(height: 2),
-              Text('$used days', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        ),
-      ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsGrid(
+      int present, int late, int annualLeft, int pending) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.6,
+      children: [
+        _StatCard(
+            icon: Icons.check_circle_rounded,
+            value: '$present',
+            label: 'Present\nThis Month',
+            color: _green),
+        _StatCard(
+            icon: Icons.schedule_rounded,
+            value: '$late',
+            label: 'Late\nThis Month',
+            color: _amber),
+        _StatCard(
+            icon: Icons.event_available_rounded,
+            value: '$annualLeft',
+            label: 'Annual Leave\nBalance',
+            color: _blue),
+        _StatCard(
+            icon: Icons.hourglass_top_rounded,
+            value: '$pending',
+            label: 'Pending\nRequests',
+            color: const Color(0xFFA855F7)),
+      ],
     );
   }
 }
 
-class _SmallPassCard extends StatelessWidget {
-  const _SmallPassCard({
-    required this.type, required this.icon,
-    required this.days, required this.total, required this.color,
-  });
-  final String type;
+class _StatCard extends StatelessWidget {
+  const _StatCard(
+      {required this.icon,
+      required this.value,
+      required this.label,
+      required this.color});
+
   final IconData icon;
-  final int days, total;
+  final String value;
+  final String label;
   final Color color;
 
   @override
@@ -678,698 +316,1640 @@ class _SmallPassCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
+        color: _card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withAlpha(60)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(height: 8),
-        Text('$days', style: TextStyle(color: color, fontSize: 28, fontWeight: FontWeight.w800, height: 1)),
-        Text('days left', style: TextStyle(color: color.withAlpha(180), fontSize: 11)),
-        const SizedBox(height: 4),
-        Text(type, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-        Text('of $total days', style: const TextStyle(color: _sub, fontSize: 11)),
-      ]),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                Text(label,
+                    style: const TextStyle(
+                        color: _textSec, fontSize: 13, height: 1.3)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.request});
-  final LeaveRequestModel request;
+class _AttendanceRow extends StatelessWidget {
+  const _AttendanceRow({required this.att});
+  final AttendanceModel att;
 
   @override
   Widget build(BuildContext context) {
-    final dateF = DateFormat('MMM d');
-    final (bgCol, fgCol) = switch (request.status) {
-      'approved' => (AppColors.pillGreenBg, AppColors.pillGreenText),
-      'rejected' => (AppColors.pillRedBg, AppColors.pillRedText),
-      _ => (AppColors.pillAmberBg, AppColors.pillAmberText),
+    final fmt = DateFormat('MMM d');
+    final timeFmt = DateFormat('hh:mm a');
+    Color dot;
+    String statusLabel;
+
+    if (att.isOnLeave) {
+      dot = _blue;
+      statusLabel = 'On Leave';
+    } else if (att.isAbsent) {
+      dot = _red;
+      statusLabel = 'Absent';
+    } else if (att.isLate) {
+      dot = _amber;
+      statusLabel = 'Late';
+    } else if (att.checkInTime != null) {
+      dot = _green;
+      statusLabel = 'Present';
+    } else {
+      dot = _textSec;
+      statusLabel = 'No record';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+              width: 8,
+              height: 8,
+              decoration:
+                  BoxDecoration(color: dot, shape: BoxShape.circle)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(fmt.format(att.date),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500)),
+                if (att.checkInTime != null)
+                  Text(timeFmt.format(att.checkInTime!),
+                      style:
+                          const TextStyle(color: _textSec, fontSize: 14)),
+              ],
+            ),
+          ),
+          Text(statusLabel,
+              style: TextStyle(
+                  color: dot, fontSize: 14, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATTENDANCE TAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AttendanceTab extends ConsumerStatefulWidget {
+  const _AttendanceTab();
+
+  @override
+  ConsumerState<_AttendanceTab> createState() => _AttendanceTabState();
+}
+
+class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
+  late DateTime _month;
+
+  @override
+  void initState() {
+    super.initState();
+    _month = DateTime(DateTime.now().year, DateTime.now().month);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final empAsync = ref.watch(currentEmployeeProvider);
+    final emp = empAsync.value;
+    if (emp == null) {
+      return const Center(
+          child: CircularProgressIndicator(color: _blue));
+    }
+
+    final param =
+        (employeeId: emp.id, year: _month.year, month: _month.month);
+    final attAsync = ref.watch(employeeAttendanceByMonthProvider(param));
+
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _monthSelector(),
+          attAsync.when(
+            loading: () => const Expanded(
+                child: Center(
+                    child: CircularProgressIndicator(color: _blue))),
+            error: (e, _) => Expanded(
+                child: Center(
+                    child: Text('$e',
+                        style: const TextStyle(color: _red)))),
+            data: (records) => Expanded(child: _attContent(records)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _monthSelector() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Row(
+        children: [
+          const Text('Attendance',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          const Spacer(),
+          _MonthNav(
+            month: _month,
+            onPrev: () => setState(
+                () => _month = DateTime(_month.year, _month.month - 1)),
+            onNext: () {
+              final next = DateTime(_month.year, _month.month + 1);
+              if (!next.isAfter(DateTime.now())) {
+                setState(() => _month = next);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attContent(List<AttendanceModel> records) {
+    final present = records.where((a) => !a.isAbsent && !a.isOnLeave && a.checkInTime != null).length;
+    final late = records.where((a) => a.isLate).length;
+    final absent = records.where((a) => a.isAbsent).length;
+
+    // Build day → record map
+    final Map<int, AttendanceModel> dayMap = {
+      for (final a in records) a.date.day: a
     };
-    final dotColor = switch (request.leaveType) {
-      'annual' => _blue,
-      'sick' => AppColors.successGreen,
-      'maternity' => const Color(0xFF9C27B0),
-      'paternity' => const Color(0xFF00897B),
-      _ => _sub,
-    };
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _summaryRow(present, late, absent),
+        const SizedBox(height: 20),
+        _calendar(dayMap),
+        const SizedBox(height: 20),
+        const Text('Details',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        if (records.isEmpty)
+          _emptyHint('No records for this month')
+        else
+          ...records.map((a) => _AttendanceRow(att: a)),
+      ],
+    );
+  }
+
+  Widget _summaryRow(int present, int late, int absent) {
+    return Row(
+      children: [
+        _SummaryChip(label: 'Present', value: present, color: _green),
+        const SizedBox(width: 10),
+        _SummaryChip(label: 'Late', value: late, color: _amber),
+        const SizedBox(width: 10),
+        _SummaryChip(label: 'Absent', value: absent, color: _red),
+      ],
+    );
+  }
+
+  Widget _calendar(Map<int, AttendanceModel> dayMap) {
+    final daysInMonth =
+        DateUtils.getDaysInMonth(_month.year, _month.month);
+    final firstWeekday =
+        DateTime(_month.year, _month.month, 1).weekday; // Mon=1
+
+    final List<String> weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Text(
-              '${request.leaveType[0].toUpperCase()}${request.leaveType.substring(1)} Leave',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: bgCol, borderRadius: BorderRadius.circular(100)),
-            child: Text(
-                '${request.status[0].toUpperCase()}${request.status.substring(1)}',
-                style: TextStyle(color: fgCol, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: weekdays
+                .map((d) => SizedBox(
+                    width: 36,
+                    child: Text(d,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: _textSec,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600))))
+                .toList(),
           ),
-        ]),
-        const SizedBox(height: 8),
-        Row(children: [
-          const Icon(Icons.calendar_today_rounded, size: 12, color: _sub),
-          const SizedBox(width: 6),
-          Text('${dateF.format(request.startDate)} – ${dateF.format(request.endDate)}',
-              style: const TextStyle(color: _sub, fontSize: 12)),
-          const SizedBox(width: 12),
-          const Icon(Icons.schedule_rounded, size: 12, color: _sub),
-          const SizedBox(width: 4),
-          Text('${request.totalDays} day${request.totalDays != 1 ? "s" : ""}',
-              style: const TextStyle(color: _sub, fontSize: 12)),
-        ]),
-        if (request.status == 'rejected' && request.rejectedReason != null) ...[
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.pillRedBg.withAlpha(80),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.errorRed.withAlpha(60)),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1,
             ),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.errorRed),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(request.rejectedReason!,
-                    style: const TextStyle(color: AppColors.errorRed, fontSize: 11)),
-              ),
-            ]),
+            itemCount: (firstWeekday - 1) + daysInMonth,
+            itemBuilder: (context, i) {
+              final dayNum = i - (firstWeekday - 1) + 1;
+              if (dayNum < 1) return const SizedBox();
+
+              final att = dayMap[dayNum];
+              final date =
+                  DateTime(_month.year, _month.month, dayNum);
+              final isWeekend = date.weekday >= 6;
+              final isFuture = date.isAfter(DateTime.now());
+
+              Color dotColor;
+              if (isFuture || att == null) {
+                dotColor = isWeekend
+                    ? const Color(0xFF1A2E4A)
+                    : Colors.transparent;
+              } else if (att.isOnLeave) {
+                dotColor = _blue;
+              } else if (att.isAbsent) {
+                dotColor = _red;
+              } else if (att.isLate) {
+                dotColor = _amber;
+              } else {
+                dotColor = _green;
+              }
+
+              return Center(
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: (dotColor != Colors.transparent && !isFuture)
+                        ? dotColor.withOpacity(0.2)
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: (dotColor != Colors.transparent && !isFuture)
+                        ? Border.all(color: dotColor, width: 1.5)
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$dayNum',
+                      style: TextStyle(
+                        color: isFuture
+                            ? _textSec.withOpacity(0.4)
+                            : (isWeekend && att == null)
+                                ? _textSec
+                                : Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
+          const SizedBox(height: 12),
+          _calendarLegend(),
         ],
-      ]),
+      ),
+    );
+  }
+
+  Widget _calendarLegend() {
+    return Wrap(
+      spacing: 14,
+      runSpacing: 6,
+      children: [
+        _LegendDot(color: _green, label: 'On time'),
+        _LegendDot(color: _amber, label: 'Late'),
+        _LegendDot(color: _red, label: 'Absent'),
+        _LegendDot(color: _blue, label: 'Leave'),
+      ],
     );
   }
 }
 
-// ─── Leave Request Sheet ──────────────────────────────────────────────────────
-class _LeaveRequestSheet extends ConsumerStatefulWidget {
-  const _LeaveRequestSheet({required this.employee, required this.onClose});
-  final EmployeeModel employee;
-  final VoidCallback onClose;
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
+  final Color color;
+  final String label;
+
   @override
-  ConsumerState<_LeaveRequestSheet> createState() => _LeaveRequestSheetState();
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+            width: 10,
+            height: 10,
+            decoration:
+                BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(label,
+            style: const TextStyle(color: _textSec, fontSize: 13)),
+      ],
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip(
+      {required this.label, required this.value, required this.color});
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Text('$value',
+                style: TextStyle(
+                    color: color,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold)),
+            Text(label,
+                style: const TextStyle(color: _textSec, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEAVE TAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LeaveTab extends ConsumerWidget {
+  const _LeaveTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final empAsync = ref.watch(currentEmployeeProvider);
+    return empAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: _blue)),
+      error: (e, _) =>
+          Center(child: Text('$e', style: const TextStyle(color: _red))),
+      data: (emp) {
+        if (emp == null) {
+          return const Center(
+              child:
+                  Text('Profile not found', style: TextStyle(color: _textSec)));
+        }
+        return _LeaveContent(emp: emp);
+      },
+    );
+  }
+}
+
+class _LeaveContent extends ConsumerWidget {
+  const _LeaveContent({required this.emp});
+  final EmployeeModel emp;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leaveAsync = ref.watch(employeeLeaveRequestsProvider(emp.id));
+    final leaves = leaveAsync.value ?? [];
+
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Row(
+            children: [
+              const Text('Leave',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold)),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: () => _showRequestSheet(context, emp),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Request'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 15),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text('Leave Balances',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          _BalanceCard(
+              label: 'Annual Leave',
+              days: (emp.leaveBalances['annual'] as num?)?.toInt() ??
+                  AppConstants.annualLeaveDaysPerYear,
+              total: AppConstants.annualLeaveDaysPerYear,
+              borderColor: _blue),
+          const SizedBox(height: 10),
+          _BalanceCard(
+              label: 'Sick Leave',
+              days: (emp.leaveBalances['sick'] as num?)?.toInt() ?? 10,
+              total: 10,
+              borderColor: _green),
+          const SizedBox(height: 10),
+          _BalanceCard(
+              label: 'Maternity Leave',
+              days: (emp.leaveBalances['maternity'] as num?)?.toInt() ??
+                  AppConstants.maternityLeaveDays,
+              total: AppConstants.maternityLeaveDays,
+              borderColor: const Color(0xFFA855F7)),
+          const SizedBox(height: 10),
+          _BalanceCard(
+              label: 'Paternity Leave',
+              days: (emp.leaveBalances['paternity'] as num?)?.toInt() ??
+                  AppConstants.paternityLeaveDays,
+              total: AppConstants.paternityLeaveDays,
+              borderColor: const Color(0xFF14B8A6)),
+          const SizedBox(height: 24),
+          const Text('My Requests',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          if (leaves.isEmpty)
+            _emptyHint('No leave requests yet')
+          else
+            ...leaves.take(20).map((l) => _LeaveRequestCard(req: l)),
+        ],
+      ),
+    );
+  }
+
+  void _showRequestSheet(BuildContext context, EmployeeModel emp) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LeaveRequestSheet(emp: emp),
+    );
+  }
+}
+
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
+    required this.label,
+    required this.days,
+    required this.total,
+    required this.borderColor,
+  });
+
+  final String label;
+  final int days;
+  final int total;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 5,
+            height: 42,
+            decoration: BoxDecoration(
+              color: borderColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(color: _textSec, fontSize: 14)),
+                const SizedBox(height: 2),
+                Text('$days days remaining',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          Text('of $total',
+              style: const TextStyle(color: _textSec, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaveRequestCard extends StatelessWidget {
+  const _LeaveRequestCard({required this.req});
+  final LeaveRequestModel req;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('MMM d');
+    final Color statusColor = switch (req.status) {
+      'approved' => _green,
+      'rejected' => _red,
+      _ => _amber,
+    };
+    final String statusLabel = switch (req.status) {
+      'approved' => 'Approved',
+      'rejected' => 'Declined',
+      _ => 'Pending',
+    };
+    final String typeLabel = switch (req.leaveType) {
+      'annual' => 'Annual',
+      'sick' => 'Sick',
+      'maternity' => 'Maternity',
+      'paternity' => 'Paternity',
+      _ => req.leaveType,
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(typeLabel,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                    '${fmt.format(req.startDate)} → ${fmt.format(req.endDate)}  ·  ${req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1} day${(req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1) == 1 ? '' : 's'}',
+                    style: const TextStyle(color: _textSec, fontSize: 14)),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: statusColor.withOpacity(0.3)),
+            ),
+            child: Text(statusLabel,
+                style: TextStyle(
+                    color: statusColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Leave request bottom sheet
+class _LeaveRequestSheet extends ConsumerStatefulWidget {
+  const _LeaveRequestSheet({required this.emp});
+  final EmployeeModel emp;
+
+  @override
+  ConsumerState<_LeaveRequestSheet> createState() =>
+      _LeaveRequestSheetState();
 }
 
 class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
   String _leaveType = 'annual';
-  DateTime? _startDate, _endDate;
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now();
   final _reasonCtrl = TextEditingController();
-  bool _saving = false;
-  final _dateF = DateFormat('MMM d, yyyy');
-
-  @override
-  void dispose() { _reasonCtrl.dispose(); super.dispose(); }
-
-  Future<void> _pickStart() async {
-    final d = await showDatePicker(context: context,
-        initialDate: DateTime.now().add(const Duration(days: 1)),
-        firstDate: DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 365)));
-    if (d != null && mounted) setState(() { _startDate = d; if (_endDate?.isBefore(d) == true) _endDate = null; });
-  }
-
-  Future<void> _pickEnd() async {
-    final d = await showDatePicker(context: context,
-        initialDate: _startDate ?? DateTime.now().add(const Duration(days: 1)),
-        firstDate: _startDate ?? DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 365)));
-    if (d != null && mounted) setState(() => _endDate = d);
-  }
-
-  Future<void> _submit() async {
-    if (_startDate == null || _endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select start and end dates'))); return;
-    }
-    if (_reasonCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a reason'))); return;
-    }
-    setState(() => _saving = true);
-    try {
-      await ref.read(leaveNotifierProvider.notifier).submitLeaveRequest(
-        employeeId: widget.employee.id, employeeName: widget.employee.fullName,
-        leaveType: _leaveType, startDate: _startDate!, endDate: _endDate!,
-        reason: _reasonCtrl.text.trim(), branchId: widget.employee.branchId, source: 'mobile_app');
-      if (mounted) { widget.onClose(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Leave request submitted!'), backgroundColor: AppColors.successGreen)); }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.errorRed));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const types = [('annual', 'Annual'), ('sick', 'Sick'), ('maternity', 'Maternity'), ('paternity', 'Paternity'), ('unpaid', 'Unpaid'), ('emergency', 'Emergency')];
-    return GestureDetector(
-      onTap: widget.onClose,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: Colors.black.withAlpha(140),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.75, minChildSize: 0.4, maxChildSize: 0.95,
-          builder: (ctx, scrollCtrl) => GestureDetector(
-            onTap: () {},
-            child: Container(
-              decoration: const BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SingleChildScrollView(
-                controller: scrollCtrl,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(color: Colors.white.withAlpha(40), borderRadius: BorderRadius.circular(2)))),
-                  const Text('Request Leave', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 20),
-                  const Text('Leave Type', style: TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 8, runSpacing: 8, children: types.map((t) {
-                    final sel = _leaveType == t.$1;
-                    return GestureDetector(
-                      onTap: () => setState(() => _leaveType = t.$1),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                        decoration: BoxDecoration(
-                          color: sel ? _blue : Colors.white.withAlpha(10),
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: sel ? _blue : Colors.white.withAlpha(25)),
-                        ),
-                        child: Text(t.$2, style: TextStyle(color: sel ? Colors.white : _sub, fontSize: 13, fontWeight: FontWeight.w500)),
-                      ),
-                    );
-                  }).toList()),
-                  const SizedBox(height: 20),
-                  Row(children: [
-                    Expanded(child: _datePicker('Start Date', _startDate != null ? _dateF.format(_startDate!) : 'Select', _pickStart)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _datePicker('End Date', _endDate != null ? _dateF.format(_endDate!) : 'Select', _pickEnd)),
-                  ]),
-                  const SizedBox(height: 16),
-                  const Text('Reason', style: TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _reasonCtrl, maxLines: 3,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Describe the reason for your leave…',
-                      hintStyle: const TextStyle(color: _sub, fontSize: 12),
-                      filled: true, fillColor: Colors.white.withAlpha(10),
-                      contentPadding: const EdgeInsets.all(14),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withAlpha(25))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withAlpha(25))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(children: [
-                    Expanded(child: OutlinedButton(
-                      onPressed: widget.onClose,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.white.withAlpha(40)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100))),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.white)))),
-                    const SizedBox(width: 12),
-                    Expanded(child: FilledButton(
-                      onPressed: _saving ? null : _submit,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _blue,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100))),
-                      child: _saving
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)))),
-                  ]),
-                ]),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _datePicker(String label, String value, VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(10),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
-            child: Row(children: [
-              const Icon(Icons.calendar_today_rounded, size: 14, color: _sub),
-              const SizedBox(width: 8),
-              Text(value, style: TextStyle(color: value == 'Select' ? _sub : Colors.white, fontSize: 13)),
-            ]),
-          ),
-        ]),
-      );
-}
-
-// ─── PROFILE TAB ──────────────────────────────────────────────────────────────
-class _ProfileTab extends ConsumerWidget {
-  const _ProfileTab({required this.employee});
-  final EmployeeModel employee;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final top = MediaQuery.of(context).padding.top;
-    return SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // ── Transparent top bar ────────────────────────────────────────
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, top + 16, 20, 0),
-          child: const Text('Profile',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5)),
-        ),
-
-        const SizedBox(height: 28),
-
-        // ── Avatar + name ──────────────────────────────────────────────
-        Center(
-          child: Column(children: [
-            _Av(name: employee.fullName, photoUrl: employee.profilePhotoUrl, size: 80),
-            const SizedBox(height: 14),
-            Text(employee.fullName,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: _blue.withAlpha(25),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text(employee.jobTitle,
-                  style: const TextStyle(
-                      color: _blue, fontSize: 12, fontWeight: FontWeight.w600)),
-            ),
-            if (employee.email.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(employee.email,
-                  style: const TextStyle(color: _sub, fontSize: 13)),
-            ],
-          ]),
-        ),
-
-        const SizedBox(height: 32),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-            // ── Account section ────────────────────────────────────────
-            const _SectionLabel('Account'),
-            const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _border),
-              ),
-              child: Column(children: [
-                _SettingsRow(
-                  icon: Icons.person_outline_rounded,
-                  label: 'Edit Profile',
-                  onTap: () {},
-                ),
-                Divider(height: 1, color: _border),
-                _SettingsRow(
-                  icon: Icons.email_outlined,
-                  label: 'Change Email',
-                  onTap: () => _showChangeEmailDialog(context),
-                ),
-                Divider(height: 1, color: _border),
-                _SettingsRow(
-                  icon: Icons.lock_reset_rounded,
-                  label: 'Reset Password',
-                  subtitle: 'Send reset link to your email',
-                  onTap: () => _resetPassword(context, employee.email),
-                ),
-              ]),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── App section ────────────────────────────────────────────
-            const _SectionLabel('App'),
-            const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _border),
-              ),
-              child: Column(children: [
-                _SettingsRow(
-                  icon: Icons.info_outline_rounded,
-                  label: 'Version',
-                  subtitle: '1.0.0',
-                  showChevron: false,
-                  onTap: () {},
-                ),
-              ]),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Sign out ───────────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _signOut(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.errorRed,
-                  side: BorderSide(color: AppColors.errorRed.withAlpha(120)),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                icon: const Icon(Icons.logout_rounded, size: 18),
-                label: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  Future<void> _resetPassword(BuildContext context, String email) async {
-    if (email.isEmpty) return;
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Password reset link sent to $email'),
-          backgroundColor: AppColors.successGreen,
-        ));
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.errorRed,
-        ));
-      }
-    }
-  }
-
-  void _showChangeEmailDialog(BuildContext context) {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Change Email', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Enter your new email address.',
-              style: TextStyle(color: Colors.white.withAlpha(160), fontSize: 13)),
-          const SizedBox(height: 16),
-          TextField(
-            controller: ctrl,
-            keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'new@email.com',
-              hintStyle: const TextStyle(color: _sub),
-              filled: true, fillColor: Colors.white.withAlpha(10),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withAlpha(25))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withAlpha(25))),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
-            ),
-          ),
-        ]),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: _sub)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: _blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () async {
-              final newEmail = ctrl.text.trim();
-              if (newEmail.isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                await FirebaseAuth.instance.currentUser?.verifyBeforeUpdateEmail(newEmail);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Verification sent to $newEmail. Confirm it to complete the change.'),
-                    backgroundColor: AppColors.successGreen,
-                  ));
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: AppColors.errorRed,
-                  ));
-                }
-              }
-            },
-            child: const Text('Send Verification'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _signOut(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Text('Are you sure you want to sign out?',
-            style: TextStyle(color: Colors.white.withAlpha(160), fontSize: 14)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: _sub))),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.errorRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && context.mounted) {
-      await FirebaseAuth.instance.signOut();
-      if (context.mounted) context.go('/login');
-    }
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(text,
-      style: const TextStyle(
-          color: _sub,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5));
-}
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.subtitle,
-    this.showChevron = true,
-  });
-  final IconData icon;
-  final String label;
-  final String? subtitle;
-  final VoidCallback onTap;
-  final bool showChevron;
-
-  @override
-  Widget build(BuildContext context) {
-    const color = Colors.white;
-    const iconColor = _blue;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(children: [
-          Icon(icon, size: 20, color: iconColor),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500)),
-              if (subtitle != null) ...[
-                const SizedBox(height: 2),
-                Text(subtitle!, style: const TextStyle(color: _sub, fontSize: 12)),
-              ],
-            ]),
-          ),
-          if (showChevron)
-            Icon(Icons.chevron_right_rounded, size: 18, color: Colors.white.withAlpha(60)),
-        ]),
-      ),
-    );
-  }
-}
-
-// ─── QR Code Sheet ────────────────────────────────────────────────────────────
-class _QrSheet extends StatefulWidget {
-  const _QrSheet({required this.employee});
-  final EmployeeModel employee;
-  @override
-  State<_QrSheet> createState() => _QrSheetState();
-}
-
-class _QrSheetState extends State<_QrSheet> {
-  @override
-  void initState() {
-    super.initState();
-    // Maximize screen brightness for easy scanning
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-  }
+  bool _submitting = false;
 
   @override
   void dispose() {
-    // Restore brightness when sheet closes
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    _reasonCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final qrData = widget.employee.qrCode?.isNotEmpty == true
-        ? widget.employee.qrCode!
-        : widget.employee.id;
-    final bottom = MediaQuery.of(context).padding.bottom;
+    final fmt = DateFormat('MMM d, y');
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.92,
+      builder: (context, controller) => Container(
+        decoration: const BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: ListView(
+          controller: controller,
+          padding: const EdgeInsets.all(24),
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: _border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text('Request Leave',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            _label('Leave Type'),
+            const SizedBox(height: 8),
+            _typeDropdown(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label('Start Date'),
+                      const SizedBox(height: 8),
+                      _dateTile(fmt.format(_startDate), () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _startDate,
+                          firstDate: DateTime.now()
+                              .subtract(const Duration(days: 30)),
+                          lastDate: DateTime.now()
+                              .add(const Duration(days: 365)),
+                        );
+                        if (d != null) {
+                          setState(() {
+                            _startDate = d;
+                            if (_endDate.isBefore(_startDate)) {
+                              _endDate = _startDate;
+                            }
+                          });
+                        }
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label('End Date'),
+                      const SizedBox(height: 8),
+                      _dateTile(fmt.format(_endDate), () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate,
+                          firstDate: _startDate,
+                          lastDate: DateTime.now()
+                              .add(const Duration(days: 365)),
+                        );
+                        if (d != null) setState(() => _endDate = d);
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Builder(builder: (_) {
+              final days = WorkingDaysService.calculate(
+                _startDate, _endDate,
+                const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+              );
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _blue.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _blue.withAlpha(60)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.info_outline_rounded, color: _blue, size: 17),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$days working day${days == 1 ? '' : 's'} will be deducted from your balance',
+                    style: const TextStyle(color: _blue, fontSize: 13),
+                  ),
+                ]),
+              );
+            }),
+            const SizedBox(height: 16),
+            _label('Reason'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _reasonCtrl,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Describe the reason...',
+                hintStyle: const TextStyle(color: _textSec),
+                filled: true,
+                fillColor: _bg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _blue),
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _submitting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child:
+                            CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Submit Request',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
       ),
-      padding: EdgeInsets.fromLTRB(24, 0, 24, bottom + 24),
+    );
+  }
+
+  Widget _label(String text) => Text(text,
+      style: const TextStyle(
+          color: _textSec, fontSize: 15, fontWeight: FontWeight.w500));
+
+  Widget _typeDropdown() {
+    const types = [
+      ('annual', 'Annual Leave'),
+      ('sick', 'Sick Leave'),
+      ('maternity', 'Maternity Leave'),
+      ('paternity', 'Paternity Leave'),
+    ];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _leaveType,
+          dropdownColor: _card,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+          onChanged: (v) => setState(() => _leaveType = v!),
+          items: types
+              .map((t) => DropdownMenuItem(
+                    value: t.$1,
+                    child: Text(t.$2),
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _dateTile(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _bg,
+          borderRadius: BorderRadius.circular(12),
+          ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded,
+                color: _textSec, size: 15),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(label,
+                  style: const TextStyle(color: Colors.white, fontSize: 15)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_reasonCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a reason')));
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await ref.read(leaveNotifierProvider.notifier).submitLeaveRequest(
+            employeeId: widget.emp.id,
+            employeeName:
+                '${widget.emp.firstName} ${widget.emp.lastName}',
+            leaveType: _leaveType,
+            startDate: _startDate,
+            endDate: _endDate,
+            reason: _reasonCtrl.text.trim(),
+            branchId: widget.emp.branchId,
+          );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Leave request submitted!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYSLIP TAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PayslipTab extends ConsumerStatefulWidget {
+  const _PayslipTab();
+
+  @override
+  ConsumerState<_PayslipTab> createState() => _PayslipTabState();
+}
+
+class _PayslipTabState extends ConsumerState<_PayslipTab> {
+  String? _selectedMonth;
+
+  @override
+  Widget build(BuildContext context) {
+    final empAsync = ref.watch(currentEmployeeProvider);
+    final emp = empAsync.value;
+    if (emp == null) {
+      return const Center(child: CircularProgressIndicator(color: _blue));
+    }
+
+    final slipsAsync = ref.watch(employeePayslipsProvider(emp.id));
+
+    return slipsAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: _blue)),
+      error: (e, _) =>
+          Center(child: Text('$e', style: const TextStyle(color: _red))),
+      data: (slips) {
+        if (slips.isEmpty) {
+          return SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Text('Payslips',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 40),
+                _emptyHint('No payslips yet. Contact HR.'),
+              ],
+            ),
+          );
+        }
+
+        final selected = _selectedMonth ?? slips.first.payrollMonth;
+        final slip = slips.firstWhere(
+          (s) => s.payrollMonth == selected,
+          orElse: () => slips.first,
+        );
+
+        return SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Row(
+                children: [
+                  const Text('Payslips',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  _MonthDropdown(
+                    months: slips.map((s) => s.payrollMonth).toList(),
+                    selected: selected,
+                    onChanged: (m) => setState(() => _selectedMonth = m),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _netSalaryCard(slip),
+              const SizedBox(height: 16),
+              _earningsSection(slip),
+              const SizedBox(height: 12),
+              _deductionsSection(slip),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _downloadPdf(context, slip),
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text('Download Payslip PDF'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text('Previous Months',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              ...slips.map((s) => _SlipHistoryTile(
+                    slip: s,
+                    isSelected: s.payrollMonth == selected,
+                    onTap: () =>
+                        setState(() => _selectedMonth = s.payrollMonth),
+                  )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _netSalaryCard(PayslipModel slip) {
+    final fmt = NumberFormat('#,##0', 'en');
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4A9EFF), Color(0xFF2E7DE8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _blue.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle bar
+          Text(
+            _fmtMonth(slip.payrollMonth),
+            style:
+                TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 15),
+          ),
+          const SizedBox(height: 6),
+          const Text('Net Salary',
+              style: TextStyle(color: Colors.white, fontSize: 15)),
+          const SizedBox(height: 4),
+          Text(
+            'RWF ${fmt.format(slip.netSalary)}',
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${slip.firstName} ${slip.lastName}  ·  ${slip.position}',
+            style:
+                TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _earningsSection(PayslipModel slip) {
+    final fmt = NumberFormat('#,##0', 'en');
+    return _CollapsibleSection(
+      title: 'Earnings',
+      total: 'RWF ${fmt.format(slip.totalEarnings)}',
+      color: _green,
+      children: [
+        _SlipRow('Basic Salary', fmt.format(slip.baseSalary)),
+        if (slip.transportAllowance > 0)
+          _SlipRow('Transport', fmt.format(slip.transportAllowance)),
+        if (slip.housingAllowance > 0)
+          _SlipRow('Housing', fmt.format(slip.housingAllowance)),
+        if (slip.bonuses > 0) _SlipRow('Bonus', fmt.format(slip.bonuses)),
+      ],
+    );
+  }
+
+  Widget _deductionsSection(PayslipModel slip) {
+    final fmt = NumberFormat('#,##0', 'en');
+    return _CollapsibleSection(
+      title: 'Deductions',
+      total: 'RWF ${fmt.format(slip.totalDeductions)}',
+      color: _red,
+      children: [
+        _SlipRow('PAYE Tax', fmt.format(slip.paye)),
+        _SlipRow('Employee RSSB', fmt.format(slip.totalEmployeeRssb)),
+        if (slip.absentDeduction > 0)
+          _SlipRow('Absent (${slip.absentDays}d)', fmt.format(slip.absentDeduction)),
+        if (slip.lateDeduction > 0)
+          _SlipRow('Late penalties', fmt.format(slip.lateDeduction)),
+        if (slip.loanDeductions > 0)
+          _SlipRow('Loan repayment', fmt.format(slip.loanDeductions)),
+        if (slip.extraDeductions > 0)
+          _SlipRow(slip.extraDeductionsDescription ?? 'Other', fmt.format(slip.extraDeductions)),
+      ],
+    );
+  }
+
+  Future<void> _downloadPdf(BuildContext ctx, PayslipModel slip) async {
+    final fmt = NumberFormat('#,##0', 'en');
+    final doc = pw.Document();
+
+    doc.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (c) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('HRNova Payslip',
+              style: pw.TextStyle(
+                  fontSize: 22, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 4),
+          pw.Text('${slip.payrollMonth}  ·  ${slip.firstName} ${slip.lastName}'),
+          pw.SizedBox(height: 16),
+          pw.Divider(),
+          pw.SizedBox(height: 12),
+          pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Net Salary',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text('RWF ${fmt.format(slip.netSalary)}',
+                    style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold, fontSize: 17)),
+              ]),
+          pw.SizedBox(height: 16),
+          pw.Text('Earnings',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 6),
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Basic Salary'),
+                pw.Text(fmt.format(slip.baseSalary))
+              ]),
+          if (slip.transportAllowance > 0)
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Transport'),
+                  pw.Text(fmt.format(slip.transportAllowance))
+                ]),
+          if (slip.housingAllowance > 0)
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Housing'),
+                  pw.Text(fmt.format(slip.housingAllowance))
+                ]),
+          pw.SizedBox(height: 12),
+          pw.Text('Deductions',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 6),
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('PAYE Tax'),
+                pw.Text(fmt.format(slip.paye))
+              ]),
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Employee RSSB'),
+                pw.Text(fmt.format(slip.totalEmployeeRssb))
+              ]),
+          if (slip.loanDeductions > 0)
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Loan Repayment'),
+                  pw.Text(fmt.format(slip.loanDeductions))
+                ]),
+          pw.SizedBox(height: 16),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('NET SALARY',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text('RWF ${fmt.format(slip.netSalary)}',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              ]),
+        ],
+      ),
+    ));
+
+    await Printing.sharePdf(
+      bytes: await doc.save(),
+      filename: 'payslip_${slip.payrollMonth}.pdf',
+    );
+  }
+
+  String _fmtMonth(String ym) {
+    try {
+      final d = DateFormat('yyyy-MM').parse(ym);
+      return DateFormat('MMMM yyyy').format(d);
+    } catch (_) {
+      return ym;
+    }
+  }
+}
+
+class _CollapsibleSection extends StatefulWidget {
+  const _CollapsibleSection({
+    required this.title,
+    required this.total,
+    required this.color,
+    required this.children,
+  });
+
+  final String title;
+  final String total;
+  final Color color;
+  final List<Widget> children;
+
+  @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: widget.color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(widget.title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  Text(widget.total,
+                      style: TextStyle(
+                          color: widget.color,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: _textSec,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded)
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Column(children: widget.children),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SlipRow extends StatelessWidget {
+  const _SlipRow(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+              child: Text(label,
+                  style: const TextStyle(color: _textSec, fontSize: 15))),
+          Text('RWF $value',
+              style: const TextStyle(color: Colors.white, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SlipHistoryTile extends StatelessWidget {
+  const _SlipHistoryTile({
+    required this.slip,
+    required this.isSelected,
+    required this.onTap,
+  });
+  final PayslipModel slip;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0', 'en');
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? _blue.withOpacity(0.1) : _card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: isSelected ? _blue.withOpacity(0.4) : _border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _fmtMonth(slip.payrollMonth),
+                style: TextStyle(
+                    color: isSelected ? _blue : Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500),
+              ),
+            ),
+            Text('RWF ${fmt.format(slip.netSalary)}',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtMonth(String ym) {
+    try {
+      final d = DateFormat('yyyy-MM').parse(ym);
+      return DateFormat('MMMM yyyy').format(d);
+    } catch (_) {
+      return ym;
+    }
+  }
+}
+
+class _MonthDropdown extends StatelessWidget {
+  const _MonthDropdown({
+    required this.months,
+    required this.selected,
+    required this.onChanged,
+  });
+  final List<String> months;
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selected,
+          dropdownColor: _card,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+          icon: const Icon(Icons.expand_more_rounded, color: _textSec, size: 18),
+          onChanged: (v) => onChanged(v!),
+          items: months
+              .map((m) => DropdownMenuItem(
+                    value: m,
+                    child: Text(_fmtMonth(m)),
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  String _fmtMonth(String ym) {
+    try {
+      final d = DateFormat('yyyy-MM').parse(ym);
+      return DateFormat('MMM yyyy').format(d);
+    } catch (_) {
+      return ym;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE TAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProfileTab extends ConsumerWidget {
+  const _ProfileTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final empAsync = ref.watch(currentEmployeeProvider);
+    return empAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: _blue)),
+      error: (e, _) =>
+          Center(child: Text('$e', style: const TextStyle(color: _red))),
+      data: (emp) {
+        if (emp == null) {
+          return const Center(
+              child: Text('Profile not found',
+                  style: TextStyle(color: _textSec)));
+        }
+        return _ProfileContent(emp: emp);
+      },
+    );
+  }
+}
+
+class _ProfileContent extends ConsumerWidget {
+  const _ProfileContent({required this.emp});
+  final EmployeeModel emp;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final joinDate = DateFormat('MMMM y').format(emp.startDate);
+    final themeMode = ref.watch(themeNotifierProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text('Profile',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Center(child: _Avatar(emp: emp, radius: 44)),
+          const SizedBox(height: 16),
+          Center(
+            child: Text('${emp.firstName} ${emp.lastName}',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 4),
+          Center(
+              child: Text(emp.jobTitle,
+                  style: const TextStyle(color: _textSec, fontSize: 15))),
+          const SizedBox(height: 10),
           Center(
             child: Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(20),
-                  borderRadius: BorderRadius.circular(2)),
+                color: _blue.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _blue.withOpacity(0.3)),
+              ),
+              child: Text(emp.department,
+                  style: const TextStyle(
+                      color: _blue,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 8),
-          // Name + role
-          Text(widget.employee.fullName,
-              style: const TextStyle(
-                  color: Color(0xFF0A1628),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4)),
-          const SizedBox(height: 4),
-          Text(widget.employee.jobTitle,
-              style: const TextStyle(color: Color(0xFF6B7A99), fontSize: 13)),
-          const SizedBox(height: 24),
-          // QR Code
+          Center(
+              child: Text('Member since $joinDate',
+                  style: const TextStyle(color: _textSec, fontSize: 14))),
+          const SizedBox(height: 28),
+          const Text('Personal Info',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          if (emp.nationalId.isNotEmpty)
+            _InfoRow(
+                icon: Icons.badge_rounded,
+                label: 'National ID',
+                value: emp.nationalId),
+          if (emp.phone.isNotEmpty)
+            _InfoRow(
+                icon: Icons.phone_rounded,
+                label: 'Phone',
+                value: emp.phone),
+          if (emp.email.isNotEmpty)
+            _InfoRow(
+                icon: Icons.email_rounded,
+                label: 'Email',
+                value: emp.email),
+          _InfoRow(
+              icon: Icons.work_rounded,
+              label: 'Contract',
+              value: emp.contractType),
+          const SizedBox(height: 28),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE8EFF8), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withAlpha(12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4))
+              color: _card,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                  color: isDark ? _blue : _amber,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isDark ? 'Dark Mode' : 'Light Mode',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+                Switch(
+                  value: isDark,
+                  onChanged: (v) {
+                    ref.read(themeNotifierProvider.notifier).setMode(
+                        v ? ThemeMode.dark : ThemeMode.light);
+                  },
+                  activeThumbColor: _blue,
+                  activeTrackColor: _blue.withAlpha(80),
+                ),
               ],
             ),
-            child: QrImageView(
-              data: qrData,
-              version: QrVersions.auto,
-              size: 220,
-              eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: Color(0xFF0A1628)),
-              dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: Color(0xFF0A1628)),
-              backgroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Employee ID badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F6FF),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.badge_outlined, size: 14, color: Color(0xFF3B82F6)),
-              const SizedBox(width: 6),
-              Text(
-                qrData.length > 12 ? qrData.substring(0, 12).toUpperCase() : qrData.toUpperCase(),
-                style: const TextStyle(
-                    color: Color(0xFF3B82F6),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2),
-              ),
-            ]),
           ),
           const SizedBox(height: 12),
-          Text('Show this to the guard to check in or out',
-              style: TextStyle(color: Colors.black.withAlpha(80), fontSize: 12),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF0A1628),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-              ),
-              child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) context.go('/mobile-onboarding');
+            },
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Sign Out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _red,
+              side: const BorderSide(color: _red),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow(
+      {required this.icon, required this.label, required this.value});
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _textSec, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(color: _textSec, fontSize: 13)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500)),
+              ],
             ),
           ),
         ],
@@ -1378,36 +1958,87 @@ class _QrSheetState extends State<_QrSheet> {
   }
 }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-class _Av extends StatelessWidget {
-  const _Av({required this.name, this.photoUrl, required this.size});
-  final String name;
-  final String? photoUrl;
-  final double size;
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.emp, required this.radius});
+  final EmployeeModel emp;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    if (photoUrl != null && photoUrl!.isNotEmpty) {
-      return ClipOval(
-        child: Image.network(photoUrl!, width: size, height: size, fit: BoxFit.cover,
-            errorBuilder: (context, error, stack) => _initials()),
+    final initials =
+        '${emp.firstName.isNotEmpty ? emp.firstName[0] : ''}${emp.lastName.isNotEmpty ? emp.lastName[0] : ''}'
+            .toUpperCase();
+
+    if (emp.profilePhotoUrl != null && emp.profilePhotoUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: NetworkImage(emp.profilePhotoUrl!),
+        backgroundColor: _card,
       );
     }
-    return _initials();
-  }
 
-  Widget _initials() {
-    final colors = AppColors.gradientForName(name);
-    final parts = name.split(' ');
-    final ini = parts.take(2).map((p) => p.isNotEmpty ? p[0] : '').join().toUpperCase();
-    return Container(
-      width: size, height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: _blue.withOpacity(0.2),
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: _blue,
+          fontSize: radius * 0.7,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-      alignment: Alignment.center,
-      child: Text(ini, style: TextStyle(color: Colors.white, fontSize: size * 0.35, fontWeight: FontWeight.w700)),
     );
   }
 }
+
+class _MonthNav extends StatelessWidget {
+  const _MonthNav(
+      {required this.month, required this.onPrev, required this.onNext});
+  final DateTime month;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = DateFormat('MMM yyyy').format(month);
+    final canGoNext = !DateTime(month.year, month.month + 1)
+        .isAfter(DateTime.now());
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: onPrev,
+          icon: const Icon(Icons.chevron_left_rounded, color: _textSec),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w500)),
+        IconButton(
+          onPressed: canGoNext ? onNext : null,
+          icon: Icon(Icons.chevron_right_rounded,
+              color: canGoNext ? _textSec : _border),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+      ],
+    );
+  }
+}
+
+Widget _emptyHint(String msg) => Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Text(msg,
+            style: const TextStyle(color: _textSec, fontSize: 15)),
+      ),
+    );

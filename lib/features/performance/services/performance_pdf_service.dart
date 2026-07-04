@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+﻿import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -89,7 +89,7 @@ class PerformancePdfService {
           // Monthly scores table
           pw.Text('Monthly Performance Scores',
               style: pw.TextStyle(
-                  fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                  fontSize: 15, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 10),
           pw.Table(
             border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
@@ -123,7 +123,7 @@ class PerformancePdfService {
           // Quarterly averages
           pw.Text('Quarterly Averages',
               style: pw.TextStyle(
-                  fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                  fontSize: 15, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 10),
           pw.Table(
             border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
@@ -178,12 +178,12 @@ class PerformancePdfService {
                 borderRadius: pw.BorderRadius.circular(6),
               ),
               child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                pw.Text('Best Month', style: pw.TextStyle(fontSize: 10, color: PdfColors.green800)),
+                pw.Text('Best Month', style: pw.TextStyle(fontSize: 12, color: PdfColors.green800)),
                 pw.SizedBox(height: 4),
                 pw.Text(bestMonth,
-                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green800)),
+                    style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold, color: PdfColors.green800)),
                 pw.Text('${bestScore?.toStringAsFixed(1) ?? "—"}/5',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.green700)),
+                    style: const pw.TextStyle(fontSize: 13, color: PdfColors.green700)),
               ]),
             )),
             pw.SizedBox(width: 12),
@@ -194,12 +194,12 @@ class PerformancePdfService {
                 borderRadius: pw.BorderRadius.circular(6),
               ),
               child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                pw.Text('Weakest Month', style: pw.TextStyle(fontSize: 10, color: PdfColors.red800)),
+                pw.Text('Weakest Month', style: pw.TextStyle(fontSize: 12, color: PdfColors.red800)),
                 pw.SizedBox(height: 4),
                 pw.Text(worstMonth,
-                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
+                    style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
                 pw.Text('${worstScore?.toStringAsFixed(1) ?? "—"}/5',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.red700)),
+                    style: const pw.TextStyle(fontSize: 13, color: PdfColors.red700)),
               ]),
             )),
           ]),
@@ -209,7 +209,7 @@ class PerformancePdfService {
           if (narrative.isNotEmpty) ...[
             pw.Text('Annual Performance Narrative',
                 style: pw.TextStyle(
-                    fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                    fontSize: 15, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 10),
             pw.Container(
               padding: const pw.EdgeInsets.all(14),
@@ -219,7 +219,7 @@ class PerformancePdfService {
               ),
               child: pw.Text(
                 narrative,
-                style: const pw.TextStyle(fontSize: 11, lineSpacing: 4),
+                style: const pw.TextStyle(fontSize: 13, lineSpacing: 4),
               ),
             ),
           ],
@@ -250,17 +250,17 @@ class PerformancePdfService {
               pw.Text('HRNova',
                   style: pw.TextStyle(
                       color: PdfColors.white,
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: pw.FontWeight.bold)),
               pw.Text('Annual Performance Report — $year',
-                  style: const pw.TextStyle(color: PdfColors.white, fontSize: 11)),
+                  style: const pw.TextStyle(color: PdfColors.white, fontSize: 13)),
             ],
           )),
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
             pw.Text(name,
                 style: pw.TextStyle(
                     color: PdfColors.white,
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: pw.FontWeight.bold)),
             pw.Text(
               'Generated ${DateFormat('d MMM yyyy').format(DateTime.now())}',
@@ -287,7 +287,7 @@ class PerformancePdfService {
         padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: pw.Text(text,
             style: pw.TextStyle(
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
       );
 
@@ -296,11 +296,11 @@ class PerformancePdfService {
         child: pw.Row(children: [
           pw.Text('$label: ',
               style: pw.TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.grey700)),
           pw.Text(value,
-              style: const pw.TextStyle(fontSize: 10)),
+              style: const pw.TextStyle(fontSize: 12)),
         ]),
       );
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -87,7 +87,7 @@ class HRNovaSidebar extends ConsumerWidget {
                   companyName,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -173,7 +173,7 @@ class HRNovaSidebar extends ConsumerWidget {
                         userName,
                         style: const TextStyle(
                           color: AppColors.white,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -183,7 +183,7 @@ class HRNovaSidebar extends ConsumerWidget {
                         _roleLabel(userRole),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
-                          fontSize: 11,
+                          fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -256,7 +256,7 @@ class _ThemeToggleRow extends ConsumerWidget {
                   isDark ? 'Light Mode' : 'Dark Mode',
                   style: const TextStyle(
                       color: AppColors.textSecondary,
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w400),
                 ),
               ),
@@ -325,7 +325,7 @@ class _SidebarItem extends StatelessWidget {
                   item.label,
                   style: TextStyle(
                     color: isActive ? AppColors.white : AppColors.textSecondary,
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),

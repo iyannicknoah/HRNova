@@ -196,11 +196,18 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
       final db = FirebaseService.db;
       final batch = db.batch();
 
-      // 1. Update request status
+      // Recalculate days at approval time — stored value may be 0 (e.g. weekend request)
+      final recalcDays = WorkingDaysService.calculate(
+        req.startDate, req.endDate, workingDays,
+      );
+      final effectiveDays = recalcDays > 0 ? recalcDays : req.totalDays > 0 ? req.totalDays : 1;
+
+      // 1. Update request status + correct totalDays if it was wrong
       batch.update(FirebaseService.leaveRef(companyId).doc(req.id), {
         'status': 'approved',
         'approvedBy': _uid,
         'approvedAt': FieldValue.serverTimestamp(),
+        'totalDays': effectiveDays,
       });
 
       // 2. Deduct balance (annual, sick, maternity, paternity only)
@@ -208,7 +215,7 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
       if (balanceKey != null) {
         batch.update(
             FirebaseService.employeesRef(companyId).doc(req.employeeId), {
-          'leaveBalances.$balanceKey': FieldValue.increment(-req.totalDays),
+          'leaveBalances.$balanceKey': FieldValue.increment(-effectiveDays),
         });
       }
 
@@ -242,7 +249,7 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
         'type': 'leave_approved',
         'title': 'Leave Approved',
         'body':
-            'Your ${_typeLabel(req.leaveType)} leave (${req.totalDays} days) has been approved.',
+            'Your ${_typeLabel(req.leaveType)} leave ($effectiveDays days) has been approved.',
         'employeeId': req.employeeId,
         'leaveRequestId': req.id,
         'isRead': false,

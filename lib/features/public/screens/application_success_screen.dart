@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
 class ApplicationSuccessScreen extends StatelessWidget {
@@ -28,10 +28,10 @@ class ApplicationSuccessScreen extends StatelessWidget {
                     fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             const Text("We'll be in touch soon.",
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
             const SizedBox(height: 4),
             const Text('Application Success — Part 10',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
           ],
         ),
       ),

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -209,11 +209,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Step ${_step + 1} of $_total', style: const TextStyle(color: _blue, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+        Text('Step ${_step + 1} of $_total', style: const TextStyle(color: _blue, fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
         const SizedBox(height: 6),
         Text(_stepTitles[_step], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text(_stepSubs[_step], style: const TextStyle(color: _sub, fontSize: 13)),
+        Text(_stepSubs[_step], style: const TextStyle(color: _sub, fontSize: 15)),
         const SizedBox(height: 24),
         const Divider(color: _border, height: 1),
         const SizedBox(height: 24),
@@ -249,7 +249,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: _saving
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : Text(_step == _total - 1 ? 'Complete Setup' : 'Continue',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         ),
       ),
     ],
@@ -275,7 +275,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 20),
       _textField('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
       const SizedBox(height: 20),
-      const Text('Working Days', style: TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
+      const Text('Working Days', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
       const SizedBox(height: 10),
       Wrap(
         spacing: 8, runSpacing: 8,
@@ -291,7 +291,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: sel ? _blue : _border, width: sel ? 1.5 : 1),
               ),
-              child: Text(d, style: TextStyle(color: sel ? _blue : _sub, fontSize: 13, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+              child: Text(d, style: TextStyle(color: sel ? _blue : _sub, fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
             ),
           );
         }).toList(),
@@ -320,10 +320,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 13, fontWeight: FontWeight.w600)),
+                Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w600)),
                 SizedBox(height: 4),
                 Text('Maternity: 84 days  •  Paternity: 4 days\nThese are mandatory and cannot be configured.',
-                    style: TextStyle(color: _sub, fontSize: 12, height: 1.5)),
+                    style: TextStyle(color: _sub, fontSize: 14, height: 1.5)),
               ],
             )),
           ],
@@ -342,7 +342,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Overtime Multiplier', style: TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
+            const Text('Overtime Multiplier', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
             Container(
               height: 50,
@@ -353,7 +353,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   value: _overtime,
                   items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
                     value: v,
-                    child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                    child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 15)),
                   )).toList(),
                   onChanged: (v) => setState(() => _overtime = v!),
                   dropdownColor: _card,
@@ -382,7 +382,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Expanded(
           child: TextField(
             controller: _deptCtrl,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
             onSubmitted: (_) => _addDept(),
             decoration: InputDecoration(
               hintText: 'e.g. Finance, Operations, IT...',
@@ -410,7 +410,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (_depts.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text('Add at least one department to continue', style: TextStyle(color: AppColors.errorRed.withAlpha(200), fontSize: 12)),
+          child: Text('Add at least one department to continue', style: TextStyle(color: AppColors.errorRed.withAlpha(200), fontSize: 14)),
         ),
       if (_depts.isNotEmpty) ...[
         const SizedBox(height: 16),
@@ -422,7 +422,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(d, style: const TextStyle(color: _blue, fontSize: 13, fontWeight: FontWeight.w500)),
+                Text(d, style: const TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(() => _depts.remove(d)),
@@ -440,7 +440,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildNotifications() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 14),
       _textField('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
       const SizedBox(height: 14),
@@ -458,7 +458,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 24),
       const Divider(color: _border, height: 1),
       const SizedBox(height: 20),
-      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 6),
       Container(
         padding: const EdgeInsets.all(12),
@@ -467,9 +467,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           children: [
             const Icon(Icons.email_outlined, color: _blue, size: 16),
             const SizedBox(width: 8),
-            const Text('Email only', style: TextStyle(color: _blue, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Text('Email only', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w600)),
             const Spacer(),
-            Text('WhatsApp coming in Phase 2', style: TextStyle(color: _sub, fontSize: 11)),
+            Text('WhatsApp coming in Phase 2', style: TextStyle(color: _sub, fontSize: 13)),
           ],
         ),
       ),
@@ -485,16 +485,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           TextField(
             controller: ctrl, keyboardType: type,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: const TextStyle(color: Color(0xFF445566)),
               suffixText: suffix,
-              suffixStyle: const TextStyle(color: _sub, fontSize: 13),
+              suffixStyle: const TextStyle(color: _sub, fontSize: 15),
               filled: true, fillColor: _field,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
@@ -509,7 +509,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           GestureDetector(
             onTap: onTap,
@@ -520,7 +520,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   const Icon(Icons.access_time_rounded, color: _sub, size: 18),
                   const SizedBox(width: 10),
-                  Text(_fmtTime(t), style: const TextStyle(color: Colors.white, fontSize: 14)),
+                  Text(_fmtTime(t), style: const TextStyle(color: Colors.white, fontSize: 15)),
                 ],
               ),
             ),
@@ -558,7 +558,7 @@ class _StepIndicators extends StatelessWidget {
           child: Center(
             child: done
                 ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
-                : Text('${idx + 1}', style: TextStyle(color: active ? _blue : const Color(0xFF445566), fontSize: 13, fontWeight: FontWeight.w600)),
+                : Text('${idx + 1}', style: TextStyle(color: active ? _blue : const Color(0xFF445566), fontSize: 15, fontWeight: FontWeight.w600)),
           ),
         );
       }),

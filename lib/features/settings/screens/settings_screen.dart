@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -169,7 +169,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Settings', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                 const SizedBox(height: 2),
-                Text('Configure your company preferences', style: TextStyle(color: context.appSubtext, fontSize: 14)),
+                Text('Configure your company preferences', style: TextStyle(color: context.appSubtext, fontSize: 15)),
               ]),
               const SizedBox(height: 24),
               _section('schedule', Icons.schedule_rounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody()),
@@ -208,8 +208,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Icon(icon, color: AppColors.primaryBlue, size: 20)),
                   const SizedBox(width: 14),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(title, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
-                    Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 12)),
+                    Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 14)),
                   ])),
                   Icon(open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: context.appSubtext),
                 ],
@@ -236,7 +236,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 16),
     _field('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
     const SizedBox(height: 16),
-    Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+    Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
     const SizedBox(height: 10),
     Wrap(spacing: 8, runSpacing: 8, children: _allDays.map((d) {
       final sel = _days.contains(d);
@@ -250,7 +250,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: sel ? AppColors.primaryBlue : context.appBorder, width: sel ? 1.5 : 1),
           ),
-          child: Text(d, style: TextStyle(color: sel ? AppColors.primaryBlue : context.appSubtext, fontSize: 13, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+          child: Text(d, style: TextStyle(color: sel ? AppColors.primaryBlue : context.appSubtext, fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
         ),
       );
     }).toList()),
@@ -276,7 +276,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Row(children: const [
         Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 16),
         SizedBox(width: 10),
-        Expanded(child: Text('Maternity: 84 days  •  Paternity: 4 days — Fixed by Rwanda Law', style: TextStyle(color: AppColors.primaryBlue, fontSize: 12, height: 1.4))),
+        Expanded(child: Text('Maternity: 84 days  •  Paternity: 4 days — Fixed by Rwanda Law', style: TextStyle(color: AppColors.primaryBlue, fontSize: 14, height: 1.4))),
       ]),
     ),
     const SizedBox(height: 16),
@@ -291,7 +291,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         Container(
           height: 48, padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -302,7 +302,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               dropdownColor: context.appCard,
               items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
                 value: v,
-                child: Text(v, style: TextStyle(color: context.appText, fontSize: 14)),
+                child: Text(v, style: TextStyle(color: context.appText, fontSize: 15)),
               )).toList(),
               onChanged: (v) => setState(() => _overtime = v!),
               icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.appSubtext),
@@ -332,7 +332,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(
         child: TextField(
           controller: _deptCtrl,
-          style: TextStyle(color: context.appText, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 15),
           onSubmitted: (_) => _addDept(),
           decoration: InputDecoration(
             hintText: 'Enter department name...',
@@ -359,7 +359,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(d, style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(d, style: const TextStyle(color: AppColors.primaryBlue, fontSize: 15, fontWeight: FontWeight.w500)),
           const SizedBox(width: 6),
           GestureDetector(
             onTap: () => setState(() => _depts.remove(d)),
@@ -373,7 +373,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ]);
 
   Widget _notifBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600)),
+    Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
     const SizedBox(height: 14),
     _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
     const SizedBox(height: 12),
@@ -405,16 +405,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ── Shared widgets ────────────────────────────────────────────────────────
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,
-          style: TextStyle(color: context.appText, fontSize: 14),
+          style: TextStyle(color: context.appText, fontSize: 15),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: context.appSubtext),
             suffixText: suffix,
-            suffixStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+            suffixStyle: TextStyle(color: context.appSubtext, fontSize: 15),
             filled: true, fillColor: context.appField,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
@@ -426,7 +426,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _timeField(String label, TimeOfDay t, VoidCallback onTap) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: onTap,
@@ -436,7 +436,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Row(children: [
               Icon(Icons.access_time_rounded, color: context.appSubtext, size: 18),
               const SizedBox(width: 10),
-              Text(_fmtTime(t), style: TextStyle(color: context.appText, fontSize: 14)),
+              Text(_fmtTime(t), style: TextStyle(color: context.appText, fontSize: 15)),
             ]),
           ),
         ),
@@ -461,8 +461,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isValid = (total - 100).abs() < 0.01;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w600))),
-        Expanded(flex: 2, child: Text('Weight %', style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w600))),
+        Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600))),
+        Expanded(flex: 2, child: Text('Weight %', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600))),
         const SizedBox(width: 40),
       ]),
       const SizedBox(height: 10),
@@ -497,7 +497,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(width: 8),
           Text(
             isValid ? 'Total: 100% ✓' : 'Total: ${total.toStringAsFixed(1)}% — must equal 100%',
-            style: TextStyle(color: isValid ? AppColors.successGreen : AppColors.errorRed, fontSize: 13, fontWeight: FontWeight.w600),
+            style: TextStyle(color: isValid ? AppColors.successGreen : AppColors.errorRed, fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ]),
       ),
@@ -547,11 +547,11 @@ class _CriterionRowState extends State<_CriterionRow> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(children: [
-        Expanded(flex: 5, child: Text(widget.criterion.name, style: TextStyle(color: widget.appText, fontSize: 14))),
+        Expanded(flex: 5, child: Text(widget.criterion.name, style: TextStyle(color: widget.appText, fontSize: 15))),
         Expanded(flex: 2, child: TextField(
           controller: _ctrl,
           keyboardType: TextInputType.number,
-          style: TextStyle(color: widget.appText, fontSize: 14),
+          style: TextStyle(color: widget.appText, fontSize: 15),
           decoration: InputDecoration(
             suffixText: '%',
             suffixStyle: TextStyle(color: widget.appSubtext),
@@ -605,10 +605,10 @@ class _AddCriterionRowState extends State<_AddCriterionRow> {
     return Row(children: [
       Expanded(flex: 5, child: TextField(
         controller: _nameCtrl,
-        style: TextStyle(color: context.appText, fontSize: 14),
+        style: TextStyle(color: context.appText, fontSize: 15),
         decoration: InputDecoration(
           hintText: 'New criterion name...',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           filled: true, fillColor: context.appField,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
@@ -620,10 +620,10 @@ class _AddCriterionRowState extends State<_AddCriterionRow> {
       Expanded(flex: 2, child: TextField(
         controller: _weightCtrl,
         keyboardType: TextInputType.number,
-        style: TextStyle(color: context.appText, fontSize: 14),
+        style: TextStyle(color: context.appText, fontSize: 15),
         decoration: InputDecoration(
           hintText: 'Weight%',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           filled: true, fillColor: context.appField,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),

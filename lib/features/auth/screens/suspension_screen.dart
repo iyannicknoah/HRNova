@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/hrnova_button.dart';
@@ -80,7 +80,7 @@ class SuspensionScreen extends ConsumerWidget {
                     "Your company's HRNova account has been suspended. This may be due to a billing issue or a policy violation.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       color: AppColors.textSecondary,
                       height: 1.6,
                     ),
@@ -106,7 +106,7 @@ class SuspensionScreen extends ConsumerWidget {
                           'support@hrnova.rw',
                           style: TextStyle(
                             color: AppColors.primaryBlue,
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

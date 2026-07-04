@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +7,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../employees/providers/employees_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/payroll_model.dart';
 import '../providers/payroll_provider.dart';
@@ -214,7 +215,7 @@ class _TopBar extends ConsumerWidget {
               style: TextStyle(color: context.appText, fontSize: 20,
                   fontWeight: FontWeight.w800, letterSpacing: -0.5)),
           Text('Rwanda 2025 · PAYE + RSSB',
-              style: TextStyle(color: context.appSubtext, fontSize: 13)),
+              style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
 
         const SizedBox(width: 16),
@@ -227,7 +228,7 @@ class _TopBar extends ConsumerWidget {
               borderRadius: BorderRadius.circular(100),
               border: Border.all(color: context.appBorder)),
           child: Text(_monthLabel(month),
-              style: TextStyle(color: context.appText, fontSize: 12,
+              style: TextStyle(color: context.appText, fontSize: 14,
                   fontWeight: FontWeight.w700)),
         ),
 
@@ -252,7 +253,7 @@ class _TopBar extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
             ),
           ),
       ]),
@@ -265,7 +266,7 @@ class _TopBar extends ConsumerWidget {
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, size: 11, color: fg),
       const SizedBox(width: 5),
-      Text(label, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700)),
+      Text(label, style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700)),
     ]),
   );
 }
@@ -311,7 +312,7 @@ class _MonthStrip extends ConsumerWidget {
                 child: Text(label,
                     style: TextStyle(
                         color: sel ? Colors.white : context.appSubtext,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: sel ? FontWeight.w700 : FontWeight.w400)),
               ),
             );
@@ -332,151 +333,253 @@ class _PreRunLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final label = _monthLabel(month);
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // ── Left: main CTA card ─────────────────────────────────────────────
-        Expanded(
-          flex: 5,
-          child: Container(
-            padding: const EdgeInsets.all(36),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryBlue.withAlpha(20),
-                  AppColors.primaryBlue.withAlpha(5),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primaryBlue.withAlpha(60)),
-            ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Icon + badge
-              Row(children: [
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                      color: AppColors.primaryBlue,
-                      borderRadius: BorderRadius.circular(14)),
-                  child: const Icon(Icons.payments_rounded, color: Colors.white, size: 26),
-                ),
-                const SizedBox(width: 14),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Ready to process', style: TextStyle(
-                      color: context.appSubtext, fontSize: 12)),
-                  Text(label, style: TextStyle(
-                      color: context.appText, fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-                ]),
-              ]),
+    final empCount = ref.watch(Provider.autoDispose(
+        (r) => r.watch(employeesProvider).value?.where((e) => e.isActive).length ?? 0));
 
-              const SizedBox(height: 28),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-              // What will be calculated
-              Text('What will be calculated', style: TextStyle(
-                  color: context.appText, fontSize: 13,
-                  fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              ...[
-                ('Base salary, daily & hourly rates', Icons.attach_money_rounded),
-                ('PAYE — Rwanda 2025 progressive brackets', Icons.account_balance_rounded),
-                ('RSSB — Pension 6% + Maternity 0.3%', Icons.health_and_safety_rounded),
-                ('Employer: Pension 6% + Maternity 0.3% + Occ. Hazard 2%', Icons.business_rounded),
-                ('Absent & late deductions', Icons.timer_off_rounded),
-                ('Active loan repayments', Icons.credit_card_rounded),
-              ].map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 9),
-                child: Row(children: [
-                  Container(
-                    width: 28, height: 28,
-                    decoration: BoxDecoration(
-                        color: AppColors.pillBlueBg,
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Icon(e.$2, size: 14, color: AppColors.primaryBlue),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(e.$1, style: TextStyle(color: context.appSubtext, fontSize: 13)),
-                ]),
-              )),
-
-              const SizedBox(height: 28),
-
-              // CTA button
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => ref.read(payrollNotifierProvider.notifier).runPayroll(month),
-                  icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                  label: Text('Run Payroll — $label'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 15),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-        ),
-
-        const SizedBox(width: 20),
-
-        // ── Right: info panel ───────────────────────────────────────────────
-        Expanded(
-          flex: 3,
-          child: Column(children: [
-            // Rwanda 2025 rates quick reference
-            _InfoCard(
-              title: 'Rwanda 2025 Rates',
-              icon: Icons.info_outline_rounded,
-              children: [
-                _RateRow('PAYE', '0–60K: 0%'),
-                _RateRow('', '60K–100K: 20%'),
-                _RateRow('', '100K–200K: 30%'),
-                _RateRow('', '>200K: 30%'),
-                const SizedBox(height: 10),
-                _RateRow('Pension', 'Employee 6% + Employer 6%'),
-                _RateRow('Maternity', '0.3% each side'),
-                _RateRow('Occ. Hazard', 'Employer 2%'),
-                const SizedBox(height: 10),
-                _RateRow('Deadline', '15th of following month'),
+        // ── Top: hero section ───────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryBlue.withAlpha(18),
+                AppColors.primaryBlue.withAlpha(4),
               ],
             ),
-
-            const SizedBox(height: 16),
-
-            // PAYE deadline notice
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.primaryBlue.withAlpha(50)),
+          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            // Icon
             Container(
-              padding: const EdgeInsets.all(16),
+              width: 56, height: 56,
               decoration: BoxDecoration(
-                color: AppColors.pillAmberBg,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.warningAmber.withAlpha(80)),
-              ),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.calendar_today_rounded,
-                    color: AppColors.warningAmber, size: 16),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'RSSB and PAYE contributions are due to RRA by the 15th of the following month.',
-                    style: const TextStyle(
-                        color: AppColors.warningAmber,
-                        fontSize: 12, height: 1.5),
-                  ),
+                  color: AppColors.primaryBlue,
+                  borderRadius: BorderRadius.circular(16)),
+              child: const Icon(Icons.payments_rounded, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 20),
+            // Text
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Company Payroll — $label',
+                    style: TextStyle(
+                        color: context.appText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3)),
+                const SizedBox(height: 4),
+                Text(
+                  empCount > 0
+                      ? 'Will process salaries for $empCount active employees at once'
+                      : 'Processes all active employees in one run',
+                  style: TextStyle(color: context.appSubtext, fontSize: 15),
                 ),
               ]),
+            ),
+            const SizedBox(width: 24),
+            // CTA
+            FilledButton.icon(
+              onPressed: () => ref.read(payrollNotifierProvider.notifier).runPayroll(month),
+              icon: const Icon(Icons.play_arrow_rounded, size: 20),
+              label: Text('Run $label'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ]),
         ),
+
+        const SizedBox(height: 20),
+
+        // ── Middle: what gets calculated + rates side by side ───────────────
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+          // Left: what is calculated
+          Expanded(
+            flex: 5,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                  color: context.appCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.appBorder)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(Icons.calculate_rounded,
+                      color: AppColors.primaryBlue, size: 16),
+                  const SizedBox(width: 8),
+                  Text('What gets calculated for each employee',
+                      style: TextStyle(
+                          color: context.appText,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 16),
+                ...[
+                  (Icons.attach_money_rounded,     AppColors.successGreen,         'Base Salary',       'Monthly, daily or hourly rate'),
+                  (Icons.account_balance_rounded,  AppColors.primaryBlue,           'PAYE Tax',          'Rwanda 2025 progressive brackets'),
+                  (Icons.health_and_safety_rounded, const Color(0xFF9B59B6),        'RSSB (Employee)',   'Pension 6% + Maternity 0.3%'),
+                  (Icons.business_rounded,         AppColors.warningAmber,          'RSSB (Employer)',   'Pension 6% + Maternity 0.3% + Occ. Hazard 2%'),
+                  (Icons.timer_off_rounded,        AppColors.errorRed,              'Deductions',        'Absent days & late arrivals'),
+                  (Icons.credit_card_rounded,      const Color(0xFF6C757D),         'Loan Repayments',   'Active loans deducted from net'),
+                ].map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(children: [
+                    Container(
+                      width: 34, height: 34,
+                      decoration: BoxDecoration(
+                          color: e.$2.withAlpha(18),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Icon(e.$1, size: 16, color: e.$2),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(e.$3,
+                          style: TextStyle(
+                              color: context.appText,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600)),
+                      Text(e.$4,
+                          style: TextStyle(
+                              color: context.appSubtext, fontSize: 15)),
+                    ]),
+                  ]),
+                )),
+              ]),
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          // Right: tax rates + deadline
+          Expanded(
+            flex: 3,
+            child: Column(children: [
+
+              // PAYE rates
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: context.appCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.appBorder)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(Icons.gavel_rounded,
+                        color: AppColors.primaryBlue, size: 15),
+                    const SizedBox(width: 8),
+                    Text('Rwanda 2025 Tax Rates',
+                        style: TextStyle(
+                            color: context.appText,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 14),
+
+                  // PAYE brackets
+                  _RateSection('PAYE (Income Tax)', [
+                    ('0 – 60,000 RWF', '0%', AppColors.successGreen),
+                    ('60,001 – 100,000 RWF', '20%', AppColors.warningAmber),
+                    ('100,001 – 200,000 RWF', '30%', AppColors.errorRed),
+                    ('> 200,000 RWF', '30%', AppColors.errorRed),
+                  ], context),
+
+                  const SizedBox(height: 12),
+                  Divider(height: 1, color: context.appBorder),
+                  const SizedBox(height: 12),
+
+                  // RSSB rates
+                  _RateSection('RSSB Contributions', [
+                    ('Employee Pension', '6%', AppColors.primaryBlue),
+                    ('Employee Maternity', '0.3%', AppColors.primaryBlue),
+                    ('Employer Pension', '6%', const Color(0xFF9B59B6)),
+                    ('Employer Maternity', '0.3%', const Color(0xFF9B59B6)),
+                    ('Employer Occ. Hazard', '2%', const Color(0xFF9B59B6)),
+                  ], context),
+                ]),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Deadline notice
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.pillAmberBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.warningAmber.withAlpha(80)),
+                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.calendar_today_rounded,
+                      color: AppColors.warningAmber, size: 15),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Filing Deadline',
+                          style: TextStyle(
+                              color: AppColors.warningAmber,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'RSSB & PAYE are due to RRA by the 15th of the following month.',
+                        style: TextStyle(
+                            color: AppColors.warningAmber,
+                            fontSize: 15,
+                            height: 1.5)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
       ]),
     );
   }
+}
+
+// Helper for rate section inside the rates card
+Widget _RateSection(String title, List<(String, String, Color)> rates, BuildContext context) {
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(title,
+        style: TextStyle(
+            color: context.appSubtext,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3)),
+    const SizedBox(height: 10),
+    ...rates.map((r) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        Expanded(
+          child: Text(r.$1,
+              style: TextStyle(color: context.appSubtext, fontSize: 15)),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+              color: r.$3.withAlpha(18),
+              borderRadius: BorderRadius.circular(6)),
+          child: Text(r.$2,
+              style: TextStyle(
+                  color: r.$3,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+        ),
+      ]),
+    )),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -523,7 +626,7 @@ class _CalcProgress extends StatelessWidget {
                   : state.currentName.isNotEmpty
                       ? 'Processing: ${state.currentName}'
                       : 'Loading employee data…',
-              style: TextStyle(color: context.appSubtext, fontSize: 13),
+              style: TextStyle(color: context.appSubtext, fontSize: 15),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -540,10 +643,10 @@ class _CalcProgress extends StatelessWidget {
             const SizedBox(height: 10),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Employee ${state.progress} of ${state.total}',
-                  style: TextStyle(color: context.appSubtext, fontSize: 12)),
+                  style: TextStyle(color: context.appSubtext, fontSize: 14)),
               Text('${(pct * 100).round()}%',
                   style: const TextStyle(color: AppColors.primaryBlue,
-                      fontSize: 12, fontWeight: FontWeight.w700)),
+                      fontSize: 14, fontWeight: FontWeight.w700)),
             ]),
           ]),
         ),
@@ -608,7 +711,7 @@ class _ResultLayout extends ConsumerWidget {
         // ── Action bar ──────────────────────────────────────────────────────
         Row(children: [
           Text('${list.length} employees · ${_monthLabel(month)}',
-              style: TextStyle(color: context.appText, fontSize: 15,
+              style: TextStyle(color: context.appText, fontSize: 16,
                   fontWeight: FontWeight.w700)),
           const Spacer(),
 
@@ -736,11 +839,11 @@ class _MetricGrid extends StatelessWidget {
               ]),
               const SizedBox(height: 10),
               Text(m.value,
-                  style: TextStyle(color: context.appText, fontSize: 16,
+                  style: TextStyle(color: context.appText, fontSize: 17,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text(m.label,
-                  style: TextStyle(color: context.appSubtext, fontSize: 10,
+                  style: TextStyle(color: context.appSubtext, fontSize: 12,
                       letterSpacing: 0.3)),
             ]),
           ),
@@ -778,7 +881,7 @@ class _AnomalyBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Text('${anomalies.length} anomaly warning${anomalies.length > 1 ? 's' : ''}',
               style: const TextStyle(color: AppColors.warningAmber,
-                  fontWeight: FontWeight.w700, fontSize: 13)),
+                  fontWeight: FontWeight.w700, fontSize: 15)),
         ]),
         const SizedBox(height: 8),
         ...anomalies.map((p) => Padding(
@@ -786,7 +889,7 @@ class _AnomalyBanner extends StatelessWidget {
           child: Text(
             '• ${p.fullName}: ${p.absentDays} absent days'
             '${p.netSalary == 0 ? ' · net salary is RWF 0' : ''}',
-            style: const TextStyle(color: AppColors.warningAmber, fontSize: 12),
+            style: const TextStyle(color: AppColors.warningAmber, fontSize: 14),
           ),
         )),
       ]),
@@ -862,7 +965,7 @@ class _PayslipTable extends StatelessWidget {
   static Widget _hdr(String t, {required int flex}) => Expanded(
     flex: flex,
     child: Text(t, style: const TextStyle(
-        color: AppColors.textSecondary, fontSize: 11,
+        color: AppColors.textSecondary, fontSize: 13,
         fontWeight: FontWeight.w600, letterSpacing: 0.5)),
   );
 }
@@ -910,39 +1013,39 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(p.fullName, style: TextStyle(color: context.appText,
-                    fontSize: 13, fontWeight: FontWeight.w600),
+                    fontSize: 15, fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis),
-                Text(p.position, style: TextStyle(color: context.appSubtext, fontSize: 11),
+                Text(p.position, style: TextStyle(color: context.appSubtext, fontSize: 13),
                     overflow: TextOverflow.ellipsis),
               ])),
             ])),
             // Dept
             Expanded(flex: 2, child: Text(p.department,
-                style: TextStyle(color: context.appSubtext, fontSize: 12),
+                style: TextStyle(color: context.appSubtext, fontSize: 14),
                 overflow: TextOverflow.ellipsis)),
             // Earnings
             Expanded(flex: 2, child: Text(_rwf(p.totalEarnings),
-                style: TextStyle(color: context.appText, fontSize: 12,
+                style: TextStyle(color: context.appText, fontSize: 14,
                     fontWeight: FontWeight.w500))),
             // Adj Gross
             Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_rwf(p.adjustedGross),
-                  style: TextStyle(color: context.appText, fontSize: 12,
+                  style: TextStyle(color: context.appText, fontSize: 14,
                       fontWeight: FontWeight.w500)),
               if (p.absentDays > 0)
                 Text('-${p.absentDays}d',
-                    style: const TextStyle(color: AppColors.errorRed, fontSize: 10)),
+                    style: const TextStyle(color: AppColors.errorRed, fontSize: 12)),
             ])),
             // PAYE
             Expanded(flex: 2, child: Text(_rwf(p.paye),
-                style: TextStyle(color: context.appSubtext, fontSize: 12))),
+                style: TextStyle(color: context.appSubtext, fontSize: 14))),
             // RSSB
             Expanded(flex: 2, child: Text(_rwf(p.totalEmployeeRssb),
-                style: TextStyle(color: context.appSubtext, fontSize: 12))),
+                style: TextStyle(color: context.appSubtext, fontSize: 14))),
             // Net
             Expanded(flex: 2, child: Text(_rwf(p.netSalary),
                 style: const TextStyle(color: AppColors.successGreen,
-                    fontSize: 13, fontWeight: FontWeight.w800))),
+                    fontSize: 15, fontWeight: FontWeight.w800))),
             // Actions
             Expanded(flex: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (!widget.isLocked)
@@ -1027,7 +1130,7 @@ class _Avatar extends StatelessWidget {
           borderRadius: BorderRadius.circular(8)),
       child: Center(
         child: Text(initials, style: const TextStyle(
-            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+            color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -1067,7 +1170,7 @@ class _OutBtn extends StatelessWidget {
       foregroundColor: color ?? context.appText,
       side: BorderSide(color: color?.withAlpha(100) ?? context.appBorder),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -1092,7 +1195,7 @@ class _FillBtn extends StatelessWidget {
     style: FilledButton.styleFrom(
       backgroundColor: color,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
     ),
   );
 }
@@ -1113,54 +1216,7 @@ class _SendingChip extends StatelessWidget {
           child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue)),
       const SizedBox(width: 8),
       Text('Sending $progress of $total…',
-          style: TextStyle(color: context.appSubtext, fontSize: 13)),
-    ]),
-  );
-}
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.title, required this.icon, required this.children});
-  final String title;
-  final IconData icon;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.appBorder)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Icon(icon, size: 15, color: AppColors.primaryBlue),
-        const SizedBox(width: 7),
-        Text(title, style: TextStyle(color: context.appText, fontSize: 13,
-            fontWeight: FontWeight.w700)),
-      ]),
-      const SizedBox(height: 14),
-      ...children,
-    ]),
-  );
-}
-
-class _RateRow extends StatelessWidget {
-  const _RateRow(this.label, this.value);
-  final String label, value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Row(children: [
-      if (label.isNotEmpty) ...[
-        SizedBox(width: 90,
-            child: Text(label, style: TextStyle(
-                color: context.appSubtext, fontSize: 12,
-                fontWeight: FontWeight.w600))),
-      ] else
-        const SizedBox(width: 90),
-      Expanded(child: Text(value,
-          style: TextStyle(color: context.appText, fontSize: 12))),
+          style: TextStyle(color: context.appSubtext, fontSize: 15)),
     ]),
   );
 }
@@ -1176,10 +1232,10 @@ class _AdjField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
     controller: ctrl,
     keyboardType: type,
-    style: TextStyle(color: context.appText, fontSize: 14),
+    style: TextStyle(color: context.appText, fontSize: 15),
     decoration: InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+      labelStyle: TextStyle(color: context.appSubtext, fontSize: 15),
       filled: true, fillColor: context.appField,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
@@ -1201,7 +1257,7 @@ class _ConfirmDialog extends StatelessWidget {
     backgroundColor: context.appCard,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     title: Text(title, style: TextStyle(color: context.appText,
-        fontWeight: FontWeight.w700, fontSize: 16)),
+        fontWeight: FontWeight.w700, fontSize: 17)),
     content: Text(body, style: TextStyle(color: context.appSubtext, height: 1.5)),
     actions: [
       TextButton(onPressed: () => Navigator.pop(context, false),

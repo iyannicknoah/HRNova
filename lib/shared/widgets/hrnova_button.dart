@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class HRNovaButton extends StatelessWidget {
@@ -92,11 +92,11 @@ class HRNovaButton extends StatelessWidget {
           const SizedBox(width: 8),
           Text(label,
               style:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
         ],
       );
     }
     return Text(label,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15));
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16));
   }
 }

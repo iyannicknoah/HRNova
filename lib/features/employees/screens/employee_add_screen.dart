@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -216,11 +216,11 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
             child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.successGreen, size: 20),
           ),
           const SizedBox(width: 12),
-          Text('Employee Added', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ctx.appText)),
+          Text('Employee Added', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: ctx.appText)),
         ]),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Share these login credentials with the employee.',
-              style: TextStyle(fontSize: 13, color: ctx.appSubtext)),
+              style: TextStyle(fontSize: 15, color: ctx.appSubtext)),
           const SizedBox(height: 16),
           _CredRow(label: 'Email', value: email, ctx: ctx),
           const SizedBox(height: 10),
@@ -239,7 +239,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
               Expanded(
                 child: Text(
                   'The employee must change this password after their first login.',
-                  style: TextStyle(fontSize: 12, color: ctx.appText),
+                  style: TextStyle(fontSize: 14, color: ctx.appText),
                 ),
               ),
             ]),
@@ -366,7 +366,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                           const SizedBox(height: 4),
                           Text(
                             _photoBytes != null ? 'Photo ready to upload' : 'JPEG or PNG, max 5 MB',
-                            style: TextStyle(fontSize: 12, color: context.appSubtext),
+                            style: TextStyle(fontSize: 14, color: context.appSubtext),
                           ),
                         ]),
                       ]),
@@ -408,7 +408,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                           SizedBox(width: 8),
                           Expanded(child: Text(
                             'If an email is provided, a temporary password is auto-generated so the employee can log in to the app.',
-                            style: TextStyle(fontSize: 12, color: AppColors.primaryBlue),
+                            style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
                           )),
                         ]),
                       ),
@@ -459,7 +459,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
               ),
               Text(
                 isEdit ? 'Update employee information' : 'Fill in the details to create a new employee record',
-                style: TextStyle(fontSize: 13, color: context.appSubtext),
+                style: TextStyle(fontSize: 15, color: context.appSubtext),
               ),
             ],
           )),
@@ -485,7 +485,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                 color: context.appField,
                 borderRadius: BorderRadius.circular(100),
               ),
-              child: Text('Cancel', style: TextStyle(color: context.appText, fontWeight: FontWeight.w600, fontSize: 15)),
+              child: Text('Cancel', style: TextStyle(color: context.appText, fontWeight: FontWeight.w600, fontSize: 16)),
             ),
           ),
           const Spacer(),
@@ -502,7 +502,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
                       isEdit ? 'Save Changes' : 'Add Employee',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
                     ),
             ),
           ),
@@ -522,7 +522,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
           const SizedBox(height: 4),
           Divider(color: context.appBorder),
           const SizedBox(height: 12),
@@ -546,7 +546,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       RichText(text: TextSpan(
         text: label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText),
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText),
         children: required ? [TextSpan(text: ' *', style: const TextStyle(color: AppColors.errorRed))] : [],
       )),
       const SizedBox(height: 6),
@@ -554,10 +554,10 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         controller: ctrl,
         keyboardType: keyboard,
         maxLines: maxLines,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
           filled: true, fillColor: context.appField,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
@@ -573,14 +573,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       RichText(text: TextSpan(
         text: label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText),
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText),
         children: required ? [TextSpan(text: ' *', style: const TextStyle(color: AppColors.errorRed))] : [],
       )),
       const SizedBox(height: 6),
       TextFormField(
         controller: ctrl,
         readOnly: true,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 15),
         onTap: () async {
           final picked = await showDatePicker(
             context: context,
@@ -592,7 +592,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         },
         decoration: InputDecoration(
           hintText: 'Select date',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
           suffixIcon: Icon(Icons.calendar_today_outlined, size: 16, color: context.appSubtext),
           filled: true, fillColor: context.appField,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
@@ -608,7 +608,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   Widget _dropField(String label, String value, List<DropdownMenuItem<String>> items, ValueChanged<String?> onChanged) {
     final validValue = items.any((i) => i.value == value) ? value : null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText)),
+      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
       const SizedBox(height: 6),
       Container(
         decoration: BoxDecoration(
@@ -623,7 +623,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
             items: items,
             onChanged: onChanged,
             isExpanded: true,
-            style: TextStyle(fontSize: 13, color: context.appText),
+            style: TextStyle(fontSize: 15, color: context.appText),
             icon: Icon(Icons.keyboard_arrow_down, size: 18, color: context.appSubtext),
           ),
         ),
@@ -633,7 +633,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
 
   Widget _dropFieldN(String label, String? value, List<DropdownMenuItem<String?>> items, ValueChanged<String?> onChanged) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText)),
+      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
       const SizedBox(height: 6),
       Container(
         decoration: BoxDecoration(
@@ -648,7 +648,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
             items: items,
             onChanged: onChanged,
             isExpanded: true,
-            style: TextStyle(fontSize: 13, color: context.appText),
+            style: TextStyle(fontSize: 15, color: context.appText),
             icon: Icon(Icons.keyboard_arrow_down, size: 18, color: context.appSubtext),
           ),
         ),
@@ -696,10 +696,10 @@ class _CredRowState extends State<_CredRow> {
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(widget.label,
-              style: TextStyle(fontSize: 11, color: widget.ctx.appSubtext, fontWeight: FontWeight.w500)),
+              style: TextStyle(fontSize: 13, color: widget.ctx.appSubtext, fontWeight: FontWeight.w500)),
           const SizedBox(height: 2),
           Text(widget.value,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: widget.ctx.appText,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: widget.ctx.appText,
                   fontFamily: 'monospace')),
         ])),
         GestureDetector(

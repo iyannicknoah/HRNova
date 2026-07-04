@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import 'hrnova_card.dart';
 
@@ -72,7 +72,7 @@ class MetricCard extends StatelessWidget {
                       Text(
                         trend!,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: (trendPositive ?? true)
                               ? AppColors.successGreen
@@ -99,7 +99,7 @@ class MetricCard extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
               letterSpacing: 0.5,
@@ -110,7 +110,7 @@ class MetricCard extends StatelessWidget {
             Text(
               subtitle!,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 color: AppColors.textSecondary,
               ),
             ),
