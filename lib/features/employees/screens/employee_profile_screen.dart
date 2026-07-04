@@ -1,4 +1,4 @@
-﻿import 'dart:ui' as ui;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -186,7 +186,6 @@ class _ProfileTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             // Gradient top strip with back + edit buttons
@@ -420,7 +419,6 @@ class _QuickStat extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.appCard,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: context.appBorder),
     ),
     child: Row(children: [
       Container(
@@ -450,7 +448,6 @@ class _Section extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.appCard,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: context.appBorder),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
@@ -742,6 +739,8 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
   Widget build(BuildContext context) {
     final recordsAsync = ref.watch(employeeAttendanceByMonthProvider(
         (employeeId: widget.employeeId, year: _month.year, month: _month.month)));
+    final leaveMonthAsync = ref.watch(
+        leavesCalendarByMonthProvider((year: _month.year, month: _month.month)));
 
     final records = recordsAsync.value ?? [];
 
@@ -751,10 +750,22 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       recMap[r.date.day] = r;
     }
 
-    // Build status map for calendar
+    // Build status map for calendar — attendance records take priority, then approved leave
     final statusMap = <int, String>{};
     for (final entry in recMap.entries) {
       statusMap[entry.key] = _statusFromRecord(entry.value);
+    }
+    // Overlay approved leave days that have no attendance record
+    for (final entry in (leaveMonthAsync.value ?? [])) {
+      if (entry['employeeId'] == widget.employeeId) {
+        final parts = ((entry['date'] as String?) ?? '').split('-');
+        if (parts.length == 3) {
+          final day = int.tryParse(parts[2]) ?? 0;
+          if (day > 0 && !statusMap.containsKey(day)) {
+            statusMap[day] = 'on_leave';
+          }
+        }
+      }
     }
 
     final present = statusMap.values.where((s) => s == 'on_time').length;
@@ -789,11 +800,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
         // Calendar grid
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.appBorder),
-          ),
+          decoration: context.cardDeco(14),
           child: recordsAsync.isLoading
               ? const Center(
                   child: Padding(
@@ -832,7 +839,6 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             Container(
@@ -857,7 +863,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                   padding: EdgeInsets.all(24),
                   child: CircularProgressIndicator())
             else
-              ..._buildDetailRows(context, recMap),
+              ..._buildDetailRows(context, recMap, statusMap),
           ]),
         ),
       ]),
@@ -865,18 +871,21 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
   }
 
   List<Widget> _buildDetailRows(
-      BuildContext context, Map<int, AttendanceModel> recMap) {
+      BuildContext context, Map<int, AttendanceModel> recMap, Map<int, String> statusMap) {
     final rows = <Widget>[];
     final daysInMonth =
         DateUtils.getDaysInMonth(_month.year, _month.month);
     for (var d = 1; d <= daysInMonth; d++) {
       final date = DateTime(_month.year, _month.month, d);
+      if (date.isAfter(DateTime.now())) continue;
       final weekday = date.weekday;
       final isWeekend = weekday == 6 || weekday == 7;
       if (isWeekend) continue;
       final rec = recMap[d];
-      if (rec == null) continue;
-      final status = _statusFromRecord(rec);
+      // Show leave days even when no attendance record exists
+      final statusOverride = statusMap[d];
+      if (rec == null && statusOverride != 'on_leave') continue;
+      final status = rec != null ? _statusFromRecord(rec) : 'on_leave';
       final dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][weekday - 1];
       final dateLabel = DateFormat('MMM d').format(date);
       rows.add(Padding(
@@ -898,16 +907,16 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
           Expanded(
               flex: 10,
               child: Text(
-                  rec.checkInTime != null
-                      ? _fmtTime(rec.checkInTime!)
+                  rec?.checkInTime != null
+                      ? _fmtTime(rec!.checkInTime!)
                       : '—',
                   style:
                       TextStyle(color: context.appText, fontSize: 14))),
           Expanded(
               flex: 10,
               child: Text(
-                  rec.checkOutTime != null
-                      ? _fmtTime(rec.checkOutTime!)
+                  rec?.checkOutTime != null
+                      ? _fmtTime(rec!.checkOutTime!)
                       : '—',
                   style:
                       TextStyle(color: context.appText, fontSize: 14))),
@@ -928,8 +937,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
           height: 32,
           decoration: BoxDecoration(
               color: context.appCard,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: context.appBorder)),
+              borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: context.appText, size: 16),
         ),
       );
@@ -1180,7 +1188,6 @@ class _LeaveProfileTab extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: context.appTint,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                border: Border.all(color: context.appBorder),
               ),
               child: Row(children: [
                 Expanded(flex: 3, child: _hTxt('TYPE', context)),
@@ -1196,7 +1203,6 @@ class _LeaveProfileTab extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: context.appCard,
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                  border: Border(bottom: BorderSide(color: context.appBorder), left: BorderSide(color: context.appBorder), right: BorderSide(color: context.appBorder)),
                 ),
                 child: const Center(child: CircularProgressIndicator()),
               ),
@@ -1208,7 +1214,6 @@ class _LeaveProfileTab extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: context.appCard,
                         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                        border: Border(bottom: BorderSide(color: context.appBorder), left: BorderSide(color: context.appBorder), right: BorderSide(color: context.appBorder)),
                       ),
                       child: Center(
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1222,7 +1227,6 @@ class _LeaveProfileTab extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: context.appCard,
                         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                        border: Border(bottom: BorderSide(color: context.appBorder), left: BorderSide(color: context.appBorder), right: BorderSide(color: context.appBorder)),
                       ),
                       child: Column(
                         children: requests.asMap().entries.map((e) => Column(children: [
@@ -1517,8 +1521,7 @@ class _PayrollProfileTab extends ConsumerWidget {
             Container(
               decoration: BoxDecoration(
                   color: context.appCard,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: context.appBorder)),
+                  borderRadius: BorderRadius.circular(14)),
               child: Column(
                 children: payslips.asMap().entries.map((e) {
                   final i = e.key;
@@ -1561,8 +1564,7 @@ class _LatestPayslipCard extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
           color: context.appCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.appBorder)),
+          borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
@@ -1842,7 +1844,7 @@ class _LoanCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(width: 40, height: 40, decoration: const BoxDecoration(color: AppColors.pillBlueBg, shape: BoxShape.circle),
@@ -2153,7 +2155,6 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
               decoration: BoxDecoration(
                 color: context.appCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.appBorder),
               ),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2356,7 +2357,6 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withAlpha(6),

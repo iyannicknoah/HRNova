@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -206,7 +206,6 @@ class _TopBar extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(28, 22, 24, 16),
       decoration: BoxDecoration(
         color: context.appCard,
-        border: Border(bottom: BorderSide(color: context.appBorder)),
       ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         // Title
@@ -225,8 +224,7 @@ class _TopBar extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
               color: context.appTint,
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: context.appBorder)),
+              borderRadius: BorderRadius.circular(100)),
           child: Text(_monthLabel(month),
               style: TextStyle(color: context.appText, fontSize: 14,
                   fontWeight: FontWeight.w700)),
@@ -411,8 +409,7 @@ class _PreRunLayout extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                   color: context.appCard,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.appBorder)),
+                  borderRadius: BorderRadius.circular(16)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   const Icon(Icons.calculate_rounded,
@@ -471,8 +468,7 @@ class _PreRunLayout extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                     color: context.appCard,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: context.appBorder)),
+                    borderRadius: BorderRadius.circular(16)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     const Icon(Icons.gavel_rounded,
@@ -601,8 +597,7 @@ class _CalcProgress extends StatelessWidget {
           padding: const EdgeInsets.all(36),
           decoration: BoxDecoration(
               color: context.appCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.appBorder)),
+              borderRadius: BorderRadius.circular(20)),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             // Animated icon
             Container(
@@ -825,8 +820,7 @@ class _MetricGrid extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
                 color: context.appCard,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: context.appBorder)),
+                borderRadius: BorderRadius.circular(14)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(
@@ -918,8 +912,7 @@ class _PayslipTable extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
           color: context.appCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.appBorder)),
+          borderRadius: BorderRadius.circular(16)),
       child: Column(children: [
         // Header
         Container(
@@ -1209,8 +1202,7 @@ class _SendingChip extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
     decoration: BoxDecoration(
         color: context.appTint,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.appBorder)),
+        borderRadius: BorderRadius.circular(8)),
     child: Row(children: [
       const SizedBox(width: 12, height: 12,
           child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue)),

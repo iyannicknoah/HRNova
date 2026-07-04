@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firebase_service.dart';
 import '../models/attendance_model.dart';
 
@@ -19,14 +20,17 @@ final attendanceByDateProvider = StreamProvider.autoDispose
     .family<List<AttendanceModel>, DateTime>((ref, date) {
   final companyId = ref.watch(currentCompanyIdProvider);
   if (companyId == null) return Stream.value([]);
-  final dateStr = attDateKey(date);
+  final role     = ref.watch(currentUserRoleProvider);
+  final branchId = ref.watch(currentBranchIdProvider);
+  final dateStr  = attDateKey(date);
 
-  return FirebaseService.attendanceRef(companyId)
-      .where('date', isEqualTo: dateStr)
-      .snapshots()
-      .map((s) => s.docs
-          .map((d) => AttendanceModel.fromMap(d.id, d.data()))
-          .toList());
+  var q = FirebaseService.attendanceRef(companyId)
+      .where('date', isEqualTo: dateStr);
+  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+    q = q.where('branchId', isEqualTo: branchId);
+  }
+  return q.snapshots().map((s) =>
+      s.docs.map((d) => AttendanceModel.fromMap(d.id, d.data())).toList());
 });
 
 // ── Stream: all records for a given month ─────────────────────────────────────
@@ -37,19 +41,22 @@ final attendanceByMonthProvider = StreamProvider.autoDispose
     .family<List<AttendanceModel>, _MonthParam>((ref, p) {
   final companyId = ref.watch(currentCompanyIdProvider);
   if (companyId == null) return Stream.value([]);
+  final role     = ref.watch(currentUserRoleProvider);
+  final branchId = ref.watch(currentBranchIdProvider);
 
-  final start = '${p.year}-${p.month.toString().padLeft(2, '0')}-01';
+  final start    = '${p.year}-${p.month.toString().padLeft(2, '0')}-01';
   final endMonth = p.month == 12 ? 1 : p.month + 1;
-  final endYear = p.month == 12 ? p.year + 1 : p.year;
-  final end = '$endYear-${endMonth.toString().padLeft(2, '0')}-01';
+  final endYear  = p.month == 12 ? p.year + 1 : p.year;
+  final end      = '$endYear-${endMonth.toString().padLeft(2, '0')}-01';
 
-  return FirebaseService.attendanceRef(companyId)
+  var q = FirebaseService.attendanceRef(companyId)
       .where('date', isGreaterThanOrEqualTo: start)
-      .where('date', isLessThan: end)
-      .snapshots()
-      .map((s) => s.docs
-          .map((d) => AttendanceModel.fromMap(d.id, d.data()))
-          .toList());
+      .where('date', isLessThan: end);
+  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+    q = q.where('branchId', isEqualTo: branchId);
+  }
+  return q.snapshots().map((s) =>
+      s.docs.map((d) => AttendanceModel.fromMap(d.id, d.data())).toList());
 });
 
 // ── Stream: one employee's records for a given month ─────────────────────────

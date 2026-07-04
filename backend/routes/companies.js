@@ -108,7 +108,7 @@ router.get('/:id', async (req, res) => {
 // ── Update company fields ─────────────────────────────────────────────────────
 router.put('/:id', async (req, res) => {
   const allowed = ['name','industry','address','contactPerson','hrAdminPhone',
-                   'employeeCount','monthlyPrice','tinNumber'];
+                   'employeeCount','monthlyPrice','tinNumber','companyType'];
   const patch = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) patch[k] = req.body[k]; });
   patch.updatedAt = FieldValue.serverTimestamp();

@@ -1,4 +1,4 @@
-﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -452,6 +452,16 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     final param =
         (employeeId: emp.id, year: _month.year, month: _month.month);
     final attAsync = ref.watch(employeeAttendanceByMonthProvider(param));
+    // Approved leave days for this employee this month
+    final leaveMonthAsync = ref.watch(
+        leavesCalendarByMonthProvider((year: _month.year, month: _month.month)));
+    final leaveDayNums = (leaveMonthAsync.value ?? [])
+        .where((e) => e['employeeId'] == emp.id)
+        .map((e) {
+          final parts = ((e['date'] as String?) ?? '').split('-');
+          return parts.length == 3 ? (int.tryParse(parts[2]) ?? 0) : 0;
+        })
+        .toSet();
 
     return SafeArea(
       child: Column(
@@ -466,7 +476,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                 child: Center(
                     child: Text('$e',
                         style: const TextStyle(color: _red)))),
-            data: (records) => Expanded(child: _attContent(records)),
+            data: (records) => Expanded(child: _attContent(records, leaveDayNums)),
           ),
         ],
       ),
@@ -500,7 +510,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     );
   }
 
-  Widget _attContent(List<AttendanceModel> records) {
+  Widget _attContent(List<AttendanceModel> records, Set<int> leaveDayNums) {
     final present = records.where((a) => !a.isAbsent && !a.isOnLeave && a.checkInTime != null).length;
     final late = records.where((a) => a.isLate).length;
     final absent = records.where((a) => a.isAbsent).length;
@@ -515,7 +525,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       children: [
         _summaryRow(present, late, absent),
         const SizedBox(height: 20),
-        _calendar(dayMap),
+        _calendar(dayMap, leaveDayNums),
         const SizedBox(height: 20),
         const Text('Details',
             style: TextStyle(
@@ -543,7 +553,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     );
   }
 
-  Widget _calendar(Map<int, AttendanceModel> dayMap) {
+  Widget _calendar(Map<int, AttendanceModel> dayMap, Set<int> leaveDayNums) {
     final daysInMonth =
         DateUtils.getDaysInMonth(_month.year, _month.month);
     final firstWeekday =
@@ -592,18 +602,17 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
               final isFuture = date.isAfter(DateTime.now());
 
               Color dotColor;
-              if (isFuture || att == null) {
-                dotColor = isWeekend
-                    ? const Color(0xFF1A2E4A)
-                    : Colors.transparent;
-              } else if (att.isOnLeave) {
+              if (isFuture) {
+                dotColor = Colors.transparent;
+              } else if (att != null) {
+                if (att.isOnLeave) dotColor = _blue;
+                else if (att.isAbsent) dotColor = _red;
+                else if (att.isLate) dotColor = _amber;
+                else dotColor = _green;
+              } else if (leaveDayNums.contains(dayNum)) {
                 dotColor = _blue;
-              } else if (att.isAbsent) {
-                dotColor = _red;
-              } else if (att.isLate) {
-                dotColor = _amber;
               } else {
-                dotColor = _green;
+                dotColor = isWeekend ? const Color(0xFF1A2E4A) : Colors.transparent;
               }
 
               return Center(

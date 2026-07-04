@@ -5,6 +5,17 @@ import '../../../core/services/firebase_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/branch_model.dart';
 
+// ── Company type (single vs multi_branch) ────────────────────────────────────
+final companyTypeProvider = StreamProvider.autoDispose<String>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value('single');
+  return FirebaseService.db
+      .collection('companies')
+      .doc(companyId)
+      .snapshots()
+      .map((d) => d.data()?['companyType'] as String? ?? 'single');
+});
+
 // ── Real-time branches stream ─────────────────────────────────────────────────
 final branchesStreamProvider = StreamProvider.autoDispose<List<BranchModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
@@ -34,28 +45,35 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
       final companyId = _ref.read(currentCompanyIdProvider);
       if (companyId == null) throw Exception('No company ID found.');
 
+      // 1. Always write branch to Firestore directly
+      final branchRef = FirebaseService.branchesRef(companyId).doc();
+      await branchRef.set({
+        'name': name,
+        'location': location,
+        'branchCode': branchCode,
+        'companyId': companyId,
+        'isActive': true,
+        'employeeCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Create branch HR admin account if credentials provided (non-fatal)
       if (adminEmail != null && adminEmail.isNotEmpty &&
           adminPassword != null && adminPassword.isNotEmpty) {
-        // Backend creates the branch + Firebase Auth account
-        await ApiService().post('/api/branches', data: {
-          'name': name,
-          'location': location,
-          'branchCode': branchCode,
-          'adminEmail': adminEmail,
-          'adminPassword': adminPassword,
-        });
-      } else {
-        // Direct Firestore write — no HR admin account needed
-        await FirebaseService.branchesRef(companyId).add({
-          'name': name,
-          'location': location,
-          'branchCode': branchCode,
-          'companyId': companyId,
-          'isActive': true,
-          'employeeCount': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        try {
+          await ApiService().post('/api/auth/create-user', data: {
+            'email': adminEmail,
+            'password': adminPassword,
+            'displayName': '$name Admin',
+            'companyId': companyId,
+            'role': 'branch_hr_admin',
+            'branchId': branchRef.id,
+          });
+        } catch (_) {
+          // Auth creation is best-effort — branch is already saved in Firestore
+        }
       }
+
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

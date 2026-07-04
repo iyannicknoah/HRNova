@@ -1,4 +1,4 @@
-﻿import 'package:fl_chart/fl_chart.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -101,7 +101,6 @@ class _MonthPicker extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appBorder),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         _NavBtn(icon: Icons.chevron_left_rounded, onTap: onPrev),
@@ -286,7 +285,6 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
               decoration: BoxDecoration(
                 color: context.appCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.appBorder),
               ),
               child: Column(children: [
                 // Table header
@@ -484,7 +482,6 @@ class _ScorePanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -653,7 +650,6 @@ class _ScorePanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: context.appField,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: context.appBorder),
               ),
               child: Row(children: [
                 const SizedBox(
@@ -846,7 +842,6 @@ class _HRDashboardView extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: context.appCard,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.appBorder),
                 ),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,7 +868,6 @@ class _HRDashboardView extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: context.appCard,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.appBorder),
                 ),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -979,7 +973,6 @@ class _KpiCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.appBorder),
           ),
           child: Row(children: [
             Container(
@@ -1122,7 +1115,6 @@ class _BranchComparisonCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Branch Comparison',
@@ -1220,7 +1212,6 @@ class _NotScoredCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -1241,7 +1232,6 @@ class _NotScoredCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: context.appField,
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: context.appBorder),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               _SmallAvatar(name: e.fullName, size: 20),

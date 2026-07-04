@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken } = require('../middleware/verifyToken');
 const { generatePerformanceReview, generateAnnualPerformance } = require('../services/aiService');
 
 // POST /api/ai/generate-review

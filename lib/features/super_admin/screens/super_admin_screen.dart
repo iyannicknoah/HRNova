@@ -2036,6 +2036,7 @@ class _EditCoDialogState extends State<_EditCoDialog> {
   late final _address = TextEditingController(text: widget.co.address);
   late final _price   = TextEditingController(text: '${widget.co.monthlyPrice}');
   late final _emp     = TextEditingController(text: '${widget.co.employeeCount}');
+  late String _companyType = widget.co.companyType;
   bool _loading = false;
 
   @override
@@ -2056,6 +2057,7 @@ class _EditCoDialogState extends State<_EditCoDialog> {
         'address':       _address.text.trim(),
         'monthlyPrice':  int.tryParse(_price.text.trim()) ?? widget.co.monthlyPrice,
         'employeeCount': int.tryParse(_emp.text.trim()) ?? widget.co.employeeCount,
+        'companyType':   _companyType,
       });
       if (!mounted) return;
       Navigator.pop(context);
@@ -2102,6 +2104,43 @@ class _EditCoDialogState extends State<_EditCoDialog> {
                 _df(p, 'Address', _address),
                 _df(p, 'Monthly Price (RWF)', _price, type: TextInputType.number),
                 _df(p, 'Employee Count', _emp, type: TextInputType.number),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Company Type',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: p.subText)),
+                ),
+                const SizedBox(height: 8),
+                StatefulBuilder(builder: (ctx, setLocal) {
+                  return Row(children: [
+                    _typeOption(p, 'Single Location', 'single', _companyType, () {
+                      setLocal(() => _companyType = 'single');
+                    }),
+                    const SizedBox(width: 10),
+                    _typeOption(p, 'Multi-Branch', 'multi_branch', _companyType, () {
+                      setLocal(() => _companyType = 'multi_branch');
+                    }),
+                  ]);
+                }),
+                if (_companyType == 'multi_branch') ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withAlpha(15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(
+                        'Switching to Multi-Branch enables branch management for this company.',
+                        style: TextStyle(fontSize: 13, color: p.text),
+                      )),
+                    ]),
+                  ),
+                ],
               ]))),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -2116,6 +2155,34 @@ class _EditCoDialogState extends State<_EditCoDialog> {
                 onTap: _loading ? null : _save)),
             ])),
         ]),
+      ),
+    );
+  }
+
+  Widget _typeOption(_P p, String label, String value, String current, VoidCallback onTap) {
+    final selected = current == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primaryBlue : p.fieldBg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? AppColors.primaryBlue : p.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Center(
+            child: Text(label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : p.subText,
+                )),
+          ),
+        ),
       ),
     );
   }

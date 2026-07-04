@@ -7,6 +7,22 @@ import '../../auth/providers/auth_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/leave_request_model.dart';
 
+// ── Branch filter helper ──────────────────────────────────────────────────────
+// Returns a Firestore query filtered by branchId when the current user is a
+// branch_hr_admin. Docs without a branchId field (created before multi-branch
+// was enabled) will not match, giving branch HRs a clean slate.
+Query<Map<String, dynamic>> _branchLeaveQuery(
+  Ref ref,
+  Query<Map<String, dynamic>> base,
+) {
+  final role     = ref.watch(currentUserRoleProvider);
+  final branchId = ref.watch(currentBranchIdProvider);
+  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+    return base.where('branchId', isEqualTo: branchId);
+  }
+  return base;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 String leaveDateKey(DateTime d) =>
@@ -18,8 +34,11 @@ final pendingLeaveRequestsProvider =
     StreamProvider.autoDispose<List<LeaveRequestModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   if (companyId == null) return Stream.value([]);
-  return FirebaseService.leaveRef(companyId)
-      .where('status', isEqualTo: 'pending')
+  final base = _branchLeaveQuery(
+    ref,
+    FirebaseService.leaveRef(companyId).where('status', isEqualTo: 'pending'),
+  );
+  return base
       .orderBy('requestedAt', descending: true)
       .snapshots()
       .map((s) =>
@@ -32,7 +51,8 @@ final allLeaveRequestsProvider =
     StreamProvider.autoDispose<List<LeaveRequestModel>>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   if (companyId == null) return Stream.value([]);
-  return FirebaseService.leaveRef(companyId)
+  final base = _branchLeaveQuery(ref, FirebaseService.leaveRef(companyId));
+  return base
       .orderBy('requestedAt', descending: true)
       .limit(300)
       .snapshots()
@@ -91,23 +111,42 @@ final leavesCalendarByMonthProvider =
       .map((s) => s.docs.map((d) => d.data()).toList());
 });
 
+// ── Stream: employee IDs on approved leave for any given date string ──────────
+
+final approvedLeavesByDateProvider =
+    StreamProvider.autoDispose.family<Set<String>, String>((ref, dateStr) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value({});
+  final base = _branchLeaveQuery(
+    ref,
+    FirebaseService.leaveRef(companyId)
+        .where('status', isEqualTo: 'approved')
+        .where('startDate', isLessThanOrEqualTo: '${dateStr}T23:59:59.999'),
+  );
+  return base.snapshots().map((s) => s.docs
+      .where((d) => (d.data()['endDate'] as String? ?? '').compareTo(dateStr) >= 0)
+      .map((d) => d.data()['employeeId'] as String? ?? '')
+      .where((id) => id.isNotEmpty)
+      .toSet());
+});
+
 // ── Stream: count of approved leaves active today ─────────────────────────────
 
 final approvedLeavesTodayProvider = StreamProvider.autoDispose<int>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   if (companyId == null) return Stream.value(0);
-  final now = DateTime.now();
-  final todayStr =
-      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-  // Query approved leaves that started on or before today; filter endDate >= today in memory
-  return FirebaseService.leaveRef(companyId)
-      .where('status', isEqualTo: 'approved')
-      .where('startDate', isLessThanOrEqualTo: '${todayStr}T23:59:59.999')
-      .snapshots()
-      .map((s) => s.docs.where((d) {
-            final end = (d.data()['endDate'] as String? ?? '');
-            return end.compareTo(todayStr) >= 0;
-          }).length);
+  final now      = DateTime.now();
+  final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final base = _branchLeaveQuery(
+    ref,
+    FirebaseService.leaveRef(companyId)
+        .where('status', isEqualTo: 'approved')
+        .where('startDate', isLessThanOrEqualTo: '${todayStr}T23:59:59.999'),
+  );
+  return base.snapshots().map((s) => s.docs.where((d) {
+        final end = (d.data()['endDate'] as String? ?? '');
+        return end.compareTo(todayStr) >= 0;
+      }).length);
 });
 
 // ── Notification streams ──────────────────────────────────────────────────────

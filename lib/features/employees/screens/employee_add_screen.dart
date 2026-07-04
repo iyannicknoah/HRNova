@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -341,7 +341,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: context.appField,
-                            border: Border.all(color: context.appBorder, width: 2),
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: _photoBytes != null
@@ -433,7 +432,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       padding: const EdgeInsets.fromLTRB(20, 20, 24, 16),
       decoration: BoxDecoration(
         color: context.appCard,
-        border: Border(bottom: BorderSide(color: context.appBorder)),
       ),
       child: Row(
         children: [
@@ -444,7 +442,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
               decoration: BoxDecoration(
                 color: context.appField,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: context.appBorder),
               ),
               child: Icon(Icons.arrow_back_rounded, size: 18, color: context.appText),
             ),
@@ -473,7 +470,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       padding: const EdgeInsets.fromLTRB(28, 14, 28, 18),
       decoration: BoxDecoration(
         color: context.appCard,
-        border: Border(top: BorderSide(color: context.appBorder)),
       ),
       child: Row(
         children: [
@@ -517,7 +513,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.appBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,7 +609,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         decoration: BoxDecoration(
           color: context.appField,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: context.appBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: DropdownButtonHideUnderline(
@@ -639,7 +633,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         decoration: BoxDecoration(
           color: context.appField,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: context.appBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: DropdownButtonHideUnderline(
@@ -691,7 +684,6 @@ class _CredRowState extends State<_CredRow> {
       decoration: BoxDecoration(
         color: widget.ctx.appField,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: widget.ctx.appBorder),
       ),
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

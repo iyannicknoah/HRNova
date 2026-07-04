@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -118,7 +118,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     final recordsAsync = ref.watch(attendanceByDateProvider(_selectedDate));
     final dateKey = leaveDateKey(_selectedDate);
     final onLeaveIds =
-        ref.watch(leavesCalendarByDateProvider(dateKey)).value ??
+        ref.watch(approvedLeavesByDateProvider(dateKey)).value ??
             const <String>{};
 
     // Build joined rows from real data (or empty while loading)
@@ -253,7 +253,6 @@ class _HeaderBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appCard,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: context.appBorder),
         ),
         child: Row(children: [
           Icon(icon, size: 15, color: context.appSubtext),
@@ -317,7 +316,6 @@ class _SCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appBorder),
       ),
       child: Row(children: [
         Container(
@@ -359,7 +357,6 @@ class _AttTabBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: context.appCard,
-        border: Border(top: BorderSide(color: context.appBorder)),
       ),
       child: TabBar(
         controller: controller,
@@ -431,7 +428,6 @@ class _TodayTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             Container(
@@ -512,7 +508,6 @@ class _DropFilter extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.appBorder),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(prefix,
@@ -735,11 +730,14 @@ class _HistoryTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(date));
+    final dateKey = leaveDateKey(date);
+    final onLeaveIds =
+        ref.watch(approvedLeavesByDateProvider(dateKey)).value ?? const <String>{};
 
     final rows = employeesAsync.when(
       data: (employees) => recordsAsync.when(
-        data: (records) => _buildRows(employees, records, const {}),
-        loading: () => _buildRows(employees, [], const {}),
+        data: (records) => _buildRows(employees, records, onLeaveIds),
+        loading: () => _buildRows(employees, [], onLeaveIds),
         error: (_, __) => <_JR>[],
       ),
       loading: () => <_JR>[],
@@ -761,7 +759,6 @@ class _HistoryTab extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: context.appCard,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: context.appBorder),
               ),
               child: Row(children: [
                 Icon(Icons.calendar_today_rounded,
@@ -789,7 +786,6 @@ class _HistoryTab extends ConsumerWidget {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             Container(
@@ -981,7 +977,6 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             Container(
@@ -1033,8 +1028,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
           height: 34,
           decoration: BoxDecoration(
               color: context.appCard,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: context.appBorder)),
+              borderRadius: BorderRadius.circular(8)),
           child:
               Icon(icon, color: context.appText, size: 18),
         ),
@@ -1278,7 +1272,6 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 decoration: BoxDecoration(
                   color: context.appField,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: context.appBorder),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<EmployeeModel>(
@@ -1459,7 +1452,6 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
           decoration: BoxDecoration(
             color: context.appField,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Row(children: [
             Icon(icon, size: 16, color: context.appSubtext),

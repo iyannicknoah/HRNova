@@ -78,6 +78,30 @@ final employeeByQRProvider =
   return EmployeeModel.fromDoc(snap.docs.first);
 });
 
+// ── Employee limit: (current active company-wide, max allowed) ───────────────
+
+typedef _LimitRecord = ({int current, int max});
+
+final companyEmployeeLimitProvider =
+    StreamProvider.autoDispose<_LimitRecord>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value((current: 0, max: 0));
+
+  final companyStream = FirebaseService.db
+      .collection('companies')
+      .doc(companyId)
+      .snapshots()
+      .map((d) => (d.data()?['employeeCount'] as num?)?.toInt() ?? 0);
+
+  final countStream = FirebaseService.employeesRef(companyId)
+      .where('status', isEqualTo: 'active')
+      .snapshots()
+      .map((s) => s.docs.length);
+
+  return companyStream.asyncExpand((maxEmployees) => countStream
+      .map((current) => (current: current, max: maxEmployees)));
+});
+
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
 class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
@@ -95,6 +119,25 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final companyId = _companyId;
       if (companyId == null) throw Exception('Not authenticated.');
+
+      // Check company-wide employee limit before adding
+      final companyDoc = await FirebaseService.db
+          .collection('companies')
+          .doc(companyId)
+          .get();
+      final maxAllowed = (companyDoc.data()?['employeeCount'] as num?)?.toInt() ?? 0;
+      if (maxAllowed > 0) {
+        final activeSnap = await FirebaseService.employeesRef(companyId)
+            .where('status', isEqualTo: 'active')
+            .count()
+            .get();
+        final currentCount = activeSnap.count ?? 0;
+        if (currentCount >= maxAllowed) {
+          throw Exception(
+              'Employee limit reached ($currentCount / $maxAllowed). '
+              'Contact your administrator to increase the limit.');
+        }
+      }
 
       final docRef = FirebaseService.employeesRef(companyId).doc();
       final docId = docRef.id;

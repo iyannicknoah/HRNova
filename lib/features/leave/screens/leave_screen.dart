@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
@@ -122,7 +122,6 @@ class _LeaveTabBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: context.appCard,
-        border: Border(top: BorderSide(color: context.appBorder)),
       ),
       child: TabBar(
         controller: controller,
@@ -673,7 +672,6 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
               decoration: BoxDecoration(
                 color: context.appCard,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: context.appBorder),
               ),
               child: TextField(
                 onChanged: (v) => setState(() => _search = v),
@@ -736,7 +734,6 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             Container(
@@ -929,7 +926,6 @@ class _FilterDrop extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.appBorder),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -1038,7 +1034,6 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Column(children: [
             Container(

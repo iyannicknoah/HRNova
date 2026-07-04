@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -193,7 +193,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _section(String key, IconData icon, String title, String subtitle, Widget body) {
     final open = _expanded[key] ?? false;
     return Container(
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16), border: Border.all(color: context.appBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           InkWell(
@@ -295,7 +295,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SizedBox(height: 6),
         Container(
           height: 48, padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
+          decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _overtime,
@@ -432,7 +432,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
+            decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
               Icon(Icons.access_time_rounded, color: context.appSubtext, size: 18),
               const SizedBox(width: 10),

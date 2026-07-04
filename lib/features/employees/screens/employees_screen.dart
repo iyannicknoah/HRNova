@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
@@ -54,6 +54,9 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
     final employeesAsync = ref.watch(employeesProvider);
     final settingsAsync = ref.watch(companySettingsProvider);
     final departments = settingsAsync.value?.departments ?? const [];
+    final limitAsync = ref.watch(companyEmployeeLimitProvider);
+    final limit = limitAsync.value ?? (current: 0, max: 0);
+    final atLimit = limit.max > 0 && limit.current >= limit.max;
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -61,8 +64,10 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Header(
-            count: employeesAsync.value?.where((e) => e.isActive).length ?? 0,
-            onAdd: _openAdd,
+            count: limit.current,
+            max: limit.max,
+            atLimit: atLimit,
+            onAdd: atLimit ? null : _openAdd,
           ),
           _FilterBar(
             searchCtrl: _searchCtrl,
@@ -218,25 +223,104 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
 //  Header
 // ─────────────────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
-  const _Header({required this.count, required this.onAdd});
+  const _Header({
+    required this.count,
+    required this.max,
+    required this.atLimit,
+    required this.onAdd,
+  });
   final int count;
-  final VoidCallback onAdd;
+  final int max;
+  final bool atLimit;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
+    final hasLimit = max > 0;
+    final pct = hasLimit ? (count / max).clamp(0.0, 1.0) : 0.0;
+    final barColor = atLimit
+        ? AppColors.errorRed
+        : pct >= 0.8
+            ? AppColors.warningAmber
+            : AppColors.primaryBlue;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 24, 24, 16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Employees', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(20)),
-            child: Text('$count Active', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
+          Row(
+            children: [
+              Text('Employees',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: context.appText)),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                    color: atLimit
+                        ? AppColors.pillRedBg
+                        : AppColors.pillBlueBg,
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text(
+                    hasLimit ? '$count / $max' : '$count Active',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: atLimit
+                            ? AppColors.errorRed
+                            : AppColors.primaryBlue)),
+              ),
+              const Spacer(),
+              if (atLimit)
+                Tooltip(
+                  message: 'Employee limit reached. Contact your administrator.',
+                  child: FilledButton.icon(
+                    onPressed: null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.errorRed.withAlpha(30),
+                      foregroundColor: AppColors.errorRed,
+                      disabledBackgroundColor: AppColors.errorRed.withAlpha(30),
+                      disabledForegroundColor: AppColors.errorRed,
+                    ),
+                    icon: const Icon(Icons.block_rounded, size: 16),
+                    label: const Text('Limit Reached',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                )
+              else
+                _PillBtn(label: 'Add Employee', onTap: onAdd ?? () {}),
+            ],
           ),
-          const Spacer(),
-          _PillBtn(label: 'Add Employee', onTap: onAdd),
+          if (hasLimit) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    backgroundColor: context.appBorder,
+                    valueColor: AlwaysStoppedAnimation(barColor),
+                    minHeight: 5,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                atLimit
+                    ? 'Limit reached'
+                    : '${max - count} slot${max - count == 1 ? '' : 's'} remaining',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: atLimit ? AppColors.errorRed : context.appSubtext,
+                    fontWeight:
+                        atLimit ? FontWeight.w600 : FontWeight.normal),
+              ),
+            ]),
+          ],
         ],
       ),
     );
@@ -334,7 +418,7 @@ class _DropFilter extends StatelessWidget {
     return Container(
       height: 40,
       constraints: const BoxConstraints(minWidth: 160),
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(8), border: Border.all(color: context.appBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(8)),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -363,7 +447,7 @@ class _EmployeeTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
           Container(

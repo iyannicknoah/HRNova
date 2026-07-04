@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -32,6 +32,8 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
   @override
   Widget build(BuildContext context) {
     final branchesAsync = ref.watch(branchesStreamProvider);
+    final companyType = ref.watch(companyTypeProvider).valueOrNull ?? 'single';
+    final isSingle = companyType == 'single';
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -62,76 +64,123 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                       Text('Manage your company branches', style: TextStyle(color: context.appSubtext, fontSize: 15)),
                     ]),
                     const Spacer(),
-                    FilledButton.icon(
-                      onPressed: _showAddDialog,
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Add Branch'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                    if (!isSingle)
+                      FilledButton.icon(
+                        onPressed: _showAddDialog,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add Branch'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                // Stats
-                Row(children: [
-                  _StatChip('${branches.length} Total', Icons.business_rounded, AppColors.primaryBlue, AppColors.pillBlueBg),
-                  const SizedBox(width: 10),
-                  _StatChip('${branches.where((b) => b.isActive).length} Active', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg),
-                  const SizedBox(width: 10),
-                  _StatChip('${branches.fold(0, (s, b) => s + b.employeeCount)} Employees', Icons.people_rounded, AppColors.warningAmber, AppColors.pillAmberBg),
-                ]),
-                const SizedBox(height: 20),
-                // Search
-                Container(
-                  decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
-                  child: TextField(
-                    onChanged: (v) => setState(() => _search = v),
-                    style: TextStyle(color: context.appText, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Search branches...',
-                      hintStyle: TextStyle(color: context.appSubtext),
-                      prefixIcon: Icon(Icons.search_rounded, color: context.appSubtext, size: 20),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                if (isSingle) ...[
+                  Expanded(child: _SingleCompanyEmptyState()),
+                ] else ...[
+                  // Stats
+                  Row(children: [
+                    _StatChip('${branches.length} Total', Icons.business_rounded, AppColors.primaryBlue, AppColors.pillBlueBg),
+                    const SizedBox(width: 10),
+                    _StatChip('${branches.where((b) => b.isActive).length} Active', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg),
+                    const SizedBox(width: 10),
+                    _StatChip('${branches.fold(0, (s, b) => s + b.employeeCount)} Employees', Icons.people_rounded, AppColors.warningAmber, AppColors.pillAmberBg),
+                  ]),
+                  const SizedBox(height: 20),
+                  // Search
+                  Container(
+                    decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12)),
+                    child: TextField(
+                      onChanged: (v) => setState(() => _search = v),
+                      style: TextStyle(color: context.appText, fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText: 'Search branches...',
+                        hintStyle: TextStyle(color: context.appSubtext),
+                        prefixIcon: Icon(Icons.search_rounded, color: context.appSubtext, size: 20),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                // Grid
-                Expanded(
-                  child: filtered.isEmpty
-                      ? Center(
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.business_outlined, size: 48, color: AppColors.textSecondary),
-                            const SizedBox(height: 12),
-                            Text(
-                              branches.isEmpty ? 'No branches yet — add one to get started' : 'No branches match your search',
-                              style: TextStyle(color: context.appSubtext, fontSize: 16),
+                  const SizedBox(height: 20),
+                  // Grid
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.business_outlined, size: 48, color: AppColors.textSecondary),
+                              const SizedBox(height: 12),
+                              Text(
+                                branches.isEmpty ? 'No branches yet — add one to get started' : 'No branches match your search',
+                                style: TextStyle(color: context.appSubtext, fontSize: 16),
+                              ),
+                            ]),
+                          )
+                        : GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 380, childAspectRatio: 1.5,
+                              crossAxisSpacing: 14, mainAxisSpacing: 14,
                             ),
-                          ]),
-                        )
-                      : GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 380, childAspectRatio: 1.5,
-                            crossAxisSpacing: 14, mainAxisSpacing: 14,
+                            itemCount: filtered.length,
+                            itemBuilder: (ctx, i) => _BranchCard(
+                              branch: filtered[i],
+                              onToggleActive: (active) async {
+                                await ref.read(branchesNotifierProvider.notifier)
+                                    .setActive(filtered[i].id, isActive: active);
+                              },
+                            ),
                           ),
-                          itemCount: filtered.length,
-                          itemBuilder: (ctx, i) => _BranchCard(
-                            branch: filtered[i],
-                            onToggleActive: (active) async {
-                              await ref.read(branchesNotifierProvider.notifier)
-                                  .setActive(filtered[i].id, isActive: active);
-                            },
-                          ),
-                        ),
-                ),
+                  ),
+                ],
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Single company placeholder ────────────────────────────────────────────────
+class _SingleCompanyEmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withAlpha(30),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(Icons.business_outlined, size: 40, color: AppColors.primaryBlue),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Single Location Company',
+            style: TextStyle(color: context.appText, fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This company is set up as a single location.\nBranch management is not available.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.appSubtext, fontSize: 15, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 18),
+            const SizedBox(width: 10),
+            Text(
+              'Contact us to upgrade for Multi-Branch',
+              style: TextStyle(color: AppColors.primaryBlue, fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+          ]),
+        ],
       ),
     );
   }
@@ -165,7 +214,7 @@ class _BranchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16), border: Border.all(color: context.appBorder)),
+      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

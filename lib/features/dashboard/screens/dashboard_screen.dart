@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -78,7 +78,6 @@ class _DashHeader extends ConsumerWidget {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: context.appBorder),
           ),
           child: Row(
             children: [
@@ -434,7 +433,6 @@ class _ActionCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.appCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.appBorder),
           ),
           child: Row(
             children: [
