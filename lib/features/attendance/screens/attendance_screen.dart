@@ -999,6 +999,8 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
     final recordsAsync = ref.watch(attendanceByMonthProvider(
         (year: _month.year, month: _month.month)));
     final employeesAsync = ref.watch(employeesProvider);
+    final workEndTime =
+        ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     // Build per-employee summary
     final summaryRows = employeesAsync.when(
