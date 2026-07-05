@@ -10,35 +10,38 @@ const _headers = {
   'X-Title': 'HRNova',
 };
 
-async function callOpenRouter(prompt, maxTokens = 800) {
-  try {
-    const response = await axios.post(
-      OPENROUTER_URL,
-      { model: MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] },
-      { headers: _headers, timeout: 30000 }
-    );
-    return response.data.choices[0]?.message?.content?.trim() || '';
-  } catch (err) {
-    if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-      throw new Error('AI service timed out. Please try again.');
+async function callOpenRouter(prompt, maxTokens = 800, _retries = 2) {
+  for (let attempt = 1; attempt <= _retries + 1; attempt++) {
+    try {
+      const response = await axios.post(
+        OPENROUTER_URL,
+        { model: MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] },
+        { headers: _headers, timeout: 90000 }
+      );
+      return response.data.choices[0]?.message?.content?.trim() || '';
+    } catch (err) {
+      const isLast = attempt === _retries + 1;
+      const status  = err.response?.status;
+      if (!isLast) {
+        const delay = attempt * 5000; // 5s, 10s
+        console.log(`[AI] Attempt ${attempt} failed (${status || err.code}), retrying in ${delay / 1000}s…`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      if (status === 429) throw new Error('AI service is rate-limited. Please try again in a few minutes.');
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        throw new Error('AI service timed out. Please try again later.');
+      }
+      throw new Error('AI service unavailable. Please try again later.');
     }
-    throw new Error('AI service unavailable. Please try again later.');
   }
 }
 
 async function generateCompletion(prompt, systemPrompt = '') {
-  const response = await axios.post(
-    OPENROUTER_URL,
-    {
-      model: MODEL,
-      messages: [
-        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-        { role: 'user', content: prompt },
-      ],
-    },
-    { headers: _headers, timeout: 30000 }
+  return callOpenRouter(
+    systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt,
+    800
   );
-  return response.data.choices[0]?.message?.content || '';
 }
 
 async function generateReport(summaryData, reportType, companyName, isGroup = false) {
