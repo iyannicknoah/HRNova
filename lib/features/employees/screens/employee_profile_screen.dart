@@ -184,7 +184,12 @@ class _ProfileTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(companySettingsProvider).value;
     final annualEntitlement = settings?.annualLeaveDays ?? AppConstants.annualLeaveDaysPerYear;
-    final annualBalance = (employee.leaveBalances['annual'] as num?)?.toInt() ?? annualEntitlement;
+    final leaveRequests = ref.watch(employeeLeaveRequestsProvider(employee.id)).valueOrNull ?? [];
+    int usedOf(String type) => leaveRequests
+        .where((r) => r.status == 'approved' && r.leaveType == type)
+        .fold(0, (s, r) => s + r.totalDays);
+    final annualUsed = usedOf(AppConstants.leaveTypeAnnual);
+    final annualBalance = (annualEntitlement - annualUsed).clamp(0, annualEntitlement);
     final monthsSinceStart = DateTime.now().difference(employee.startDate).inDays ~/ 30;
     final isBurnoutRisk = monthsSinceStart >= 5 && annualBalance >= annualEntitlement;
 
@@ -300,7 +305,7 @@ class _ProfileTab extends ConsumerWidget {
               _ctLabel(employee.contractType), AppColors.successGreen)),
           const SizedBox(width: 12),
           Expanded(child: _QuickStat(Icons.beach_access_rounded, 'Annual Leave',
-              '${employee.leaveBalances['annual'] ?? 18} days', const Color(0xFF9C27B0))),
+              '$annualBalance days', const Color(0xFF9C27B0))),
         ]),
         const SizedBox(height: 20),
         // ── Content row ───────────────────────────────────────────────────────
@@ -357,10 +362,10 @@ class _ProfileTab extends ConsumerWidget {
                 title: 'Leave Balances',
                 icon: Icons.beach_access_rounded,
                 children: [
-                  _LeaveBalanceRow('Annual', employee.leaveBalances['annual'] ?? 18, AppConstants.annualLeaveDaysPerYear, AppColors.primaryBlue),
-                  _LeaveBalanceRow('Sick', employee.leaveBalances['sick'] ?? 10, 10, AppColors.successGreen),
-                  _LeaveBalanceRow('Maternity', employee.leaveBalances['maternity'] ?? 84, AppConstants.maternityLeaveDays, const Color(0xFF9C27B0)),
-                  _LeaveBalanceRow('Paternity', employee.leaveBalances['paternity'] ?? 4, AppConstants.paternityLeaveDays, const Color(0xFF00897B)),
+                  _LeaveBalanceRow('Annual', (annualEntitlement - annualUsed).clamp(0, annualEntitlement), annualEntitlement, AppColors.primaryBlue),
+                  _LeaveBalanceRow('Sick', (AppConstants.sickLeaveDays - usedOf(AppConstants.leaveTypeSick)).clamp(0, AppConstants.sickLeaveDays), AppConstants.sickLeaveDays, AppColors.successGreen),
+                  _LeaveBalanceRow('Maternity', (AppConstants.maternityLeaveDays - usedOf(AppConstants.leaveTypeMaternity)).clamp(0, AppConstants.maternityLeaveDays), AppConstants.maternityLeaveDays, const Color(0xFF9C27B0)),
+                  _LeaveBalanceRow('Paternity', (AppConstants.paternityLeaveDays - usedOf(AppConstants.leaveTypePaternity)).clamp(0, AppConstants.paternityLeaveDays), AppConstants.paternityLeaveDays, const Color(0xFF00897B)),
                 ],
               ),
               if (employee.notes != null && employee.notes!.isNotEmpty) ...[
@@ -1423,9 +1428,9 @@ class _LeaveProfileTab extends ConsumerWidget {
 
     // Compute actual used days from approved leave requests
     final usedMap = <String, int>{};
-    for (final r in requestsAsync.value ?? []) {
+    for (final r in requestsAsync.valueOrNull ?? []) {
       if (r.status == 'approved') {
-        usedMap[r.leaveType] = ((usedMap[r.leaveType] ?? 0) + r.totalDays) as int;
+        usedMap[r.leaveType] = (usedMap[r.leaveType] ?? 0) + r.totalDays as int;
       }
     }
 
@@ -1451,9 +1456,9 @@ class _LeaveProfileTab extends ConsumerWidget {
             ]),
             const SizedBox(height: 10),
             ..._balances.map((t) {
-              final total = (employee.leaveBalances[t.$1] as num?)?.toInt() ?? t.$5;
+              final total = t.$5;
               final used  = usedMap[t.$1] ?? 0;
-              final remaining = ((total - used).clamp(0, total) as num).toInt();
+              final remaining = (total - used).clamp(0, total) as int;
               final pct = total > 0 ? (remaining / total).clamp(0.0, 1.0) : 0.0;
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
