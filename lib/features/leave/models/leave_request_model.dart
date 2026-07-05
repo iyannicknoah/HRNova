@@ -50,7 +50,7 @@ class LeaveRequestModel {
       leaveType: map['leaveType'] as String? ?? 'annual',
       startDate: _parseDate(map['startDate']),
       endDate: _parseDate(map['endDate']),
-      totalDays: map['totalDays'] as int? ?? 0,
+      totalDays: (map['totalDays'] as num?)?.toInt() ?? 0,
       reason: map['reason'] as String? ?? '',
       status: map['status'] as String? ?? 'pending',
       source: map['source'] as String? ?? 'mobile',

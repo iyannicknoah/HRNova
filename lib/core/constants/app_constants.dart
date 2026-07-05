@@ -128,6 +128,7 @@ class AppConstants {
   static const int rraDeadlineDay = 15;
   static const int maternityLeaveDays = 84;
   static const int paternityLeaveDays = 4;
+  static const int sickLeaveDays = 10;
 
   // Annual leave entitlement (Rwanda Labour Law)
   static const int annualLeaveDaysPerYear = 18;

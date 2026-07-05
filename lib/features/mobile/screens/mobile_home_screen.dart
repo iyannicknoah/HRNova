@@ -19,6 +19,7 @@ import '../../../features/payroll/providers/payroll_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/working_days_service.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/settings/providers/settings_provider.dart';
 
 const _bg = Color(0xFF070E1C);
 const _card = Color(0xFF0D1628);
@@ -28,6 +29,17 @@ const _green = Color(0xFF22C55E);
 const _red = Color(0xFFE5534B);
 const _amber = Color(0xFFF59E0B);
 const _textSec = Color(0xFF6B7A99);
+
+DateTime _endOfWorkDt(DateTime day, String workEndTime) {
+  final parts = workEndTime.split(':');
+  return DateTime(day.year, day.month, day.day,
+      int.parse(parts[0]), parts.length > 1 ? int.parse(parts[1]) : 0);
+}
+
+// Present = checked in before work ended (includes late arrivals)
+bool _wasPresent(AttendanceModel r, String workEndTime) =>
+    r.checkInTime != null &&
+    r.checkInTime!.isBefore(_endOfWorkDt(r.date, workEndTime));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root screen
@@ -138,11 +150,22 @@ class _HomeContent extends ConsumerWidget {
       return d.year == now.year && d.month == now.month && d.day == now.day;
     }).firstOrNull;
 
+    final workEndTime =
+        ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
+    // Present = checked in before work ended (includes late arrivals)
     final presentCount =
-        records.where((a) => !a.isAbsent && !a.isOnLeave).length;
-    final lateCount = records.where((a) => a.isLate).length;
+        records.where((a) => _wasPresent(a, workEndTime)).length;
+    final lateCount = records
+        .where((a) => a.isLate && _wasPresent(a, workEndTime))
+        .length;
+    final usedAnnual = leaves
+        .where((l) =>
+            l.status == 'approved' &&
+            l.leaveType == AppConstants.leaveTypeAnnual)
+        .fold(0, (s, l) => s + l.totalDays);
     final annualBalance =
-        (emp.leaveBalances['annual'] as num?)?.toInt() ?? AppConstants.annualLeaveDaysPerYear;
+        (AppConstants.annualLeaveDaysPerYear - usedAnnual)
+            .clamp(0, AppConstants.annualLeaveDaysPerYear);
     final pendingLeaves = leaves.where((l) => l.status == 'pending').length;
 
     return SafeArea(
@@ -463,6 +486,8 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
           return parts.length == 3 ? (int.tryParse(parts[2]) ?? 0) : 0;
         })
         .toSet();
+    final workEndTime =
+        ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     return SafeArea(
       child: Column(
@@ -477,7 +502,8 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                 child: Center(
                     child: Text('$e',
                         style: const TextStyle(color: _red)))),
-            data: (records) => Expanded(child: _attContent(records, leaveDayNums)),
+            data: (records) =>
+                Expanded(child: _attContent(records, leaveDayNums, workEndTime)),
           ),
         ],
       ),
@@ -511,10 +537,35 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     );
   }
 
-  Widget _attContent(List<AttendanceModel> records, Set<int> leaveDayNums) {
-    final present = records.where((a) => !a.isAbsent && !a.isOnLeave && a.checkInTime != null).length;
-    final late = records.where((a) => a.isLate).length;
-    final absent = records.where((a) => a.isAbsent).length;
+  Widget _attContent(
+      List<AttendanceModel> records, Set<int> leaveDayNums, String workEndTime) {
+    // Present = checked in before work ended (includes late arrivals)
+    final present = records.where((a) => _wasPresent(a, workEndTime)).length;
+    final late =
+        records.where((a) => a.isLate && _wasPresent(a, workEndTime)).length;
+
+    // Count elapsed Mon–Fri days in _month up to today
+    final now = DateTime.now();
+    final lastDay = (_month.year == now.year && _month.month == now.month)
+        ? now.day
+        : DateUtils.getDaysInMonth(_month.year, _month.month);
+    int elapsedWorking = 0;
+    for (int d = 1; d <= lastDay; d++) {
+      if (DateTime(_month.year, _month.month, d).weekday <= 5) {
+        elapsedWorking++;
+      }
+    }
+    // Leave days that fall on working days
+    final daysInMonth = DateUtils.getDaysInMonth(_month.year, _month.month);
+    final workingLeaveDays = leaveDayNums
+        .where((d) =>
+            d >= 1 &&
+            d <= daysInMonth &&
+            DateTime(_month.year, _month.month, d).weekday <= 5)
+        .length;
+    // late is a subset of present, so subtract only present (not both)
+    final absent =
+        (elapsedWorking - present - workingLeaveDays).clamp(0, elapsedWorking);
 
     // Build day → record map
     final Map<int, AttendanceModel> dayMap = {
@@ -792,32 +843,46 @@ class _LeaveContent extends ConsumerWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          _BalanceCard(
-              label: 'Annual Leave',
-              days: (emp.leaveBalances['annual'] as num?)?.toInt() ??
-                  AppConstants.annualLeaveDaysPerYear,
-              total: AppConstants.annualLeaveDaysPerYear,
-              borderColor: _blue),
-          const SizedBox(height: 10),
-          _BalanceCard(
-              label: 'Sick Leave',
-              days: (emp.leaveBalances['sick'] as num?)?.toInt() ?? 10,
-              total: 10,
-              borderColor: _green),
-          const SizedBox(height: 10),
-          _BalanceCard(
-              label: 'Maternity Leave',
-              days: (emp.leaveBalances['maternity'] as num?)?.toInt() ??
-                  AppConstants.maternityLeaveDays,
-              total: AppConstants.maternityLeaveDays,
-              borderColor: const Color(0xFFA855F7)),
-          const SizedBox(height: 10),
-          _BalanceCard(
-              label: 'Paternity Leave',
-              days: (emp.leaveBalances['paternity'] as num?)?.toInt() ??
-                  AppConstants.paternityLeaveDays,
-              total: AppConstants.paternityLeaveDays,
-              borderColor: const Color(0xFF14B8A6)),
+          Builder(builder: (_) {
+            int usedOf(String type) => leaves
+                .where((l) => l.status == 'approved' && l.leaveType == type)
+                .fold(0, (s, l) => s + l.totalDays);
+            final annualUsed = usedOf(AppConstants.leaveTypeAnnual);
+            final sickUsed = usedOf(AppConstants.leaveTypeSick);
+            final maternityUsed = usedOf(AppConstants.leaveTypeMaternity);
+            final paternityUsed = usedOf(AppConstants.leaveTypePaternity);
+            return Column(
+              children: [
+                _BalanceCard(
+                    label: 'Annual Leave',
+                    days: (AppConstants.annualLeaveDaysPerYear - annualUsed)
+                        .clamp(0, AppConstants.annualLeaveDaysPerYear),
+                    total: AppConstants.annualLeaveDaysPerYear,
+                    borderColor: _blue),
+                const SizedBox(height: 10),
+                _BalanceCard(
+                    label: 'Sick Leave',
+                    days: (AppConstants.sickLeaveDays - sickUsed)
+                        .clamp(0, AppConstants.sickLeaveDays),
+                    total: AppConstants.sickLeaveDays,
+                    borderColor: _green),
+                const SizedBox(height: 10),
+                _BalanceCard(
+                    label: 'Maternity Leave',
+                    days: (AppConstants.maternityLeaveDays - maternityUsed)
+                        .clamp(0, AppConstants.maternityLeaveDays),
+                    total: AppConstants.maternityLeaveDays,
+                    borderColor: const Color(0xFFA855F7)),
+                const SizedBox(height: 10),
+                _BalanceCard(
+                    label: 'Paternity Leave',
+                    days: (AppConstants.paternityLeaveDays - paternityUsed)
+                        .clamp(0, AppConstants.paternityLeaveDays),
+                    total: AppConstants.paternityLeaveDays,
+                    borderColor: const Color(0xFF14B8A6)),
+              ],
+            );
+          }),
           const SizedBox(height: 24),
           const Text('My Requests',
               style: TextStyle(

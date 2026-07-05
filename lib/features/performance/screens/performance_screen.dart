@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -115,6 +116,7 @@ class _MonthPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final isCurrentMonth =
+    
         month.year == now.year && month.month == now.month;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -291,7 +293,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
     setState(() => _saving = true);
     try {
       final overall = _computeOverall(criteria);
-      final uid = ref.read(userClaimsProvider).value?['uid'] as String? ?? '';
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       final model = PerformanceModel(
         id: PerformanceModel.docId(e.id, widget.month),
         employeeId: e.id,
@@ -503,7 +505,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Score Panel
 // ─────────────────────────────────────────────────────────────────────────────
-class _ScorePanel extends StatelessWidget {
+class _ScorePanel extends StatefulWidget {
   const _ScorePanel({
     super.key,
     required this.employee,
@@ -532,7 +534,35 @@ class _ScorePanel extends StatelessWidget {
   final VoidCallback onGenerateAi, onSave, onClose;
   final void Function(String) onAiTextChanged;
 
-  double get _overall => PerformanceModel.computeOverall(scores, criteria);
+  @override
+  State<_ScorePanel> createState() => _ScorePanelState();
+}
+
+class _ScorePanelState extends State<_ScorePanel> {
+  late TextEditingController _aiCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _aiCtrl = TextEditingController(text: widget.aiReview ?? '');
+  }
+
+  @override
+  void didUpdateWidget(_ScorePanel old) {
+    super.didUpdateWidget(old);
+    if (widget.aiReview != old.aiReview && widget.aiReview != _aiCtrl.text) {
+      _aiCtrl.text = widget.aiReview ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _aiCtrl.dispose();
+    super.dispose();
+  }
+
+  double get _overall =>
+      PerformanceModel.computeOverall(widget.scores, widget.criteria);
 
   Color get _overallColor {
     if (_overall >= 4) return AppColors.successGreen;
@@ -553,15 +583,15 @@ class _ScorePanel extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(children: [
-            _SmallAvatar(name: employee.fullName, photoUrl: employee.profilePhotoUrl, size: 42),
+            _SmallAvatar(name: widget.employee.fullName, photoUrl: widget.employee.profilePhotoUrl, size: 42),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(employee.fullName,
+              Text(widget.employee.fullName,
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 16,
                       fontWeight: FontWeight.w700)),
-              Text(employee.department,
+              Text(widget.employee.department,
                   style: TextStyle(color: context.appSubtext, fontSize: 14)),
             ])),
             // Overall score bubble
@@ -584,7 +614,7 @@ class _ScorePanel extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton(
-              onPressed: onClose,
+              onPressed: widget.onClose,
               icon: Icon(Icons.close_rounded, color: context.appSubtext, size: 18),
             ),
           ]),
@@ -598,10 +628,10 @@ class _ScorePanel extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          ...criteria.map((c) {
-            final score = scores[c.name] ?? 3.0;
+          ...widget.criteria.map((c) {
+            final score = widget.scores[c.name] ?? 3.0;
             final scoreInt = score.round().clamp(1, 5);
-            final label = labels[scoreInt] ?? 'Average';
+            final label = widget.labels[scoreInt] ?? 'Average';
             final contribution = score * c.weight / 100;
             Color sliderColor;
             if (score >= 4) {
@@ -653,7 +683,7 @@ class _ScorePanel extends StatelessWidget {
                         max: 5,
                         divisions: 4,
                         value: score,
-                        onChanged: (v) => onScoreChanged(c.name, v),
+                        onChanged: (v) => widget.onScoreChanged(c.name, v),
                       ),
                     ),
                   ),
@@ -683,7 +713,7 @@ class _ScorePanel extends StatelessWidget {
                   color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           TextField(
-            controller: notesCtrl,
+            controller: widget.notesCtrl,
             maxLines: 3,
             style: TextStyle(color: context.appText, fontSize: 15),
             decoration: InputDecoration(
@@ -709,7 +739,7 @@ class _ScorePanel extends StatelessWidget {
               style: TextStyle(
                   color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          if (generatingAi)
+          if (widget.generatingAi)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -727,12 +757,12 @@ class _ScorePanel extends StatelessWidget {
                     style: TextStyle(color: context.appSubtext, fontSize: 15)),
               ]),
             )
-          else if (aiReview != null && aiReview!.isNotEmpty)
+          else if (widget.aiReview != null && widget.aiReview!.isNotEmpty)
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               TextField(
-                controller: TextEditingController(text: aiReview),
+                controller: _aiCtrl,
                 maxLines: 5,
-                onChanged: onAiTextChanged,
+                onChanged: widget.onAiTextChanged,
                 style: TextStyle(color: context.appText, fontSize: 15, height: 1.5),
                 decoration: InputDecoration(
                   filled: true,
@@ -751,7 +781,7 @@ class _ScorePanel extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               TextButton.icon(
-                onPressed: generatingAi ? null : onGenerateAi,
+                onPressed: widget.generatingAi ? null : widget.onGenerateAi,
                 icon: const Icon(Icons.refresh_rounded, size: 14),
                 label: const Text('Regenerate', style: TextStyle(fontSize: 14)),
                 style: TextButton.styleFrom(foregroundColor: AppColors.primaryBlue),
@@ -759,7 +789,7 @@ class _ScorePanel extends StatelessWidget {
             ])
           else
             FilledButton.icon(
-              onPressed: onGenerateAi,
+              onPressed: widget.onGenerateAi,
               icon: const Icon(Icons.auto_awesome_rounded, size: 16),
               label: const Text('Generate AI Review'),
               style: FilledButton.styleFrom(
@@ -774,15 +804,15 @@ class _ScorePanel extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: saving ? null : onSave,
-              icon: saving
+              onPressed: widget.saving ? null : widget.onSave,
+              icon: widget.saving
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.save_rounded, size: 16),
-              label: Text(saving ? 'Saving...' : 'Save Score'),
+              label: Text(widget.saving ? 'Saving...' : 'Save Score'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
                 padding: const EdgeInsets.symmetric(vertical: 14),
