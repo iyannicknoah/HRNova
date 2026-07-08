@@ -12,9 +12,9 @@ class AppConstants {
   static const String roleBranchHrAdmin = 'branch_hr_admin';
   static const String roleFinanceManager = 'finance_manager';
   static const String roleManager = 'manager';
-  static const String roleGuard = 'guard';
   static const String roleDirector = 'director';
   static const String roleEmployee = 'employee';
+  static const String roleAdministration = 'administration';
 
   static const List<String> roles = [
     roleSuperAdmin,
@@ -23,9 +23,9 @@ class AppConstants {
     roleBranchHrAdmin,
     roleFinanceManager,
     roleManager,
-    roleGuard,
     roleDirector,
     roleEmployee,
+    roleAdministration,
   ];
 
   // Company types
@@ -87,12 +87,10 @@ class AppConstants {
   ];
 
   // Verification types
-  static const String verificationGuardMode = 'guard_mode';
   static const String verificationManual = 'manual';
   static const String verificationSelfie = 'selfie';
 
   static const List<String> verificationTypes = [
-    verificationGuardMode,
     verificationManual,
     verificationSelfie,
   ];

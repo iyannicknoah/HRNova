@@ -46,7 +46,11 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 7, vsync: this);
+    final role = ref.read(currentUserRoleProvider);
+    _tabs = TabController(
+      length: role == AppConstants.roleManager ? 4 : 7,
+      vsync: this,
+    );
   }
 
   @override
@@ -76,22 +80,39 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
               ]),
             );
           }
+          final role = ref.watch(currentUserRoleProvider);
+          final isManager = role == AppConstants.roleManager;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _TabBar(controller: _tabs),
+              isManager
+                  ? _TabBar(
+                      controller: _tabs,
+                      labels: const ['Profile', 'Attendance', 'Leave', 'Performance'],
+                    )
+                  : _TabBar(
+                      controller: _tabs,
+                      labels: const ['Profile', 'QR Code', 'Attendance', 'Leave', 'Payroll', 'Loans', 'Performance'],
+                    ),
               Expanded(
                 child: TabBarView(
                   controller: _tabs,
-                  children: [
-                    _ProfileTab(employee: employee),
-                    _QRTab(employee: employee),
-                    _AttendanceTab(employeeId: widget.employeeId),
-                    _LeaveProfileTab(employee: employee),
-                    _PayrollProfileTab(employee: employee),
-                    _LoansTab(employee: employee),
-                    _PerformanceTab(employee: employee),
-                  ],
+                  children: isManager
+                      ? [
+                          _ProfileTab(employee: employee, hideSalary: true),
+                          _AttendanceTab(employeeId: widget.employeeId),
+                          _LeaveProfileTab(employee: employee),
+                          _PerformanceTab(employee: employee),
+                        ]
+                      : [
+                          _ProfileTab(employee: employee),
+                          _QRTab(employee: employee),
+                          _AttendanceTab(employeeId: widget.employeeId),
+                          _LeaveProfileTab(employee: employee),
+                          _PayrollProfileTab(employee: employee),
+                          _LoansTab(employee: employee),
+                          _PerformanceTab(employee: employee),
+                        ],
                 ),
               ),
             ],
@@ -147,8 +168,9 @@ class _Pill extends StatelessWidget {
 //  Tab bar
 // ─────────────────────────────────────────────────────────────────────────────
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.controller});
+  const _TabBar({required this.controller, required this.labels});
   final TabController controller;
+  final List<String> labels;
 
   @override
   Widget build(BuildContext context) {
@@ -164,10 +186,7 @@ class _TabBar extends StatelessWidget {
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: context.appBg,
-        tabs: const [
-          Tab(text: 'Profile'), Tab(text: 'QR Code'), Tab(text: 'Attendance'),
-          Tab(text: 'Leave'), Tab(text: 'Payroll'), Tab(text: 'Loans'), Tab(text: 'Performance'),
-        ],
+        tabs: [for (final l in labels) Tab(text: l)],
       ),
     );
   }
@@ -177,8 +196,9 @@ class _TabBar extends StatelessWidget {
 //  Profile tab
 // ─────────────────────────────────────────────────────────────────────────────
 class _ProfileTab extends ConsumerWidget {
-  const _ProfileTab({required this.employee});
+  const _ProfileTab({required this.employee, this.hideSalary = false});
   final EmployeeModel employee;
+  final bool hideSalary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -296,11 +316,13 @@ class _ProfileTab extends ConsumerWidget {
           ]),
         ),
         const SizedBox(height: 16),
-        // ── 3-column quick stats ──────────────────────────────────────────────
+        // ── Quick stats ───────────────────────────────────────────────────────
         Row(children: [
-          Expanded(child: _QuickStat(Icons.account_balance_wallet_rounded, 'Salary',
-              _fmtRwf(employee.grossSalary), AppColors.primaryBlue)),
-          const SizedBox(width: 12),
+          if (!hideSalary) ...[
+            Expanded(child: _QuickStat(Icons.account_balance_wallet_rounded, 'Salary',
+                _fmtRwf(employee.grossSalary), AppColors.primaryBlue)),
+            const SizedBox(width: 12),
+          ],
           Expanded(child: _QuickStat(Icons.badge_rounded, 'Contract',
               _ctLabel(employee.contractType), AppColors.successGreen)),
           const SizedBox(width: 12),
@@ -344,19 +366,20 @@ class _ProfileTab extends ConsumerWidget {
           // Right: Salary + Leave
           Expanded(
             child: Column(children: [
-              _Section(
-                title: 'Salary & Compensation',
-                icon: Icons.payments_outlined,
-                children: [
-                  _Field('Salary Type', _stLabel(employee.salaryType)),
-                  if (employee.salaryType == 'fixed_monthly') _Field('Monthly Salary', _fmtRwf(employee.salaryAmount)),
-                  if (employee.salaryType == 'daily_rate') _Field('Daily Rate', _fmtRwf(employee.dailyRate)),
-                  if (employee.salaryType == 'hourly_rate') _Field('Hourly Rate', _fmtRwf(employee.hourlyRate)),
-                  _Field('Transport Allowance', _fmtRwf(employee.transportAllowance)),
-                  _Field('Housing Allowance', _fmtRwf(employee.housingAllowance)),
-                  _Field('Bank Account', employee.bankAccount.isEmpty ? '—' : employee.bankAccount),
-                ],
-              ),
+              if (!hideSalary)
+                _Section(
+                  title: 'Salary & Compensation',
+                  icon: Icons.payments_outlined,
+                  children: [
+                    _Field('Salary Type', _stLabel(employee.salaryType)),
+                    if (employee.salaryType == 'fixed_monthly') _Field('Monthly Salary', _fmtRwf(employee.salaryAmount)),
+                    if (employee.salaryType == 'daily_rate') _Field('Daily Rate', _fmtRwf(employee.dailyRate)),
+                    if (employee.salaryType == 'hourly_rate') _Field('Hourly Rate', _fmtRwf(employee.hourlyRate)),
+                    _Field('Transport Allowance', _fmtRwf(employee.transportAllowance)),
+                    _Field('Housing Allowance', _fmtRwf(employee.housingAllowance)),
+                    _Field('Bank Account', employee.bankAccount.isEmpty ? '—' : employee.bankAccount),
+                  ],
+                ),
               const SizedBox(height: 14),
               _Section(
                 title: 'Leave Balances',
@@ -1261,7 +1284,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                       : '—',
                   style:
                       TextStyle(color: context.appText, fontSize: 14))),
-          Expanded(flex: 10, child: _StatusChip(status)),
+          Expanded(flex: 10, child: Align(alignment: Alignment.centerLeft, child: _StatusChip(status))),
         ]),
       ));
       rows.add(Divider(height: 1, color: context.appBorder));
@@ -1426,11 +1449,26 @@ class _LeaveProfileTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(employeeLeaveRequestsProvider(employee.id));
 
-    // Compute actual used days from approved leave requests
+    return requestsAsync.when(
+      loading: () => const Center(child: Padding(
+        padding: EdgeInsets.all(40),
+        child: CircularProgressIndicator(color: AppColors.primaryBlue),
+      )),
+      error: (e, _) => Center(child: Text('Error: $e',
+          style: const TextStyle(color: AppColors.errorRed))),
+      data: (requests) => _buildContent(context, ref, requests),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, WidgetRef ref, List<LeaveRequestModel> requests) {
+    // Compute used days from approved requests
     final usedMap = <String, int>{};
-    for (final r in requestsAsync.valueOrNull ?? []) {
+    for (final r in requests) {
       if (r.status == 'approved') {
-        usedMap[r.leaveType] = (usedMap[r.leaveType] ?? 0) + r.totalDays as int;
+        final days = r.totalDays > 0
+            ? r.totalDays
+            : r.endDate.difference(r.startDate).inDays + 1;
+        usedMap[r.leaveType] = (usedMap[r.leaveType] ?? 0) + days;
       }
     }
 
@@ -1458,7 +1496,7 @@ class _LeaveProfileTab extends ConsumerWidget {
             ..._balances.map((t) {
               final total = t.$5;
               final used  = usedMap[t.$1] ?? 0;
-              final remaining = (total - used).clamp(0, total) as int;
+              final remaining = (total - used).clamp(0, total);
               final pct = total > 0 ? (remaining / total).clamp(0.0, 1.0) : 0.0;
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
@@ -1517,18 +1555,14 @@ class _LeaveProfileTab extends ConsumerWidget {
               Text('Leave History',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
               const Spacer(),
-              requestsAsync.when(
-                data: (r) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.pillBlueBg,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text('${r.length} request${r.length != 1 ? "s" : ""}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.pillBlueBg,
+                  borderRadius: BorderRadius.circular(100),
                 ),
-                loading: () => const SizedBox(),
-                error: (_, __) => const SizedBox(),
+                child: Text('${requests.length} request${requests.length != 1 ? "s" : ""}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
               ),
             ]),
             const SizedBox(height: 12),
@@ -1547,17 +1581,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                 Expanded(flex: 2, child: _hTxt('STATUS', context)),
               ]),
             ),
-            requestsAsync.when(
-              loading: () => Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: context.appCard,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                ),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Text('Error: $e', style: const TextStyle(color: AppColors.textSecondary)),
-              data: (requests) => requests.isEmpty
+            requests.isEmpty
                   ? Container(
                       width: double.infinity,
                       constraints: const BoxConstraints(minHeight: 220),
@@ -1585,7 +1609,6 @@ class _LeaveProfileTab extends ConsumerWidget {
                         ])).toList(),
                       ),
                     ),
-            ),
           ]),
         ),
       ]),

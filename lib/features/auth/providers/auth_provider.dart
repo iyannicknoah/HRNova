@@ -43,6 +43,14 @@ final currentEmployeeIdProvider = Provider<String?>((ref) {
   return ref.watch(userClaimsProvider).value?['employeeId'] as String?;
 });
 
+// For managers: returns branchId (multi-branch) or null (single-company).
+// Use this to scope manager queries to their branch.
+final managerScopeProvider = Provider<String?>((ref) {
+  final role = ref.watch(currentUserRoleProvider);
+  if (role != 'manager') return null;
+  return ref.watch(currentBranchIdProvider);
+});
+
 // ── Theme notifier — persists in SharedPreferences ─────────────────────────
 class ThemeNotifier extends StateNotifier<ThemeMode> {
   ThemeNotifier(super.initialMode);

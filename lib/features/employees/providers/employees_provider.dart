@@ -19,9 +19,12 @@ final employeesProvider = StreamProvider.autoDispose<List<EmployeeModel>>((ref) 
   final role = ref.watch(currentUserRoleProvider);
   final branchId = ref.watch(currentBranchIdProvider);
 
-  // Branch HR admin: filter by branchId only (no whereNotIn to avoid composite index),
-  // exclude deleted client-side.
-  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+  // Branch HR admin or manager: filter by branchId.
+  // Manager with no branchId (single-company) sees everyone.
+  final scopeByBranch = (role == AppConstants.roleBranchHrAdmin ||
+          role == AppConstants.roleManager) &&
+      branchId != null;
+  if (scopeByBranch) {
     return FirebaseService.employeesRef(companyId)
         .where('branchId', isEqualTo: branchId)
         .orderBy('firstName')
@@ -174,9 +177,12 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
 
       // Create a Firebase Auth account for every role that has an email
       final email = data['email'] as String?;
+      final customPassword = data['password'] as String?;
       String? tempPassword;
       if (email != null && email.isNotEmpty) {
-        tempPassword = '${companyId.substring(0, 4)}@${docId.substring(0, 6)}';
+        tempPassword = customPassword != null && customPassword.isNotEmpty
+            ? customPassword
+            : '${companyId.substring(0, 4)}@${docId.substring(0, 6)}';
         try {
           await ApiService().post('/api/auth/create-user', data: {
             'email': email,

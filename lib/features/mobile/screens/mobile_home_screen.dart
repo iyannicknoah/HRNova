@@ -162,7 +162,7 @@ class _HomeContent extends ConsumerWidget {
         .where((l) =>
             l.status == 'approved' &&
             l.leaveType == AppConstants.leaveTypeAnnual)
-        .fold(0, (s, l) => s + l.totalDays);
+        .fold(0, (s, l) => s + (l.totalDays > 0 ? l.totalDays : l.endDate.difference(l.startDate).inDays + 1));
     final annualBalance =
         (AppConstants.annualLeaveDaysPerYear - usedAnnual)
             .clamp(0, AppConstants.annualLeaveDaysPerYear);
@@ -808,7 +808,7 @@ class _LeaveContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final leaveAsync = ref.watch(employeeLeaveRequestsProvider(emp.id));
-    final leaves = leaveAsync.value ?? [];
+    final leaves = leaveAsync.valueOrNull ?? [];
 
     return SafeArea(
       child: ListView(
@@ -846,7 +846,7 @@ class _LeaveContent extends ConsumerWidget {
           Builder(builder: (_) {
             int usedOf(String type) => leaves
                 .where((l) => l.status == 'approved' && l.leaveType == type)
-                .fold(0, (s, l) => s + l.totalDays);
+                .fold(0, (s, l) => s + (l.totalDays > 0 ? l.totalDays : l.endDate.difference(l.startDate).inDays + 1));
             final annualUsed = usedOf(AppConstants.leaveTypeAnnual);
             final sickUsed = usedOf(AppConstants.leaveTypeSick);
             final maternityUsed = usedOf(AppConstants.leaveTypeMaternity);

@@ -33,18 +33,6 @@ class MobileOnboardingScreen extends StatelessWidget {
                 ),
                 onTap: () => context.go('/login'),
               ),
-              const SizedBox(height: 16),
-              _RoleCard(
-                icon: Icons.security_rounded,
-                title: 'Guard / Security',
-                subtitle: 'Scan employee QR codes\nand record attendance',
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                onTap: () => context.go('/login'),
-              ),
               const Spacer(flex: 3),
               const Text(
                 'v1.0.0 · HRNova Rwanda',

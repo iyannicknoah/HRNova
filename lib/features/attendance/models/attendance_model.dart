@@ -7,7 +7,6 @@ class AttendanceModel {
     this.checkInTime,
     this.checkOutTime,
     this.verificationType = 'manual',
-    this.guardUid,
     this.branchId,
     this.checkInPhotoUrl,
     this.checkOutPhotoUrl,
@@ -26,7 +25,6 @@ class AttendanceModel {
   final DateTime? checkInTime;
   final DateTime? checkOutTime;
   final String verificationType;
-  final String? guardUid;
   final String? branchId;
   final String? checkInPhotoUrl;
   final String? checkOutPhotoUrl;
@@ -46,7 +44,6 @@ class AttendanceModel {
       checkInTime: map['checkInTime'] != null ? _parseDate(map['checkInTime']) : null,
       checkOutTime: map['checkOutTime'] != null ? _parseDate(map['checkOutTime']) : null,
       verificationType: map['verificationType'] as String? ?? 'manual',
-      guardUid: map['guardUid'] as String?,
       branchId: map['branchId'] as String?,
       checkInPhotoUrl: map['checkInPhotoUrl'] as String?,
       checkOutPhotoUrl: map['checkOutPhotoUrl'] as String?,
@@ -67,7 +64,6 @@ class AttendanceModel {
       if (checkInTime != null) 'checkInTime': checkInTime!.toIso8601String(),
       if (checkOutTime != null) 'checkOutTime': checkOutTime!.toIso8601String(),
       'verificationType': verificationType,
-      if (guardUid != null) 'guardUid': guardUid,
       if (branchId != null) 'branchId': branchId,
       if (checkInPhotoUrl != null) 'checkInPhotoUrl': checkInPhotoUrl,
       if (checkOutPhotoUrl != null) 'checkOutPhotoUrl': checkOutPhotoUrl,

@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 
     let query = employeesRef(companyId).where('status', '!=', 'deleted');
 
-    if (role === 'branch_hr_admin' && branchId) {
+    if ((role === 'branch_hr_admin' || role === 'manager') && branchId) {
       query = employeesRef(companyId)
         .where('branchId', '==', branchId)
         .where('status', '!=', 'deleted');
@@ -116,8 +116,10 @@ router.post('/', requireRole('hr_admin', 'group_hr_admin', 'branch_hr_admin', 's
           role: empRole || 'employee',
           employeeId: docId,
         };
-        // Guards get a branchId claim if one was provided
-        if ((empRole === 'guard') && rest.branchId) {
+        // Propagate companyType so Flutter can detect multi-branch
+        if (settings.companyType) claims.companyType = settings.companyType;
+        // Manager in multi-branch: set branchId claim so they only see their branch
+        if (empRole === 'manager' && rest.branchId) {
           claims.branchId = rest.branchId;
         }
         await getAuth().setCustomUserClaims(authUser.uid, claims);

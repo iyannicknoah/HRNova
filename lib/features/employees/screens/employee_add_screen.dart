@@ -23,8 +23,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
   bool _initialized = false;
-  Uint8List? _photoBytes;
-  String? _existingPhotoUrl;
 
   late final TextEditingController _firstName;
   late final TextEditingController _lastName;
@@ -44,12 +42,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   late final TextEditingController _housing;
   late final TextEditingController _bank;
   late final TextEditingController _notes;
+  late final TextEditingController _password;
 
   String _dept = '';
   String _contract = AppConstants.contractTypePermanent;
   String _salaryType = AppConstants.salaryTypeFixedMonthly;
   String _role = AppConstants.roleEmployee;
   String? _branchId;
+  bool _obscurePassword = true;
 
   bool get isEdit => widget.editId != null;
 
@@ -74,6 +74,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     _housing    = TextEditingController();
     _bank       = TextEditingController();
     _notes      = TextEditingController();
+    _password   = TextEditingController();
   }
 
   @override
@@ -81,7 +82,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     for (final c in [
       _firstName, _lastName, _nationalId, _phone, _email, _dob,
       _emergency, _jobTitle, _rssb, _startDate, _endDate, _salaryAmt,
-      _dailyRate, _hourlyRate, _transport, _housing, _bank, _notes,
+      _dailyRate, _hourlyRate, _transport, _housing, _bank, _notes, _password,
     ]) {
       c.dispose();
     }
@@ -114,7 +115,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     _salaryType      = e.salaryType;
     _role            = e.role;
     _branchId        = e.branchId;
-    _existingPhotoUrl = e.profilePhotoUrl;
   }
 
   void _initForAdd(List<String> departments, {String? autoBranchId, String defaultRole = AppConstants.roleEmployee}) {
@@ -123,11 +123,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     if (departments.isNotEmpty) _dept = departments.first;
     if (autoBranchId != null) _branchId = autoBranchId;
     _role = defaultRole;
-  }
-
-  Future<void> _pickPhoto() async {
-    final bytes = await pickPhoto();
-    if (bytes != null && mounted) setState(() => _photoBytes = bytes);
   }
 
   Future<void> _save() async {
@@ -140,6 +135,18 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     }
     setState(() => _saving = true);
     try {
+      final userRole = ref.read(currentUserRoleProvider);
+      // Validate branch required for group HR
+      if (userRole == AppConstants.roleGroupHrAdmin && _branchId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please assign a branch for this employee.')),
+        );
+        setState(() => _saving = false);
+        return;
+      }
+      // Password field shown for manager role in add mode; send it if filled
+      final showsPassword = !isEdit && _role == AppConstants.roleManager;
+
       final data = <String, dynamic>{
         'firstName': _firstName.text.trim(),
         'lastName': _lastName.text.trim(),
@@ -160,6 +167,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         'housingAllowance': double.tryParse(_housing.text.trim()) ?? 0,
         'bankAccount': _bank.text.trim(),
         'role': _role,
+        if (showsPassword && _password.text.trim().isNotEmpty) 'password': _password.text.trim(),
       };
       if (_branchId != null) data['branchId'] = _branchId;
       if (_dob.text.isNotEmpty) data['dateOfBirth'] = _dob.text.trim();
@@ -169,7 +177,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
 
       final notifier = ref.read(employeesNotifierProvider.notifier);
       if (isEdit) {
-        await notifier.updateEmployee(widget.editId!, data, photoBytes: _photoBytes);
+        await notifier.updateEmployee(widget.editId!, data);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Employee updated successfully'),
@@ -178,11 +186,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
           context.pop();
         }
       } else {
-        final (_, tempPassword) = await notifier.addEmployee(data: data, photoBytes: _photoBytes);
+        final (_, tempPassword) = await notifier.addEmployee(data: data);
         if (mounted) {
           final email = (data['email'] as String?) ?? '';
-          if (tempPassword != null && email.isNotEmpty) {
-            await _showCredentialsDialog(email, tempPassword);
+          final shownPassword = (data['password'] as String?) ?? tempPassword;
+          if (shownPassword != null && email.isNotEmpty) {
+            await _showCredentialsDialog(email, shownPassword);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Employee added successfully'),
@@ -344,43 +353,6 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                       _field('RSSB Number', _rssb),
                     ]),
                     const SizedBox(height: 24),
-                    _buildSection('Profile Photo', [
-                      Row(children: [
-                        Container(
-                          width: 72, height: 72,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: context.appField,
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: _photoBytes != null
-                              ? Image.memory(_photoBytes!, fit: BoxFit.cover)
-                              : _existingPhotoUrl != null
-                                  ? Image.network(_existingPhotoUrl!, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(Icons.person_outline, size: 32, color: context.appSubtext))
-                                  : Icon(Icons.person_outline, size: 32, color: context.appSubtext),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.primaryBlue),
-                              foregroundColor: AppColors.primaryBlue,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                            ),
-                            onPressed: _pickPhoto,
-                            icon: const Icon(Icons.upload_outlined, size: 16),
-                            label: const Text('Upload Photo'),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _photoBytes != null ? 'Photo ready to upload' : 'JPEG or PNG, max 5 MB',
-                            style: TextStyle(fontSize: 14, color: context.appSubtext),
-                          ),
-                        ]),
-                      ]),
-                    ]),
-                    const SizedBox(height: 24),
                     _buildSection('Salary & Allowances', [
                       _dropField('Salary Type', _salaryType,
                         AppConstants.salaryTypes.map((s) => DropdownMenuItem(value: s, child: Text(_stLabel(s)))).toList(),
@@ -398,24 +370,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                       _field('Bank Account Number', _bank),
                     ]),
                     const SizedBox(height: 24),
-                    _buildSection('System Access', [
-                      _dropField('Role', _role,
-                        _buildRoleItems(userRole ?? AppConstants.roleEmployee, isMultiBranch),
-                        (v) => setState(() => _role = v ?? _role)),
-                      Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(10)),
-                        child: const Row(children: [
-                          Icon(Icons.info_outline, size: 16, color: AppColors.primaryBlue),
-                          SizedBox(width: 8),
-                          Expanded(child: Text(
-                            'If an email is provided, a temporary password is auto-generated so the employee can log in to the app.',
-                            style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
-                          )),
-                        ]),
-                      ),
-                    ]),
+                    _buildSection('System Access', _buildSystemAccessFields(isEdit)),
                     const SizedBox(height: 24),
                     _buildSection('Notes', [
                       _field('Additional Notes', _notes, hint: 'Any additional information…', maxLines: 3),
@@ -655,6 +610,65 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     ]);
   }
 
+  List<Widget> _buildSystemAccessFields(bool isEdit) {
+    final userRole = ref.read(currentUserRoleProvider);
+    final isMultiBranch = ref.read(currentCompanyTypeProvider) == AppConstants.companyMultiBranch;
+    final showPassword = !isEdit && _role == AppConstants.roleManager;
+    final fields = <Widget>[
+      _dropField('Role', _role,
+        _buildRoleItems(userRole ?? AppConstants.roleEmployee, isMultiBranch),
+        (v) => setState(() { _role = v ?? _role; _password.clear(); })),
+    ];
+    if (showPassword) {
+      fields.add(_passwordField());
+    } else {
+      fields.add(Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(10)),
+        child: const Row(children: [
+          Icon(Icons.info_outline, size: 16, color: AppColors.primaryBlue),
+          SizedBox(width: 8),
+          Expanded(child: Text(
+            'If an email is provided, a temporary password is auto-generated so the employee can log in to the app.',
+            style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
+          )),
+        ]),
+      ));
+    }
+    return fields;
+  }
+
+  Widget _passwordField() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Login Password',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: _password,
+        obscureText: _obscurePassword,
+        style: const TextStyle(fontSize: 15),
+        decoration: InputDecoration(
+          hintText: 'Leave blank to auto-generate',
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
+          filled: true, fillColor: context.appField,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          suffixIcon: IconButton(
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                size: 18, color: context.appSubtext),
+          ),
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text('Leave blank to auto-generate a password. You will see it after saving.',
+          style: TextStyle(fontSize: 13, color: context.appSubtext)),
+    ]);
+  }
+
   List<DropdownMenuItem<String>> _buildRoleItems(String userRole, bool isMultiBranch) {
     if (isMultiBranch && userRole == AppConstants.roleGroupHrAdmin) {
       return const [
@@ -662,12 +676,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         DropdownMenuItem(value: 'manager', child: Text('Manager')),
       ];
     }
-    if (isMultiBranch && userRole == AppConstants.roleBranchHrAdmin) {
+    // Branch HR admin can never create another HR admin
+    if (userRole == AppConstants.roleBranchHrAdmin) {
       return const [
         DropdownMenuItem(value: 'employee', child: Text('Employee')),
         DropdownMenuItem(value: 'manager', child: Text('Manager')),
         DropdownMenuItem(value: 'director', child: Text('Director')),
         DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
+        DropdownMenuItem(value: 'administration', child: Text('Administration')),
       ];
     }
     return const [
@@ -675,6 +691,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       DropdownMenuItem(value: 'manager', child: Text('Manager')),
       DropdownMenuItem(value: 'director', child: Text('Director')),
       DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
+      DropdownMenuItem(value: 'administration', child: Text('Administration')),
       DropdownMenuItem(value: 'hr_admin', child: Text('HR Admin')),
     ];
   }

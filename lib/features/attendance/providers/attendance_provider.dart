@@ -26,7 +26,7 @@ final attendanceByDateProvider = StreamProvider.autoDispose
 
   var q = FirebaseService.attendanceRef(companyId)
       .where('date', isEqualTo: dateStr);
-  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+  if ((role == AppConstants.roleBranchHrAdmin || role == AppConstants.roleManager) && branchId != null) {
     q = q.where('branchId', isEqualTo: branchId);
   }
   return q.snapshots().map((s) =>
@@ -52,7 +52,7 @@ final attendanceByMonthProvider = StreamProvider.autoDispose
   var q = FirebaseService.attendanceRef(companyId)
       .where('date', isGreaterThanOrEqualTo: start)
       .where('date', isLessThan: end);
-  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+  if ((role == AppConstants.roleBranchHrAdmin || role == AppConstants.roleManager) && branchId != null) {
     q = q.where('branchId', isEqualTo: branchId);
   }
   return q.snapshots().map((s) =>
@@ -99,7 +99,7 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
     return (int.tryParse(parts[0]) ?? defaultH, int.tryParse(parts[1]) ?? 0);
   }
 
-  // Check in — called from guard mode (QR scan) or manual
+  // Check in — QR scan or manual
   Future<AttendanceModel> checkIn({
     required String employeeId,
     String? branchId,
@@ -135,7 +135,6 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
           if (branchId != null) 'branchId': branchId,
           'date': dateStr,
           'verificationType': isManual ? 'manual' : 'qr_scan',
-          if (!isManual) 'guardUid': _uid,
           'isLate': false,
           'lateMinutes': 0,
           'isAbsent': true,
@@ -161,7 +160,6 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
         'date': dateStr,
         'checkInTime': now.toIso8601String(),
         'verificationType': isManual ? 'manual' : 'qr_scan',
-        if (!isManual) 'guardUid': _uid,
         'isLate': isLate,
         'lateMinutes': lateMinutes,
         'isAbsent': false,
@@ -182,7 +180,7 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  // Check out — called from guard mode after detecting already-checked-in employee
+  // Check out — updates checkOutTime and computes working hours
   Future<void> checkOut({
     required String employeeId,
     DateTime? time,
@@ -312,7 +310,6 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  // Fetch today's record for a single employee (used by guard mode)
   Future<AttendanceModel?> getTodayRecord(String employeeId) async {
     final companyId = _companyId;
     if (companyId == null) return null;

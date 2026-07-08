@@ -7,7 +7,10 @@ import '../../../core/theme/theme_ext.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
+import '../../leave/models/leave_request_model.dart';
+import '../../performance/providers/performance_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../reports/providers/reports_provider.dart';
 
@@ -16,6 +19,10 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(currentUserRoleProvider);
+    if (role == AppConstants.roleManager) {
+      return const _ManagerDashboard();
+    }
     return Scaffold(
       backgroundColor: context.appBg,
       body: SingleChildScrollView(
@@ -611,6 +618,419 @@ class _DeptBar extends StatelessWidget {
           );
         }),
       ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MANAGER DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ManagerDashboard extends ConsumerWidget {
+  const _ManagerDashboard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      backgroundColor: context.appBg,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ManagerHeader(),
+            const SizedBox(height: 24),
+            _ManagerKpiRow(),
+            const SizedBox(height: 24),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: _AttendanceTable()),
+                const SizedBox(width: 20),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      _ManagerPendingLeavePanel(),
+                      const SizedBox(height: 20),
+                      _ManagerPerformanceCard(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ManagerHeader extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
+    final today = DateFormat('EEEE, d MMMM yyyy').format(DateTime.now());
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'My Team Dashboard',
+              style: TextStyle(
+                color: context.appText,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(today, style: TextStyle(color: context.appSubtext, fontSize: 15)),
+          ],
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(100)),
+          child: Row(children: [
+            const Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 16),
+            const SizedBox(width: 6),
+            Text(companyName, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ],
+    );
+  }
+}
+
+class _ManagerKpiRow extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final employeesAsync = ref.watch(employeesProvider);
+    final recordsAsync = ref.watch(attendanceByDateProvider(today));
+    final onLeave = ref.watch(approvedLeavesTodayProvider).value ?? 0;
+
+    final totalActive = employeesAsync.value?.where((e) => e.isActive).length ?? 0;
+    final records = recordsAsync.value ?? [];
+    final present = records.where((r) => r.checkInTime != null && !r.isLate && !r.isOnLeave).length;
+    final late    = records.where((r) => r.isLate && r.checkInTime != null).length;
+    final absent  = (totalActive - present - late - onLeave).clamp(0, totalActive);
+
+    final kpis = [
+      _KpiData('Present', '${present + late}', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg, null),
+      _KpiData('Late', '$late', Icons.schedule_rounded, AppColors.warningAmber, AppColors.pillAmberBg, null),
+      _KpiData('Absent', '$absent', Icons.cancel_rounded, AppColors.errorRed, AppColors.pillRedBg, null),
+      _KpiData('On Leave', '$onLeave', Icons.beach_access_rounded, AppColors.primaryBlue, AppColors.pillBlueBg, null),
+    ];
+
+    return Row(
+      children: List.generate(kpis.length, (i) => Expanded(
+        child: Padding(
+          padding: EdgeInsets.only(right: i < kpis.length - 1 ? 14 : 0),
+          child: _KpiCard(data: kpis[i]),
+        ),
+      )),
+    );
+  }
+}
+
+// ── Manager pending leave panel ───────────────────────────────────────────────
+
+class _ManagerPendingLeavePanel extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(pendingLeaveRequestsProvider);
+    final pending = pendingAsync.value ?? [];
+
+    return Container(
+      decoration: context.cardDeco(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+            child: Row(children: [
+              Text('Pending Leave', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              if (pending.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.warningAmber.withAlpha(30), borderRadius: BorderRadius.circular(100)),
+                  child: Text('${pending.length}', style: const TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => context.push('/leave'),
+                child: const Text('View All', style: TextStyle(color: AppColors.primaryBlue, fontSize: 14)),
+              ),
+            ]),
+          ),
+          Divider(color: context.appBorder, height: 1),
+          if (pendingAsync.isLoading)
+            const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator()))
+          else if (pending.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(child: Text('No pending requests', style: TextStyle(color: context.appSubtext, fontSize: 14))),
+            )
+          else
+            ...pending.take(5).map((req) => _PendingLeaveRow(req: req)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingLeaveRow extends ConsumerStatefulWidget {
+  const _PendingLeaveRow({required this.req});
+  final LeaveRequestModel req;
+
+  @override
+  ConsumerState<_PendingLeaveRow> createState() => _PendingLeaveRowState();
+}
+
+class _PendingLeaveRowState extends ConsumerState<_PendingLeaveRow> {
+  bool _loading = false;
+
+  String _fmt(DateTime d) => DateFormat('MMM d').format(d);
+
+  Future<void> _approve() async {
+    setState(() => _loading = true);
+    final err = await ref.read(leaveNotifierProvider.notifier).approveLeaveGuarded(widget.req);
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    }
+  }
+
+  Future<void> _reject() async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => _RejectReasonDialog(employeeName: widget.req.employeeName),
+    );
+    if (reason == null || !mounted) return;
+    setState(() => _loading = true);
+    final err = await ref.read(leaveNotifierProvider.notifier).rejectLeaveGuarded(widget.req, reason);
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final req = widget.req;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: context.appBorder))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 30, height: 30,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: AppColors.gradientForName(req.employeeName), begin: Alignment.topLeft, end: Alignment.bottomRight),
+                shape: BoxShape.circle,
+              ),
+              child: Center(child: Text(req.employeeName.isNotEmpty ? req.employeeName[0] : '?', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700))),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(req.employeeName, style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                  Text(
+                    '${req.leaveType.replaceAll('_', ' ')} · ${_fmt(req.startDate)} – ${_fmt(req.endDate)} (${req.totalDays}d)',
+                    style: TextStyle(color: context.appSubtext, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          if (_loading)
+            const SizedBox(height: 28, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
+          else
+            Row(children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _approve,
+                  child: Container(
+                    height: 30,
+                    decoration: BoxDecoration(color: AppColors.successGreen.withAlpha(20), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.successGreen.withAlpha(60))),
+                    child: const Center(child: Text('Approve', style: TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w600))),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _reject,
+                  child: Container(
+                    height: 30,
+                    decoration: BoxDecoration(color: AppColors.errorRed.withAlpha(20), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.errorRed.withAlpha(60))),
+                    child: const Center(child: Text('Reject', style: TextStyle(color: AppColors.errorRed, fontSize: 13, fontWeight: FontWeight.w600))),
+                  ),
+                ),
+              ),
+            ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _RejectReasonDialog extends StatefulWidget {
+  const _RejectReasonDialog({required this.employeeName});
+  final String employeeName;
+
+  @override
+  State<_RejectReasonDialog> createState() => _RejectReasonDialogState();
+}
+
+class _RejectReasonDialogState extends State<_RejectReasonDialog> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF0D1628),
+      title: Text('Reject ${widget.employeeName}\'s Leave', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Reason for rejection',
+          hintStyle: const TextStyle(color: Color(0xFF6B7A99)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1A2E4A))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue)),
+          filled: true, fillColor: const Color(0xFF070E1C),
+        ),
+        maxLines: 3,
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7A99)))),
+        TextButton(
+          onPressed: () {
+            final r = _ctrl.text.trim();
+            if (r.isEmpty) return;
+            Navigator.pop(context, r);
+          },
+          child: const Text('Reject', style: TextStyle(color: AppColors.errorRed)),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Manager performance card ──────────────────────────────────────────────────
+
+class _ManagerPerformanceCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final month = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final perfAsync = ref.watch(performanceByMonthProvider(month));
+    final employeesAsync = ref.watch(employeesProvider);
+
+    final scores = perfAsync.value ?? [];
+    final employees = employeesAsync.value?.where((e) => e.isActive).toList() ?? [];
+    final total = employees.length;
+    final scored = scores.length;
+    final avgScore = scored > 0
+        ? scores.map((s) => s.overallScore).reduce((a, b) => a + b) / scored
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: context.cardDeco(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(color: const Color(0xFF9B59B6).withAlpha(25), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.trending_up_rounded, color: Color(0xFF9B59B6), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Performance', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(DateFormat('MMMM yyyy').format(now), style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    avgScore > 0 ? avgScore.toStringAsFixed(1) : '—',
+                    style: TextStyle(color: context.appText, fontSize: 32, fontWeight: FontWeight.w700),
+                  ),
+                  Text('Avg Score / 5.0', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('$scored / $total', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w600)),
+                  Text('Employees scored', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Progress bar
+          LayoutBuilder(builder: (ctx, c) {
+            final pct = total > 0 ? scored / total : 0.0;
+            return Stack(children: [
+              Container(height: 6, width: c.maxWidth, decoration: BoxDecoration(color: context.appTint, borderRadius: BorderRadius.circular(100))),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 600),
+                height: 6,
+                width: c.maxWidth * pct,
+                decoration: BoxDecoration(color: const Color(0xFF9B59B6), borderRadius: BorderRadius.circular(100)),
+              ),
+            ]);
+          }),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => context.push('/performance'),
+              icon: const Icon(Icons.star_rounded, size: 18),
+              label: const Text('Score Employees'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9B59B6),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

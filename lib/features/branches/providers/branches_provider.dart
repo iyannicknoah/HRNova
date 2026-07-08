@@ -33,19 +33,16 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
 
   final Ref _ref;
 
-  Future<void> addBranch({
+  Future<String> addBranch({
     required String name,
     String location = '',
     String branchCode = '',
-    String? adminEmail,
-    String? adminPassword,
   }) async {
     state = const AsyncValue.loading();
     try {
       final companyId = _ref.read(currentCompanyIdProvider);
       if (companyId == null) throw Exception('No company ID found.');
 
-      // 1. Always write branch to Firestore directly
       final branchRef = FirebaseService.branchesRef(companyId).doc();
       await branchRef.set({
         'name': name,
@@ -57,26 +54,99 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Create branch HR admin account if credentials provided (non-fatal)
-      if (adminEmail != null && adminEmail.isNotEmpty &&
-          adminPassword != null && adminPassword.isNotEmpty) {
-        try {
-          await ApiService().post('/api/auth/create-user', data: {
-            'email': adminEmail,
-            'password': adminPassword,
-            'displayName': '$name Admin',
-            'companyId': companyId,
-            'role': 'branch_hr_admin',
-            'branchId': branchRef.id,
-          });
-        } catch (_) {
-          // Auth creation is best-effort — branch is already saved in Firestore
-        }
-      }
-
       state = const AsyncValue.data(null);
+      return branchRef.id;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  /// Assigns an existing branch_hr_admin employee to a branch.
+  /// Validates they aren't already assigned elsewhere.
+  Future<void> assignExistingHrToBranch(String branchId, {
+    required String employeeId,
+    required String employeeEmail,
+    required String? existingBranchId,
+  }) async {
+    final companyId = _ref.read(currentCompanyIdProvider);
+    if (companyId == null) throw Exception('Not authenticated.');
+    if (existingBranchId != null && existingBranchId.isNotEmpty) {
+      throw Exception('This HR admin is already assigned to another branch.');
+    }
+    // Update Firebase claims to add branchId
+    await ApiService().post('/api/auth/update-branch-claim', data: {
+      'email': employeeEmail,
+      'branchId': branchId,
+    });
+    // Update employee doc
+    await FirebaseService.employeesRef(companyId).doc(employeeId).update({
+      'branchId': branchId,
+    });
+    // Update branch doc
+    await FirebaseService.branchesRef(companyId).doc(branchId).update({
+      'branchHrAdminEmail': employeeEmail,
+    });
+  }
+
+  /// Creates a new HR admin employee and assigns them to the branch.
+  Future<void> addNewHrToBranch(String branchId, {
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+  }) async {
+    final companyId = _ref.read(currentCompanyIdProvider);
+    if (companyId == null) throw Exception('Not authenticated.');
+
+    final empRef = FirebaseService.employeesRef(companyId).doc();
+    final empId = empRef.id;
+
+    await empRef.set({
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'role': 'branch_hr_admin',
+      'branchId': branchId,
+      'companyId': companyId,
+      'department': 'Administration',
+      'jobTitle': 'HR Admin',
+      'contractType': 'permanent',
+      'salaryType': 'fixed_monthly',
+      'salaryAmount': 0,
+      'dailyRate': 0,
+      'hourlyRate': 0,
+      'transportAllowance': 0,
+      'housingAllowance': 0,
+      'status': 'active',
+      'loans': [],
+      'leaveBalances': {'annual': 18, 'sick': 10, 'maternity': 84, 'paternity': 4},
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    try {
+      final resp = await ApiService().post('/api/auth/create-user', data: {
+        'email': email,
+        'password': password,
+        'displayName': '$firstName $lastName',
+        'companyId': companyId,
+        'role': 'branch_hr_admin',
+        'branchId': branchId,
+        'employeeId': empId,
+      });
+      final uid = resp.data?['uid'] as String?;
+      if (uid != null) {
+        await empRef.update({'uid': uid});
+        await FirebaseService.branchesRef(companyId).doc(branchId).update({
+          'branchHrAdminEmail': email,
+          'branchHrAdminUid': uid,
+        });
+      }
+    } catch (e) {
+      // Auth creation failed — employee doc exists but no auth account
+      await FirebaseService.branchesRef(companyId).doc(branchId).update({
+        'branchHrAdminEmail': email,
+      });
       rethrow;
     }
   }

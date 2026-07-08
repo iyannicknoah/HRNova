@@ -17,7 +17,6 @@ import '../../features/employees/screens/employees_screen.dart';
 import '../../features/employees/screens/employee_add_screen.dart';
 import '../../features/employees/screens/employee_profile_screen.dart';
 import '../../features/attendance/screens/attendance_screen.dart';
-import '../../features/attendance/screens/guard_mode_screen.dart';
 import '../../features/leave/screens/leave_screen.dart';
 import '../../features/payroll/screens/payroll_screen.dart';
 import '../../features/performance/screens/performance_screen.dart';
@@ -33,6 +32,7 @@ import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/onboarding_screen.dart';
 import '../../features/super_admin/screens/super_admin_screen.dart';
 import '../../features/branches/screens/branches_screen.dart';
+import '../../features/departments/screens/departments_screen.dart';
 import '../../shared/widgets/hrnova_sidebar.dart';
 
 bool _isPublicRoute(String path) {
@@ -131,11 +131,14 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       }
     }
 
+    // Manager: block salary/admin routes
+    if (role == AppConstants.roleManager) {
+      const blocked = ['/payroll', '/settings', '/recruitment', '/branches', '/departments', '/super-admin', '/reports', '/nova-ai'];
+      if (blocked.any((b) => path == b || path.startsWith('$b/'))) return '/dashboard';
+    }
+
     // From /login or /mobile-onboarding → role-based home
     if (path == '/login' || path == '/mobile-onboarding') return _homeForRole(role);
-
-    // Guard is always restricted to guard-mode
-    if (role == AppConstants.roleGuard && path != '/guard-mode') return '/guard-mode';
 
     // On mobile, employee stays in /mobile-home
     if (!kIsWeb && role == AppConstants.roleEmployee && path != '/mobile-home') {
@@ -147,7 +150,6 @@ class AppRouterNotifier extends Notifier<GoRouter> {
 
   String _homeForRole(String? role) {
     if (role == AppConstants.roleSuperAdmin) return '/super-admin';
-    if (role == AppConstants.roleGuard) return '/guard-mode';
     if (!kIsWeb && role == AppConstants.roleEmployee) return '/mobile-home';
     return '/dashboard';
   }
@@ -202,10 +204,6 @@ List<RouteBase> _buildRoutes() => [
       ),
 
       // ── Standalone authenticated routes (no sidebar) ─────────────────────
-      GoRoute(
-        path: '/guard-mode',
-        builder: (context, state) => const GuardModeScreen(),
-      ),
       GoRoute(
         path: '/super-admin',
         builder: (context, state) => const SuperAdminScreen(),
@@ -293,6 +291,10 @@ List<RouteBase> _buildRoutes() => [
           GoRoute(
             path: '/branches',
             builder: (context, state) => const BranchesScreen(),
+          ),
+          GoRoute(
+            path: '/departments',
+            builder: (context, state) => const DepartmentsScreen(),
           ),
         ],
       ),

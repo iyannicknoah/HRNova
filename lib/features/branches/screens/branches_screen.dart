@@ -20,15 +20,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
 
   void _showAddDialog() {
     showDialog(context: context, builder: (_) => _AddBranchDialog(
-      onAdd: ({required name, location, branchCode, adminEmail, adminPassword}) async {
-        await ref.read(branchesNotifierProvider.notifier).addBranch(
-          name: name,
-          location: location ?? '',
-          branchCode: branchCode ?? '',
-          adminEmail: adminEmail,
-          adminPassword: adminPassword,
-        );
-      },
+      notifier: ref.read(branchesNotifierProvider.notifier),
     ));
   }
 
@@ -84,15 +76,10 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                 if (isSingle) ...[
                   Expanded(child: _SingleCompanyEmptyState()),
                 ] else ...[
-                  // Stats
-                  Row(children: [
-                    _StatChip('${branches.length} Total', Icons.business_rounded, AppColors.primaryBlue, AppColors.pillBlueBg),
-                    const SizedBox(width: 10),
-                    _StatChip('${branches.where((b) => b.isActive).length} Active', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg),
-                    const SizedBox(width: 10),
-                    _StatChip('${branches.fold(0, (s, b) => s + b.employeeCount)} Employees', Icons.people_rounded, AppColors.warningAmber, AppColors.pillAmberBg),
-                  ]),
-                  const SizedBox(height: 20),
+                  // Branch count
+                  Text('${branches.length} ${branches.length == 1 ? 'branch' : 'branches'}',
+                      style: TextStyle(fontSize: 14, color: context.appSubtext)),
+                  const SizedBox(height: 16),
                   // Search
                   Container(
                     decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12)),
@@ -191,24 +178,6 @@ class _SingleCompanyEmptyState extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip(this.label, this.icon, this.color, this.bg);
-  final String label;
-  final IconData icon;
-  final Color color, bg;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, color: color, size: 15),
-      const SizedBox(width: 6),
-      Text(label, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w600)),
-    ]),
-  );
 }
 
 // ── Branch card ───────────────────────────────────────────────────────────────
@@ -440,29 +409,33 @@ class _DetailStat extends StatelessWidget {
   );
 }
 
-// ── Add Branch dialog ─────────────────────────────────────────────────────────
-class _AddBranchDialog extends StatefulWidget {
-  const _AddBranchDialog({required this.onAdd});
-
-  final Future<void> Function({
-    required String name,
-    String? location,
-    String? branchCode,
-    String? adminEmail,
-    String? adminPassword,
-  }) onAdd;
+// ── Add Branch dialog (two-step) ──────────────────────────────────────────────
+class _AddBranchDialog extends ConsumerStatefulWidget {
+  const _AddBranchDialog({required this.notifier});
+  final BranchesNotifier notifier;
 
   @override
-  State<_AddBranchDialog> createState() => _AddBranchDialogState();
+  ConsumerState<_AddBranchDialog> createState() => _AddBranchDialogState();
 }
 
-class _AddBranchDialogState extends State<_AddBranchDialog> {
-  final _nameCtrl    = TextEditingController();
-  final _locCtrl     = TextEditingController();
-  final _codeCtrl    = TextEditingController();
-  final _emailCtrl   = TextEditingController();
-  final _passCtrl    = TextEditingController();
-  bool _addAdmin = false;
+class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
+  // Step 1 controllers
+  final _nameCtrl = TextEditingController();
+  final _locCtrl  = TextEditingController();
+  final _codeCtrl = TextEditingController();
+
+  // Step 2 — new HR controllers
+  final _hrFirstCtrl  = TextEditingController();
+  final _hrLastCtrl   = TextEditingController();
+  final _hrEmailCtrl  = TextEditingController();
+  final _hrPassCtrl   = TextEditingController();
+
+  int _step = 1;           // 1 = branch info, 2 = HR assignment
+  String? _createdBranchId;
+  String? _createdBranchName;
+
+  bool _useExisting = true; // true = select existing HR, false = add new
+  String? _selectedEmployeeId;
   bool _obscure  = true;
   bool _saving   = false;
   String? _error;
@@ -470,37 +443,86 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
   @override
   void dispose() {
     _nameCtrl.dispose(); _locCtrl.dispose(); _codeCtrl.dispose();
-    _emailCtrl.dispose(); _passCtrl.dispose();
+    _hrFirstCtrl.dispose(); _hrLastCtrl.dispose();
+    _hrEmailCtrl.dispose(); _hrPassCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _createBranch() async {
     if (_nameCtrl.text.trim().isEmpty) {
       setState(() => _error = 'Branch name is required');
       return;
     }
     setState(() { _saving = true; _error = null; });
     try {
-      await widget.onAdd(
+      final branchId = await widget.notifier.addBranch(
         name: _nameCtrl.text.trim(),
         location: _locCtrl.text.trim(),
         branchCode: _codeCtrl.text.trim(),
-        adminEmail: _addAdmin ? _emailCtrl.text.trim() : null,
-        adminPassword: _addAdmin ? _passCtrl.text : null,
       );
+      setState(() {
+        _createdBranchId   = branchId;
+        _createdBranchName = _nameCtrl.text.trim();
+        _step   = 2;
+        _saving = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() { _saving = false; _error = e.toString(); });
+    }
+  }
+
+  Future<void> _assignHr() async {
+    setState(() { _saving = true; _error = null; });
+    try {
+      if (_useExisting) {
+        if (_selectedEmployeeId == null) {
+          setState(() { _saving = false; _error = 'Please select an HR admin.'; });
+          return;
+        }
+        final allEmps = ref.read(employeesProvider).value ?? [];
+        final emp = allEmps.firstWhere((e) => e.id == _selectedEmployeeId,
+            orElse: () => throw Exception('Employee not found'));
+        await widget.notifier.assignExistingHrToBranch(
+          _createdBranchId!,
+          employeeId: emp.id,
+          employeeEmail: emp.email,
+          existingBranchId: emp.branchId,
+        );
+      } else {
+        if (_hrFirstCtrl.text.trim().isEmpty || _hrEmailCtrl.text.trim().isEmpty || _hrPassCtrl.text.trim().isEmpty) {
+          setState(() { _saving = false; _error = 'First name, email and password are required.'; });
+          return;
+        }
+        await widget.notifier.addNewHrToBranch(
+          _createdBranchId!,
+          firstName: _hrFirstCtrl.text.trim(),
+          lastName: _hrLastCtrl.text.trim(),
+          email: _hrEmailCtrl.text.trim(),
+          password: _hrPassCtrl.text.trim(),
+        );
+      }
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('"${_nameCtrl.text.trim()}" branch added successfully'),
-          behavior: SnackBarBehavior.floating,
+          content: Text('"$_createdBranchName" branch set up successfully'),
           backgroundColor: AppColors.successGreen,
-          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     } catch (e) {
-      if (mounted) setState(() { _saving = false; _error = e.toString(); });
+      if (mounted) setState(() { _saving = false; _error = e.toString().replaceFirst('Exception: ', ''); });
     }
+  }
+
+  void _skip() {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('"$_createdBranchName" branch created. Assign an HR admin later.'),
+      backgroundColor: AppColors.warningAmber,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
   }
 
   @override
@@ -509,126 +531,221 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
       backgroundColor: context.appCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: const BoxConstraints(maxWidth: 500),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Container(width: 40, height: 40,
-                    decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.add_business_rounded, color: AppColors.primaryBlue, size: 20)),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text('Add New Branch', style: TextStyle(color: context.appText, fontSize: 18, fontWeight: FontWeight.w700))),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close_rounded, color: context.appSubtext)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _dlgField('Branch Name *', _nameCtrl, hint: 'e.g. Musanze Branch'),
-              const SizedBox(height: 14),
-              _dlgField('Location', _locCtrl, hint: 'e.g. Musanze District'),
-              const SizedBox(height: 14),
-              _dlgField('Branch Code', _codeCtrl, hint: 'e.g. MSZ-001'),
-              const SizedBox(height: 20),
-              // Toggle: create HR Admin account
-              InkWell(
-                onTap: () => setState(() => _addAdmin = !_addAdmin),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: context.appField,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _addAdmin ? AppColors.primaryBlue : context.appBorder, width: _addAdmin ? 1.5 : 1),
-                  ),
-                  child: Row(children: [
-                    Icon(_addAdmin ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                        color: _addAdmin ? AppColors.primaryBlue : context.appSubtext, size: 20),
-                    const SizedBox(width: 10),
-                    Text('Create Branch HR Admin account', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
-                  ]),
-                ),
-              ),
-              if (_addAdmin) ...[
-                const SizedBox(height: 14),
-                _dlgField('Admin Email', _emailCtrl, hint: 'hr@company.rw', type: TextInputType.emailAddress),
-                const SizedBox(height: 12),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Temporary Password', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _passCtrl,
-                    obscureText: _obscure,
-                    style: TextStyle(color: context.appText, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Min 8 characters',
-                      hintStyle: TextStyle(color: context.appSubtext),
-                      filled: true, fillColor: context.appField,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                      suffixIcon: IconButton(
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                        icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18, color: context.appSubtext),
-                      ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-                    ),
-                  ),
-                ]),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppColors.pillRedBg, borderRadius: BorderRadius.circular(10)),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline_rounded, color: AppColors.errorRed, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.errorRed, fontSize: 15))),
-                  ]),
-                ),
-              ],
-              const SizedBox(height: 24),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _saving ? null : () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: context.appBorder),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                    ),
-                    child: Text('Cancel', style: TextStyle(color: context.appText)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _saving ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      disabledBackgroundColor: AppColors.primaryBlue.withAlpha(100),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                    ),
-                    child: _saving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Add Branch', style: TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ]),
-            ],
-          ),
+          child: _step == 1 ? _buildStep1(context) : _buildStep2(context),
         ),
       ),
     );
   }
 
+  Widget _buildStep1(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      _dialogHeader(context, 'Add New Branch', 'Step 1 of 2 — Branch Details'),
+      const SizedBox(height: 24),
+      _dlgField('Branch Name *', _nameCtrl, hint: 'e.g. Musanze Branch'),
+      const SizedBox(height: 14),
+      _dlgField('Location', _locCtrl, hint: 'e.g. Musanze District'),
+      const SizedBox(height: 14),
+      _dlgField('Branch Code', _codeCtrl, hint: 'e.g. MSZ-001'),
+      _errorBox(),
+      const SizedBox(height: 24),
+      Row(children: [
+        Expanded(child: _outlinedBtn('Cancel', () => Navigator.pop(context))),
+        const SizedBox(width: 12),
+        Expanded(child: _filledBtn('Next: Assign HR →', _saving ? null : _createBranch, loading: _saving)),
+      ]),
+    ]);
+  }
+
+  Widget _buildStep2(BuildContext context) {
+    final allEmps = ref.watch(employeesProvider).value ?? [];
+    // Only show branch_hr_admin employees not yet assigned to any branch
+    final unassignedHrs = allEmps.where((e) =>
+        e.role == 'branch_hr_admin' && (e.branchId == null || e.branchId!.isEmpty)).toList();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      _dialogHeader(context, 'Assign HR Admin', 'Step 2 of 2 — "$_createdBranchName"'),
+      const SizedBox(height: 20),
+
+      // Toggle: existing or new
+      Container(
+        decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.all(4),
+        child: Row(children: [
+          _tab('Select Existing HR', _useExisting, () => setState(() { _useExisting = true; _error = null; })),
+          _tab('Add New HR', !_useExisting, () => setState(() { _useExisting = false; _error = null; })),
+        ]),
+      ),
+      const SizedBox(height: 20),
+
+      if (_useExisting) ...[
+        Text('Choose an HR admin to assign to this branch:',
+            style: TextStyle(fontSize: 14, color: context.appSubtext)),
+        const SizedBox(height: 10),
+        if (unassignedHrs.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: context.appField,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: context.appBorder),
+            ),
+            child: Row(children: [
+              Icon(Icons.info_outline_rounded, size: 16, color: context.appSubtext),
+              const SizedBox(width: 10),
+              Expanded(child: Text(
+                'No unassigned HR admins found. Use "Add New HR" or skip and assign later.',
+                style: TextStyle(fontSize: 14, color: context.appSubtext),
+              )),
+            ]),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: context.appField,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: context.appBorder),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: _selectedEmployeeId,
+                hint: Text('Select HR admin…', style: TextStyle(color: context.appSubtext, fontSize: 15)),
+                style: TextStyle(fontSize: 15, color: context.appText),
+                icon: Icon(Icons.keyboard_arrow_down, color: context.appSubtext, size: 18),
+                items: unassignedHrs.map((e) => DropdownMenuItem(
+                  value: e.id,
+                  child: Text('${e.fullName} · ${e.email}',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, color: context.appText)),
+                )).toList(),
+                onChanged: (v) => setState(() => _selectedEmployeeId = v),
+              ),
+            ),
+          ),
+      ] else ...[
+        _dlgField('First Name *', _hrFirstCtrl, hint: 'First name'),
+        const SizedBox(height: 12),
+        _dlgField('Last Name', _hrLastCtrl, hint: 'Last name'),
+        const SizedBox(height: 12),
+        _dlgField('Email *', _hrEmailCtrl, hint: 'hr@company.rw', type: TextInputType.emailAddress),
+        const SizedBox(height: 12),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Password *', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _hrPassCtrl,
+            obscureText: _obscure,
+            style: TextStyle(color: context.appText, fontSize: 15),
+            decoration: InputDecoration(
+              hintText: 'Min 6 characters',
+              hintStyle: TextStyle(color: context.appSubtext),
+              filled: true, fillColor: context.appField,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => _obscure = !_obscure),
+                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    size: 18, color: context.appSubtext),
+              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+            ),
+          ),
+        ]),
+      ],
+
+      _errorBox(),
+      const SizedBox(height: 24),
+      Row(children: [
+        Expanded(child: _outlinedBtn('Skip for now', _saving ? null : _skip)),
+        const SizedBox(width: 12),
+        Expanded(child: _filledBtn('Assign HR', _saving ? null : _assignHr, loading: _saving)),
+      ]),
+    ]);
+  }
+
+  Widget _dialogHeader(BuildContext context, String title, String subtitle) {
+    return Row(children: [
+      Container(width: 40, height: 40,
+        decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
+        child: const Icon(Icons.add_business_rounded, color: AppColors.primaryBlue, size: 20)),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w700)),
+        Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 13)),
+      ])),
+      IconButton(onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.close_rounded, color: context.appSubtext)),
+    ]);
+  }
+
+  Widget _tab(String label, bool active, VoidCallback onTap) {
+    return Expanded(child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primaryBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        alignment: Alignment.center,
+        child: Text(label, style: TextStyle(
+          fontSize: 14, fontWeight: FontWeight.w600,
+          color: active ? Colors.white : context.appSubtext,
+        )),
+      ),
+    ));
+  }
+
+  Widget _errorBox() {
+    if (_error == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.pillRedBg, borderRadius: BorderRadius.circular(10)),
+        child: Row(children: [
+          const Icon(Icons.error_outline_rounded, color: AppColors.errorRed, size: 16),
+          const SizedBox(width: 8),
+          Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.errorRed, fontSize: 14))),
+        ]),
+      ),
+    );
+  }
+
+  Widget _outlinedBtn(String label, VoidCallback? onTap) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: context.appBorder),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+      ),
+      child: Text(label, style: TextStyle(color: context.appText, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _filledBtn(String label, VoidCallback? onTap, {bool loading = false}) {
+    return FilledButton(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.primaryBlue,
+        disabledBackgroundColor: AppColors.primaryBlue.withAlpha(100),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+      ),
+      child: loading
+          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+
   Widget _dlgField(String label, TextEditingController ctrl, {String? hint, TextInputType? type}) =>
-      Builder(builder: (context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
@@ -639,10 +756,10 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
             hintStyle: TextStyle(color: context.appSubtext),
             filled: true, fillColor: context.appField,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
+            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           ),
         ),
-      ]));
+      ]);
 }

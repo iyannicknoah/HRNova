@@ -78,7 +78,8 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
             count: limit.current,
             max: limit.max,
             atLimit: atLimit,
-            onAdd: atLimit ? null : _openAdd,
+            onAdd: (role == AppConstants.roleManager || atLimit) ? null : _openAdd,
+            showAdd: role != AppConstants.roleManager,
           ),
           _FilterBar(
             searchCtrl: _searchCtrl,
@@ -129,6 +130,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                   onEdit: _openEdit,
                   onDeactivate: (e) => _confirmDeactivate(context, e),
                   onDelete: (e) => _confirmDelete(context, e),
+                  canEdit: role != AppConstants.roleManager,
                 );
               },
             ),
@@ -243,11 +245,13 @@ class _Header extends StatelessWidget {
     required this.max,
     required this.atLimit,
     required this.onAdd,
+    this.showAdd = true,
   });
   final int count;
   final int max;
   final bool atLimit;
   final VoidCallback? onAdd;
+  final bool showAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -289,24 +293,26 @@ class _Header extends StatelessWidget {
                             : AppColors.primaryBlue)),
               ),
               const Spacer(),
-              if (atLimit)
-                Tooltip(
-                  message: 'Employee limit reached. Contact your administrator.',
-                  child: FilledButton.icon(
-                    onPressed: null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.errorRed.withAlpha(30),
-                      foregroundColor: AppColors.errorRed,
-                      disabledBackgroundColor: AppColors.errorRed.withAlpha(30),
-                      disabledForegroundColor: AppColors.errorRed,
+              if (showAdd) ...[
+                if (atLimit)
+                  Tooltip(
+                    message: 'Employee limit reached. Contact your administrator.',
+                    child: FilledButton.icon(
+                      onPressed: null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.errorRed.withAlpha(30),
+                        foregroundColor: AppColors.errorRed,
+                        disabledBackgroundColor: AppColors.errorRed.withAlpha(30),
+                        disabledForegroundColor: AppColors.errorRed,
+                      ),
+                      icon: const Icon(Icons.block_rounded, size: 16),
+                      label: const Text('Limit Reached',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
-                    icon: const Icon(Icons.block_rounded, size: 16),
-                    label: const Text('Limit Reached',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                )
-              else
-                _PillBtn(label: 'Add Employee', onTap: onAdd ?? () {}),
+                  )
+                else
+                  _PillBtn(label: 'Add Employee', onTap: onAdd ?? () {}),
+              ],
             ],
           ),
           if (hasLimit) ...[
@@ -468,12 +474,13 @@ class _DropFilter extends StatelessWidget {
 //  Employee Table
 // ─────────────────────────────────────────────────────────────────────────────
 class _EmployeeTable extends StatelessWidget {
-  const _EmployeeTable({required this.employees, required this.onView, required this.onEdit, required this.onDeactivate, required this.onDelete});
+  const _EmployeeTable({required this.employees, required this.onView, required this.onEdit, required this.onDeactivate, required this.onDelete, this.canEdit = true});
   final List<EmployeeModel> employees;
   final ValueChanged<EmployeeModel> onView;
   final ValueChanged<EmployeeModel> onEdit;
   final ValueChanged<EmployeeModel> onDeactivate;
   final ValueChanged<EmployeeModel> onDelete;
+  final bool canEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -493,7 +500,7 @@ class _EmployeeTable extends StatelessWidget {
               Expanded(flex: 18, child: Text('DEPARTMENT', style: _hStyle(context))),
               Expanded(flex: 18, child: Text('JOB TITLE', style: _hStyle(context))),
               Expanded(flex: 15, child: Text('CONTRACT', style: _hStyle(context))),
-              Expanded(flex: 17, child: Text('SALARY', style: _hStyle(context))),
+              if (canEdit) Expanded(flex: 17, child: Text('SALARY', style: _hStyle(context))),
               Expanded(flex: 12, child: Text('STATUS', style: _hStyle(context))),
               Expanded(flex: 14, child: Text('ACTIONS', style: _hStyle(context))),
             ]),
@@ -521,13 +528,13 @@ class _EmployeeTable extends StatelessWidget {
                       Expanded(flex: 18, child: Text(e.department, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.appText))),
                       Expanded(flex: 18, child: Text(e.jobTitle.isEmpty ? '—' : e.jobTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.appText), overflow: TextOverflow.ellipsis)),
                       Expanded(flex: 15, child: Align(alignment: Alignment.centerLeft, child: _Chip(_ctLabel(e.contractType), AppColors.pillBlueBg, AppColors.pillBlueText))),
-                      Expanded(flex: 17, child: Text(_salaryStr(e), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText))),
+                      if (canEdit) Expanded(flex: 17, child: Text(_salaryStr(e), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText))),
                       Expanded(flex: 12, child: Align(alignment: Alignment.centerLeft, child: _StatusBadge(e.status))),
                       Expanded(flex: 14, child: Row(children: [
                         _ActionBtn(Icons.visibility_outlined, 'View Profile', () => onView(e)),
-                        _ActionBtn(Icons.edit_outlined, 'Edit', () => onEdit(e)),
-                        if (e.isActive) _ActionBtn(Icons.block_outlined, 'Deactivate', () => onDeactivate(e), color: AppColors.warningAmber),
-                        _ActionBtn(Icons.delete_outline_rounded, 'Delete', () => onDelete(e), color: AppColors.errorRed),
+                        if (canEdit) _ActionBtn(Icons.edit_outlined, 'Edit', () => onEdit(e)),
+                        if (canEdit && e.isActive) _ActionBtn(Icons.block_outlined, 'Deactivate', () => onDeactivate(e), color: AppColors.warningAmber),
+                        if (canEdit) _ActionBtn(Icons.delete_outline_rounded, 'Delete', () => onDelete(e), color: AppColors.errorRed),
                       ])),
                     ]),
                   ),

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../attendance/models/attendance_model.dart';
+import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/models/branch_model.dart';
 import '../../branches/providers/branches_provider.dart';
@@ -26,8 +28,38 @@ class PerformanceScreen extends ConsumerStatefulWidget {
 class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   String? _branchFilter;
+  final _autoScoredMonths = <String>{};
 
   String get _monthStr => DateFormat('yyyy-MM').format(_selectedMonth);
+
+  Future<void> _triggerAutoScores(
+    List<EmployeeModel> employees,
+    List<AttendanceModel> allAttendance,
+    List<PerformanceModel> existingScores,
+    List<PerformanceCriterion> criteria,
+  ) async {
+    if (!mounted) return;
+    const autoKey = 'Attendance and Punctuality';
+    final scoreMap = {for (final s in existingScores) s.employeeId: s};
+    final byEmployee = <String, List<AttendanceModel>>{};
+    for (final a in allAttendance) {
+      (byEmployee[a.employeeId] ??= []).add(a);
+    }
+    for (final e in employees.where((emp) => emp.isActive)) {
+      if (scoreMap[e.id]?.systemScoredKeys.contains(autoKey) == true) continue;
+      final empRecords = byEmployee[e.id] ?? [];
+      if (empRecords.isEmpty) continue;
+      try {
+        await ref.read(performanceNotifierProvider.notifier).autoScoreAttendance(
+          employee: e,
+          month: _monthStr,
+          records: empRecords,
+          criteria: criteria,
+          existingScoreMap: scoreMap,
+        );
+      } catch (_) {}
+    }
+  }
 
   void _prevMonth() => setState(() {
         _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
@@ -51,6 +83,23 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     final branches = showBranchFilter
         ? (ref.watch(branchesStreamProvider).valueOrNull ?? <BranchModel>[])
         : <BranchModel>[];
+
+    // ── Auto-score trigger: fire once per month when all data is ready ──────────
+    if (!_autoScoredMonths.contains(_monthStr)) {
+      final employees      = ref.watch(employeesProvider).valueOrNull;
+      final attendance     = ref.watch(attendanceByMonthProvider(
+        (year: _selectedMonth.year, month: _selectedMonth.month),
+      )).valueOrNull;
+      final existingScores = ref.watch(performanceByMonthProvider(_monthStr)).valueOrNull;
+      final criteria       = ref.watch(companySettingsProvider).valueOrNull
+              ?.performanceCriteria ?? PerformanceCriterion.defaults;
+      if (employees != null && attendance != null && existingScores != null) {
+        _autoScoredMonths.add(_monthStr);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _triggerAutoScores(employees, attendance, existingScores, criteria);
+        });
+      }
+    }
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -230,10 +279,23 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
   String? _aiReview;
   bool _generatingAi = false;
   bool _saving = false;
+  List<String> _currentSystemScoredKeys = [];
+
+  // Cached for "Score Next" access after save
+  List<EmployeeModel> _cachedEmployees = [];
+  Map<String, PerformanceModel> _cachedScoreMap = {};
+  List<PerformanceCriterion> _cachedCriteria = PerformanceCriterion.defaults;
 
   static const _labels = {
     1: 'Poor', 2: 'Below Average', 3: 'Average', 4: 'Good', 5: 'Excellent'
   };
+
+  // True if the employee has at least one manually-scored criterion
+  static bool _isManuallyScored(PerformanceModel? ex) {
+    if (ex == null) return false;
+    const autoKey = 'Attendance and Punctuality';
+    return ex.scores.keys.any((k) => k != autoKey);
+  }
 
   @override
   void dispose() {
@@ -247,15 +309,31 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
       _selected = e;
       _aiReview = existing?.aiReview;
       _notesCtrl.text = existing?.managerNotes ?? '';
+      _currentSystemScoredKeys = existing?.systemScoredKeys ?? [];
       _scores = {};
       if (existing != null) {
         _scores = Map.from(existing.scores);
+        // Ensure all criteria have a value (in case new criteria were added)
+        for (final c in criteria) {
+          _scores.putIfAbsent(c.name, () => 3.0);
+        }
       } else {
         for (final c in criteria) {
           _scores[c.name] = 3.0;
         }
       }
     });
+  }
+
+  void _selectNextUnscored() {
+    final unscored = _cachedEmployees
+        .where((e) => e.isActive && !_isManuallyScored(_cachedScoreMap[e.id]))
+        .toList();
+    if (unscored.isNotEmpty) {
+      _selectEmployee(unscored.first, _cachedScoreMap[unscored.first.id], _cachedCriteria);
+    } else {
+      setState(() => _selected = null);
+    }
   }
 
   double _computeOverall(List<PerformanceCriterion> criteria) {
@@ -289,7 +367,8 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
     }
   }
 
-  Future<void> _save(EmployeeModel e, List<PerformanceCriterion> criteria) async {
+  Future<void> _save(EmployeeModel e, List<PerformanceCriterion> criteria,
+      {bool scoreNext = false}) async {
     setState(() => _saving = true);
     try {
       final overall = _computeOverall(criteria);
@@ -307,13 +386,23 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
         managerNotes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         scoredBy: uid,
         scoredAt: DateTime.now(),
+        systemScoredKeys: _currentSystemScoredKeys,
       );
       await ref.read(performanceNotifierProvider.notifier).saveScore(model);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Score saved successfully'),
-          backgroundColor: AppColors.successGreen,
-        ));
+        if (scoreNext) {
+          _selectNextUnscored();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Saved — loading next employee'),
+            backgroundColor: AppColors.primaryBlue,
+            duration: Duration(seconds: 1),
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Score saved successfully'),
+            backgroundColor: AppColors.successGreen,
+          ));
+        }
       }
     } catch (err) {
       if (mounted) {
@@ -335,131 +424,204 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
     final criteria = settingsAsync.value?.performanceCriteria ??
         PerformanceCriterion.defaults;
 
-    final allEmployees = employeesAsync.value ?? [];
+    final allEmployees = (employeesAsync.value ?? []).where((e) => e.isActive).toList();
     final scores = scoresAsync.value ?? [];
     final scoreMap = {for (final s in scores) s.employeeId: s};
-    // Managers only score employees in their own branch (filtered by branchId claim via employeesProvider)
-    final employees = allEmployees;
+
+    // Cache for Score Next
+    _cachedEmployees = allEmployees;
+    _cachedScoreMap = scoreMap;
+    _cachedCriteria = criteria;
+
+    final totalCount   = allEmployees.length;
+    // "scored" means manager has scored at least one non-auto criterion
+    final scoredCount  = allEmployees.where((e) => _isManuallyScored(scoreMap[e.id])).length;
+    final unscoredCount = totalCount - scoredCount;
+    final allScored    = totalCount > 0 && scoredCount == totalCount;
+
+    // Reminder banner: 25th+ of current scored month, with unscored employees
+    final now = DateTime.now();
+    final monthDt = DateTime.parse('${widget.month}-01');
+    final isCurrentMonth = now.year == monthDt.year && now.month == monthDt.month;
+    final showReminder = isCurrentMonth && now.day >= 25 && unscoredCount > 0;
+
+    // Group by department
+    final grouped = <String, List<EmployeeModel>>{};
+    for (final e in allEmployees) {
+      final dept = e.department.isEmpty ? 'Unassigned' : e.department;
+      (grouped[dept] ??= []).add(e);
+    }
+    final sortedDepts = grouped.keys.toList()..sort();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Employee list ─────────────────────────────────────────────────
+          // ── Employee list panel ───────────────────────────────────────────
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: context.appCard,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(children: [
-                // Table header
+            child: Column(children: [
+              // Progress banner
+              if (totalCount > 0) ...[
                 Container(
+                  margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: context.appTint,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    color: allScored
+                        ? AppColors.successGreen.withAlpha(20)
+                        : context.appCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: allScored
+                          ? AppColors.successGreen.withAlpha(60)
+                          : context.appBorder,
+                    ),
                   ),
                   child: Row(children: [
-                    Expanded(flex: 5, child: _hdr('EMPLOYEE', context)),
-                    Expanded(flex: 3, child: _hdr('DEPARTMENT', context)),
-                    Expanded(flex: 2, child: _hdr('SCORE', context)),
-                    const SizedBox(width: 80),
+                    Icon(
+                      allScored ? Icons.celebration_rounded : Icons.assignment_turned_in_outlined,
+                      color: allScored ? AppColors.successGreen : AppColors.primaryBlue,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        allScored
+                            ? 'All $totalCount employees scored for ${DateFormat('MMMM').format(monthDt)}! 🎉'
+                            : 'You have scored $scoredCount of $totalCount employees for ${DateFormat('MMMM yyyy').format(monthDt)}',
+                        style: TextStyle(
+                          color: allScored ? AppColors.successGreen : context.appText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (!allScored)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryBlue.withAlpha(20),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          '$unscoredCount remaining',
+                          style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                   ]),
                 ),
-                Divider(height: 1, color: context.appBorder),
-                Expanded(
+              ],
+              // Reminder banner (25th+)
+              if (showReminder) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.warningAmber.withAlpha(18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.warningAmber.withAlpha(60)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmber, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Month-end reminder: $unscoredCount employee${unscoredCount == 1 ? "" : "s"} still need${unscoredCount == 1 ? "s" : ""} to be scored',
+                        style: const TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+              // Employee list card
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.appCard,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: employeesAsync.isLoading
                       ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
-                      : employees.isEmpty
-                          ? Center(
-                              child: Text('No employees found',
-                                  style: TextStyle(color: context.appSubtext)))
-                          : ListView.separated(
-                              itemCount: employees.length,
-                              separatorBuilder: (_, __) =>
-                                  Divider(height: 1, color: context.appBorder),
-                              itemBuilder: (_, i) {
-                                final e = employees[i];
-                                final existing = scoreMap[e.id];
-                                final isSelected = _selected?.id == e.id;
-                                return InkWell(
-                                  onTap: () => _selectEmployee(e, existing, criteria),
-                                  hoverColor: context.appBorder.withAlpha(40),
-                                  child: Container(
-                                    color: isSelected
-                                        ? AppColors.primaryBlue.withAlpha(12)
-                                        : Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 12),
-                                    child: Row(children: [
-                                      // Avatar + name
-                                      Expanded(
-                                        flex: 5,
+                      : allEmployees.isEmpty
+                          ? Center(child: Text('No employees found', style: TextStyle(color: context.appSubtext)))
+                          : ListView(
+                              children: [
+                                for (final dept in sortedDepts) ...[
+                                  _DeptSectionHeader(
+                                    dept: dept,
+                                    total: grouped[dept]!.length,
+                                    scored: grouped[dept]!.where((e) => _isManuallyScored(scoreMap[e.id])).length,
+                                  ),
+                                  ...grouped[dept]!.map((e) {
+                                    final existing = scoreMap[e.id];
+                                    final isSelected = _selected?.id == e.id;
+                                    final isManual = _isManuallyScored(existing);
+                                    final isAutoOnly = existing != null && !isManual;
+                                    final badgeColor = isManual
+                                        ? AppColors.successGreen
+                                        : isAutoOnly
+                                            ? AppColors.primaryBlue
+                                            : AppColors.warningAmber;
+                                    final badgeLabel = isManual
+                                        ? 'Scored'
+                                        : isAutoOnly
+                                            ? 'Auto Only'
+                                            : 'Not Scored';
+                                    return InkWell(
+                                      onTap: () => _selectEmployee(e, existing, criteria),
+                                      hoverColor: context.appBorder.withAlpha(40),
+                                      child: Container(
+                                        color: isSelected ? AppColors.primaryBlue.withAlpha(12) : Colors.transparent,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                                         child: Row(children: [
                                           _SmallAvatar(name: e.fullName, photoUrl: e.profilePhotoUrl),
                                           const SizedBox(width: 12),
                                           Expanded(
-                                            child: Text(e.fullName,
-                                                style: TextStyle(
-                                                    color: context.appText,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w600),
-                                                overflow: TextOverflow.ellipsis),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(e.fullName,
+                                                    style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600),
+                                                    overflow: TextOverflow.ellipsis),
+                                                if (e.jobTitle.isNotEmpty)
+                                                  Text(e.jobTitle,
+                                                      style: TextStyle(color: context.appSubtext, fontSize: 12),
+                                                      overflow: TextOverflow.ellipsis),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          if (existing != null)
+                                            _ScoreStars(existing.overallScore)
+                                          else
+                                            const SizedBox(width: 80),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: badgeColor.withAlpha(20),
+                                              borderRadius: BorderRadius.circular(100),
+                                            ),
+                                            child: Text(
+                                              badgeLabel,
+                                              style: TextStyle(
+                                                color: badgeColor,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                         ]),
                                       ),
-                                      // Department
-                                      Expanded(
-                                        flex: 3,
-                                        child: Text(e.department,
-                                            style: TextStyle(
-                                                color: context.appSubtext,
-                                                fontSize: 14),
-                                            overflow: TextOverflow.ellipsis),
-                                      ),
-                                      // Score
-                                      Expanded(
-                                        flex: 2,
-                                        child: existing != null
-                                            ? _ScoreStars(existing.overallScore)
-                                            : Text('—',
-                                                style: TextStyle(
-                                                    color: context.appSubtext,
-                                                    fontSize: 14)),
-                                      ),
-                                      // Action
-                                      SizedBox(
-                                        width: 80,
-                                        child: FilledButton(
-                                          onPressed: () => _selectEmployee(e, existing, criteria),
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor: isSelected
-                                                ? AppColors.primaryBlue
-                                                : context.appField,
-                                            foregroundColor: isSelected
-                                                ? Colors.white
-                                                : context.appText,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 8),
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8)),
-                                          ),
-                                          child: Text(
-                                              existing != null ? 'Edit' : 'Score',
-                                              style: const TextStyle(fontSize: 14)),
-                                        ),
-                                      ),
-                                    ]),
-                                  ),
-                                );
-                              },
+                                    );
+                                  }),
+                                  Divider(height: 1, color: context.appBorder),
+                                ],
+                              ],
                             ),
                 ),
-              ]),
-            ),
+              ),
+            ]),
           ),
           // ── Score panel (animated slide-in) ───────────────────────────────
           AnimatedContainer(
@@ -474,17 +636,25 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                       employee: _selected!,
                       criteria: criteria,
                       scores: _scores,
+                      systemScoredKeys: _currentSystemScoredKeys,
                       aiReview: _aiReview,
                       generatingAi: _generatingAi,
                       saving: _saving,
                       notesCtrl: _notesCtrl,
                       labels: _labels,
-                      onScoreChanged: (name, val) =>
-                          setState(() => _scores[name] = val),
+                      hasNext: allEmployees.where((e) =>
+                          e.isActive &&
+                          !_isManuallyScored(scoreMap[e.id]) &&
+                          e.id != _selected!.id).isNotEmpty,
+                      onScoreChanged: (name, val) {
+                        if (_currentSystemScoredKeys.contains(name)) return;
+                        setState(() => _scores[name] = val);
+                      },
                       onGenerateAi: () =>
                           _generateAiReview(_selected!, criteria),
                       onAiTextChanged: (v) => setState(() => _aiReview = v),
                       onSave: () => _save(_selected!, criteria),
+                      onSaveAndNext: () => _save(_selected!, criteria, scoreNext: true),
                       onClose: () => setState(() => _selected = null),
                     ),
             ),
@@ -493,13 +663,48 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
       ),
     );
   }
+}
 
-  Widget _hdr(String t, BuildContext ctx) => Text(t,
-      style: TextStyle(
-          color: ctx.appSubtext,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5));
+class _DeptSectionHeader extends StatelessWidget {
+  const _DeptSectionHeader({required this.dept, required this.total, required this.scored});
+  final String dept;
+  final int total, scored;
+
+  @override
+  Widget build(BuildContext context) {
+    final allDone = scored == total;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: context.appTint,
+      child: Row(children: [
+        Text(
+          dept,
+          style: TextStyle(
+            color: context.appSubtext,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: allDone ? AppColors.successGreen.withAlpha(20) : AppColors.primaryBlue.withAlpha(20),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Text(
+            '$scored/$total',
+            style: TextStyle(
+              color: allDone ? AppColors.successGreen : AppColors.primaryBlue,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -511,6 +716,7 @@ class _ScorePanel extends StatefulWidget {
     required this.employee,
     required this.criteria,
     required this.scores,
+    required this.systemScoredKeys,
     required this.aiReview,
     required this.generatingAi,
     required this.saving,
@@ -520,18 +726,21 @@ class _ScorePanel extends StatefulWidget {
     required this.onGenerateAi,
     required this.onAiTextChanged,
     required this.onSave,
+    required this.onSaveAndNext,
     required this.onClose,
+    this.hasNext = false,
   });
 
   final EmployeeModel employee;
   final List<PerformanceCriterion> criteria;
   final Map<String, double> scores;
+  final List<String> systemScoredKeys;
   final String? aiReview;
-  final bool generatingAi, saving;
+  final bool generatingAi, saving, hasNext;
   final TextEditingController notesCtrl;
   final Map<int, String> labels;
   final void Function(String name, double val) onScoreChanged;
-  final VoidCallback onGenerateAi, onSave, onClose;
+  final VoidCallback onGenerateAi, onSave, onSaveAndNext, onClose;
   final void Function(String) onAiTextChanged;
 
   @override
@@ -640,6 +849,16 @@ class _ScorePanelState extends State<_ScorePanel> {
               sliderColor = AppColors.warningAmber;
             } else {
               sliderColor = AppColors.errorRed;
+            }
+            final isAuto = widget.systemScoredKeys.contains(c.name);
+            if (isAuto) {
+              return _AutoCriterionRow(
+                criterion: c,
+                score: score,
+                label: label,
+                contribution: contribution,
+                sliderColor: sliderColor,
+              );
             }
             return Padding(
               padding: const EdgeInsets.only(bottom: 14),
@@ -800,29 +1019,129 @@ class _ScorePanelState extends State<_ScorePanel> {
               ),
             ),
           const SizedBox(height: 20),
-          // Save button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: widget.saving ? null : widget.onSave,
-              icon: widget.saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.save_rounded, size: 16),
-              label: Text(widget.saving ? 'Saving...' : 'Save Score'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+          // Save buttons
+          Row(children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: widget.saving ? null : widget.onSave,
+                icon: widget.saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.save_rounded, size: 16),
+                label: Text(widget.saving ? 'Saving...' : 'Save'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            if (widget.hasNext) ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: widget.saving ? null : widget.onSaveAndNext,
+                  icon: const Icon(Icons.skip_next_rounded, size: 16),
+                  label: const Text('Save & Next'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF9B59B6),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Auto Criterion Row (read-only, system-computed)
+// ─────────────────────────────────────────────────────────────────────────────
+class _AutoCriterionRow extends StatelessWidget {
+  const _AutoCriterionRow({
+    required this.criterion,
+    required this.score,
+    required this.label,
+    required this.contribution,
+    required this.sliderColor,
+  });
+  final PerformanceCriterion criterion;
+  final double score;
+  final String label;
+  final double contribution;
+  final Color sliderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scoreInt = score.round().clamp(1, 5);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Row(children: [
+              Text(criterion.name,
+                  style: TextStyle(
+                      color: context.appText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withAlpha(22),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Auto',
+                    style: TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: sliderColor.withAlpha(20),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    color: sliderColor, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(width: 8),
+          Text('${contribution.toStringAsFixed(2)} pts',
+              style: TextStyle(color: context.appSubtext, fontSize: 13)),
+        ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (score - 1) / 4,
+                backgroundColor: context.appBorder,
+                valueColor: AlwaysStoppedAnimation<Color>(sliderColor),
+                minHeight: 4,
               ),
             ),
           ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 28,
+            child: Text(scoreInt.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: sliderColor, fontSize: 17, fontWeight: FontWeight.w800)),
+          ),
         ]),
-      ),
+        Text('Weight: ${criterion.weight.toStringAsFixed(0)}% · Computed from attendance records',
+            style: TextStyle(color: context.appSubtext, fontSize: 12)),
+      ]),
     );
   }
 }
@@ -866,9 +1185,20 @@ class _HRDashboardView extends ConsumerWidget {
           child: CircularProgressIndicator(color: AppColors.primaryBlue));
     }
 
-    final scoredIds = {for (final s in scores) s.employeeId};
-    final notScoredEmployees =
-        employees.where((e) => !scoredIds.contains(e.id)).toList();
+    final scoreMap = {for (final s in scores) s.employeeId: s};
+    final activeEmployees = employees.where((e) => e.isActive).toList();
+    const autoKey = 'Attendance and Punctuality';
+
+    // Auto-scored only = has performance doc with systemScoredKeys but no manual scores
+    final autoOnlyEmployees = activeEmployees.where((e) {
+      final s = scoreMap[e.id];
+      return s != null &&
+          s.systemScoredKeys.contains(autoKey) &&
+          !s.scores.keys.any((k) => k != autoKey);
+    }).toList();
+
+    // Not scored at all = no performance doc
+    final notScoredEmployees = activeEmployees.where((e) => !scoreMap.containsKey(e.id)).toList();
 
     // Needs attention: score < 2.5 OR dropped > 1 from last month
     final needsAttention = scores.where((s) {
@@ -1045,7 +1375,12 @@ class _HRDashboardView extends ConsumerWidget {
           _AttentionCard(
               scores: needsAttention, prevScoreMap: prevScoreMap),
         ],
-        // ── Not yet scored ────────────────────────────────────────────────
+        // ── Auto-scored, awaiting manager review ──────────────────────────
+        if (autoOnlyEmployees.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _AutoOnlyCard(employees: autoOnlyEmployees),
+        ],
+        // ── Not yet scored (no attendance data) ───────────────────────────
         if (notScoredEmployees.isNotEmpty) ...[
           const SizedBox(height: 16),
           _NotScoredCard(employees: notScoredEmployees),
@@ -1297,6 +1632,62 @@ class _AttentionCard extends StatelessWidget {
             ]),
           );
         }),
+      ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Auto-Only Card (attendance scored, manager review pending)
+// ─────────────────────────────────────────────────────────────────────────────
+class _AutoOnlyCard extends StatelessWidget {
+  const _AutoOnlyCard({required this.employees});
+  final List<EmployeeModel> employees;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryBlue.withAlpha(50)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.auto_awesome_rounded,
+              color: AppColors.primaryBlue, size: 18),
+          const SizedBox(width: 8),
+          Text('Auto-Scored Only — Manager Review Pending (${employees.length})',
+              style: const TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 4),
+        Text(
+          'Attendance & Punctuality computed automatically. Manager has not scored other criteria yet.',
+          style: TextStyle(color: context.appSubtext, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: employees.map((e) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withAlpha(12),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              _SmallAvatar(name: e.fullName, size: 20),
+              const SizedBox(width: 8),
+              Text(e.fullName,
+                  style: TextStyle(color: context.appText, fontSize: 14)),
+            ]),
+          )).toList(),
+        ),
       ]),
     );
   }

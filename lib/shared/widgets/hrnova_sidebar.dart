@@ -16,6 +16,9 @@ class _NavItem {
   final List<String>? roles;
 }
 
+// Routes visible to manager only
+const _managerRoutes = {'/dashboard', '/employees', '/attendance', '/leave', '/performance'};
+
 const _navItems = [
   _NavItem(label: 'Dashboard', icon: Icons.dashboard_rounded, route: '/dashboard'),
   _NavItem(label: 'Employees', icon: Icons.people_rounded, route: '/employees'),
@@ -30,6 +33,12 @@ const _navItems = [
     label: 'Branches',
     icon: Icons.business_rounded,
     route: '/branches',
+    roles: [AppConstants.roleGroupHrAdmin, AppConstants.roleHrAdmin, AppConstants.roleSuperAdmin],
+  ),
+  _NavItem(
+    label: 'Departments',
+    icon: Icons.category_rounded,
+    route: '/departments',
     roles: [AppConstants.roleGroupHrAdmin, AppConstants.roleHrAdmin, AppConstants.roleSuperAdmin],
   ),
   _NavItem(label: 'Settings', icon: Icons.settings_rounded, route: '/settings'),
@@ -121,8 +130,15 @@ class HRNovaSidebar extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               children: _navItems
                   .where((item) {
+                    // Manager sees only their 5 routes
+                    if (userRole == AppConstants.roleManager && !_managerRoutes.contains(item.route)) return false;
                     if (item.roles != null && !item.roles!.contains(userRole)) return false;
                     if (item.route == '/branches' && !isMultiBranch) return false;
+                    // Departments: group_hr_admin on multi-branch, hr_admin on single
+                    if (item.route == '/departments') {
+                      if (isMultiBranch && userRole != AppConstants.roleGroupHrAdmin && userRole != AppConstants.roleSuperAdmin) return false;
+                      if (!isMultiBranch && userRole != AppConstants.roleHrAdmin && userRole != AppConstants.roleSuperAdmin) return false;
+                    }
                     return true;
                   })
                   .map((item) => _SidebarItem(

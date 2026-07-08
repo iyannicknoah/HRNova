@@ -49,7 +49,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Notifications
   final _mgrPhone       = TextEditingController();
   final _hrPhone        = TextEditingController();
-  final _guardPhone     = TextEditingController();
   final _mgrEmail       = TextEditingController();
   final _hrEmail        = TextEditingController();
   final _directorEmail  = TextEditingController();
@@ -72,7 +71,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _graceCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
     _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
-    _guardPhone.dispose(); _mgrEmail.dispose(); _hrEmail.dispose();
+    _mgrEmail.dispose(); _hrEmail.dispose();
     _directorEmail.dispose(); _directorPhone.dispose();
     _tinCtrl.dispose();
     super.dispose();
@@ -89,7 +88,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _maxLateCtrl.text = s.maxLateBeforeWarning.toString();
     _mgrPhone.text   = s.managerPhone.isEmpty ? '+250' : s.managerPhone;
     _hrPhone.text    = s.hrAdminPhone.isEmpty ? '+250' : s.hrAdminPhone;
-    _guardPhone.text = s.guardPhone.isEmpty ? '+250' : s.guardPhone;
     _mgrEmail.text       = s.managerEmail;
     _hrEmail.text        = s.hrAdminEmail;
     _directorEmail.text  = s.directorEmail;
@@ -414,11 +412,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 14),
     _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
     const SizedBox(height: 12),
-    Row(children: [
-      Expanded(child: _field('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001')),
-      const SizedBox(width: 14),
-      Expanded(child: _field('Guard Phone', _guardPhone, hint: '+250 788 000 002')),
-    ]),
+    _field('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001'),
     const SizedBox(height: 12),
     Row(children: [
       Expanded(child: _field('Manager Email', _mgrEmail, hint: 'manager@company.com', type: TextInputType.emailAddress)),
@@ -447,7 +441,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (canEdit) _saveBtn(() => _save('Notifications & Contacts', {
       'managerPhone': _mgrPhone.text.trim(),
       'hrAdminPhone': _hrPhone.text.trim(),
-      'guardPhone': _guardPhone.text.trim(),
       'managerEmail': _mgrEmail.text.trim(),
       'hrAdminEmail': _hrEmail.text.trim(),
       'directorEmail': _directorEmail.text.trim(),

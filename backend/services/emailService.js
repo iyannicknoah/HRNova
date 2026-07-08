@@ -225,6 +225,7 @@ async function sendReportEmail(recipients, reportType, reportContent, companyNam
     monthly: 'Monthly HR Report',
     group_daily: 'Group Morning Report',
     end_of_day: 'End of Day Summary',
+    end_of_day_branch: 'Branch End of Day Summary',
     'Morning Attendance': 'Morning Attendance Report',
     'End of Day Summary': 'End of Day Summary',
     'Group Morning Attendance': 'Group Morning Report',
@@ -255,4 +256,40 @@ async function sendReportEmail(recipients, reportType, reportContent, companyNam
   }
 }
 
-module.exports = { sendEmail, sendLeaveApprovalEmail, sendLeaveRejectionEmail, sendLeaveNotification, sendPayslipEmail, sendReportEmail };
+async function sendPerformanceReminderEmail({ managerEmail, managerName, unscoredCount, totalCount, month, companyName }) {
+  const [year, mo] = month.split('-');
+  const monthLabel = new Date(Number(year), Number(mo) - 1).toLocaleString('en-RW', { month: 'long', year: 'numeric' });
+  const content = `
+    <h2>⏰ Performance Scoring Reminder</h2>
+    <p>Dear <strong>${managerName}</strong>,</p>
+    <p>This is a reminder from <strong>${companyName}</strong> that you still have <strong>${unscoredCount}</strong> of <strong>${totalCount}</strong>
+    employee${totalCount === 1 ? '' : 's'} to score for <strong>${monthLabel}</strong>.</p>
+    <div class="detail-card">
+      <div class="detail-row">
+        <span class="detail-label">Company</span>
+        <span class="detail-value">${companyName}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Month</span>
+        <span class="detail-value">${monthLabel}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Already Scored</span>
+        <span class="detail-value">${totalCount - unscoredCount} / ${totalCount}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Still Remaining</span>
+        <span class="detail-value badge badge-red">${unscoredCount}</span>
+      </div>
+    </div>
+    <p>Please log in to HRNova and complete your performance reviews before the end of the month.</p>`;
+
+  return sendEmail({
+    to: managerEmail,
+    toName: managerName,
+    subject: `HRNova — ${unscoredCount} employee${unscoredCount === 1 ? '' : 's'} still to score — ${monthLabel}`,
+    htmlContent: HTML_WRAPPER(content),
+  });
+}
+
+module.exports = { sendEmail, sendLeaveApprovalEmail, sendLeaveRejectionEmail, sendLeaveNotification, sendPayslipEmail, sendReportEmail, sendPerformanceReminderEmail };

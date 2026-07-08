@@ -60,7 +60,7 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
     super.initState();
     final role = ref.read(currentUserRoleProvider) ?? '';
     _isTopHr = role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin;
-    _tabs = TabController(length: _isTopHr ? 2 : 3, vsync: this);
+    _tabs = TabController(length: _isTopHr ? 3 : 4, vsync: this);
   }
 
   @override
@@ -84,11 +84,13 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
               children: _isTopHr
                   ? const [
                       _AllRequestsTab(showBranchFilter: true),
+                      _ExpiredTab(),
                       _CalendarTab(),
                     ]
                   : const [
                       _PendingTab(),
                       _AllRequestsTab(showBranchFilter: false),
+                      _ExpiredTab(),
                       _CalendarTab(),
                     ],
             ),
@@ -145,8 +147,8 @@ class _LeaveTabBar extends StatelessWidget {
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
         tabs: isTopHr
-            ? const [Tab(text: 'All Requests'), Tab(text: 'Calendar')]
-            : const [Tab(text: 'Pending Approvals'), Tab(text: 'All Requests'), Tab(text: 'Calendar')],
+            ? const [Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')]
+            : const [Tab(text: 'Pending Approvals'), Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')],
       ),
     );
   }
@@ -296,14 +298,21 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
   Future<void> _approve() async {
     setState(() => _loading = true);
     try {
-      await ref
+      final conflict = await ref
           .read(leaveNotifierProvider.notifier)
-          .approveLeaveRequest(widget.request);
+          .approveLeaveGuarded(widget.request);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Leave approved for ${widget.request.employeeName}'),
-          backgroundColor: AppColors.successGreen,
-        ));
+        if (conflict != null) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Already handled by $conflict'),
+            backgroundColor: AppColors.warningAmber,
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Leave approved for ${widget.request.employeeName}'),
+            backgroundColor: AppColors.successGreen,
+          ));
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -524,13 +533,20 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
     }
     setState(() => _loading = true);
     try {
-      await ref
+      final conflict = await ref
           .read(leaveNotifierProvider.notifier)
-          .rejectLeaveRequest(widget.request, reason);
+          .rejectLeaveGuarded(widget.request, reason);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Leave request declined')));
+        if (conflict != null) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Already handled by $conflict'),
+            backgroundColor: AppColors.warningAmber,
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Leave request declined')));
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -817,16 +833,17 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
   }
 }
 
-class _RequestRow extends StatefulWidget {
+class _RequestRow extends ConsumerStatefulWidget {
   const _RequestRow({required this.request});
   final LeaveRequestModel request;
 
   @override
-  State<_RequestRow> createState() => _RequestRowState();
+  ConsumerState<_RequestRow> createState() => _RequestRowState();
 }
 
-class _RequestRowState extends State<_RequestRow> {
+class _RequestRowState extends ConsumerState<_RequestRow> {
   bool _expanded = false;
+  bool _overrideLoading = false;
   final _dateF = DateFormat('MMM d, yyyy');
 
   @override
@@ -941,10 +958,87 @@ class _RequestRowState extends State<_RequestRow> {
               _detail('Approved',
                   DateFormat('MMM d, yyyy HH:mm').format(req.approvedAt!),
                   context),
+            // HR Admin override button for decided requests
+            Builder(builder: (ctx) {
+              final role = ref.watch(currentUserRoleProvider);
+              final isTopHr = role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin;
+              if (!isTopHr || req.status == 'pending') return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _overrideLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : OutlinedButton.icon(
+                        onPressed: () => _showOverrideDialog(ctx, req),
+                        icon: const Icon(Icons.sync_rounded, size: 16),
+                        label: Text(req.status == 'approved' ? 'Override: Reject' : 'Override: Approve',
+                            style: const TextStyle(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.warningAmber,
+                          side: BorderSide(color: AppColors.warningAmber.withAlpha(80)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+              );
+            }),
           ]),
         ),
       ],
     ]);
+  }
+
+  void _showOverrideDialog(BuildContext ctx, LeaveRequestModel req) {
+    final newStatus = req.status == 'approved' ? 'rejected' : 'approved';
+    final ctrl = TextEditingController();
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF0D1628),
+        title: Text('Override to ${newStatus == 'approved' ? 'Approved' : 'Rejected'}',
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Reason for override',
+            hintStyle: const TextStyle(color: Color(0xFF6B7A99)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1A2E4A))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue)),
+            filled: true, fillColor: const Color(0xFF070E1C),
+          ),
+          maxLines: 2,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7A99)))),
+          TextButton(
+            onPressed: () async {
+              final reason = ctrl.text.trim();
+              if (reason.isEmpty) return;
+              Navigator.pop(ctx);
+              setState(() => _overrideLoading = true);
+              try {
+                await ref.read(leaveNotifierProvider.notifier).overrideLeaveDecision(
+                  req: req, newStatus: newStatus, reason: reason,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Decision overridden to $newStatus'), backgroundColor: AppColors.warningAmber),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.errorRed));
+                }
+              } finally {
+                if (mounted) setState(() => _overrideLoading = false);
+              }
+            },
+            child: const Text('Confirm Override', style: TextStyle(color: AppColors.warningAmber)),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _detail(String label, String value, BuildContext context,
@@ -1011,6 +1105,170 @@ class _FilterDrop extends StatelessWidget {
           onChanged: (v) => onChanged(v!),
         ),
       ),
+    );
+  }
+}
+
+// ── EXPIRED TAB ───────────────────────────────────────────────────────────────
+
+class _ExpiredTab extends ConsumerWidget {
+  const _ExpiredTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final expiredAsync = ref.watch(expiredLeaveRequestsProvider);
+
+    return expiredAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e', style: TextStyle(color: context.appSubtext))),
+      data: (expired) {
+        if (expired.isEmpty) {
+          return Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.event_available_rounded, size: 56, color: AppColors.successGreen.withAlpha(180)),
+              const SizedBox(height: 12),
+              Text('No expired requests',
+                  style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Text('All pending leave requests are still within their period.',
+                  style: TextStyle(color: context.appSubtext, fontSize: 15)),
+            ]),
+          );
+        }
+
+        final s = TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 0.5);
+        return Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+            child: Row(children: [
+              Text('${expired.length} expired request${expired.length != 1 ? "s" : ""}',
+                  style: TextStyle(color: context.appSubtext, fontSize: 15)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.pillAmberBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.pillAmberText),
+                  const SizedBox(width: 6),
+                  Text('Pending requests whose leave period has already ended',
+                      style: const TextStyle(color: AppColors.pillAmberText, fontSize: 13)),
+                ]),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12)),
+              child: Column(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: context.appTint,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  ),
+                  child: Row(children: [
+                    Expanded(flex: 24, child: Text('EMPLOYEE', style: s)),
+                    Expanded(flex: 12, child: Text('TYPE', style: s)),
+                    Expanded(flex: 12, child: Text('FROM', style: s)),
+                    Expanded(flex: 12, child: Text('TO', style: s)),
+                    Expanded(flex: 7, child: Text('DAYS', style: s)),
+                    Expanded(flex: 12, child: Text('EXPIRED', style: s)),
+                    Expanded(flex: 8, child: Text('SOURCE', style: s)),
+                  ]),
+                ),
+                Divider(height: 1, color: context.appBorder),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: expired.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: context.appBorder),
+                    itemBuilder: (_, i) => _ExpiredRow(request: expired[i]),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+}
+
+class _ExpiredRow extends StatelessWidget {
+  const _ExpiredRow({required this.request});
+  final LeaveRequestModel request;
+
+  String _agoText(DateTime endDate) {
+    final diff = DateTime.now().difference(endDate).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 30) return '$diff days ago';
+    final months = (diff / 30).floor();
+    return '$months month${months != 1 ? "s" : ""} ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final req = request;
+    final dateF = DateFormat('MMM d, yyyy');
+    final days = req.totalDays > 0 ? req.totalDays : req.endDate.difference(req.startDate).inDays + 1;
+    final ago = _agoText(req.endDate);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      child: Row(children: [
+        Expanded(
+          flex: 24,
+          child: Row(children: [
+            _InitialsAvatar(name: req.employeeName, size: 32),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(req.employeeName,
+                  style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ]),
+        ),
+        Expanded(flex: 12, child: Align(alignment: Alignment.centerLeft, child: _TypeBadge(req.leaveType))),
+        Expanded(
+          flex: 12,
+          child: Text(dateF.format(req.startDate),
+              style: TextStyle(color: context.appText, fontSize: 14)),
+        ),
+        Expanded(
+          flex: 12,
+          child: Text(dateF.format(req.endDate),
+              style: TextStyle(color: context.appText, fontSize: 14)),
+        ),
+        Expanded(
+          flex: 7,
+          child: Text('${days}d',
+              style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+        ),
+        Expanded(
+          flex: 12,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.pillAmberBg,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Text(ago,
+                  style: const TextStyle(color: AppColors.pillAmberText, fontSize: 13, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 8,
+          child: Text(_srcLabel(req.source),
+              style: TextStyle(color: context.appSubtext, fontSize: 14)),
+        ),
+      ]),
     );
   }
 }

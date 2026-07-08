@@ -40,7 +40,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // Step 5 — Notifications & Contacts
   final _mgrPhone = TextEditingController(text: '+250');
   final _hrPhone = TextEditingController(text: '+250');
-  final _guardPhone = TextEditingController(text: '+250');
   final _mgrEmail = TextEditingController();
   final _hrEmail = TextEditingController();
   final _directorEmail = TextEditingController();
@@ -61,7 +60,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _graceCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
     _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
-    _guardPhone.dispose(); _mgrEmail.dispose(); _hrEmail.dispose();
+    _mgrEmail.dispose(); _hrEmail.dispose();
     _directorEmail.dispose(); _directorPhone.dispose();
     _tinCtrl.dispose();
     super.dispose();
@@ -111,7 +110,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'departments': _depts,
         'managerPhone': _mgrPhone.text.trim(),
         'hrAdminPhone': _hrPhone.text.trim(),
-        'guardPhone': _guardPhone.text.trim(),
         'managerEmail': _mgrEmail.text.trim(),
         'hrAdminEmail': _hrEmail.text.trim(),
         'directorEmail': _directorEmail.text.trim(),
@@ -122,7 +120,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       });
       // Local override so router lets us through before stream refreshes
       ref.read(onboardingCompleteOverrideProvider.notifier).state = true;
-      if (mounted) context.go(kIsWeb ? '/dashboard' : '/guard-mode');
+      if (mounted) context.go('/dashboard');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -449,11 +447,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 14),
       _textField('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
       const SizedBox(height: 14),
-      Row(children: [
-        Expanded(child: _textField('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001')),
-        const SizedBox(width: 16),
-        Expanded(child: _textField('Guard Phone', _guardPhone, hint: '+250 788 000 002')),
-      ]),
+      _textField('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001'),
       const SizedBox(height: 14),
       Row(children: [
         Expanded(child: _textField('Manager Email', _mgrEmail, hint: 'manager@company.com', type: TextInputType.emailAddress)),

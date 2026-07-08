@@ -27,7 +27,6 @@ typedef _JR = ({
   String? checkIn,
   String? checkOut,
   String status,
-  bool isGuard,
   bool isManual,
   bool stillIn,
   int lateMinutes,
@@ -82,7 +81,6 @@ List<_JR> _buildRows(
       checkIn: r?.checkInTime != null ? _fmt(r!.checkInTime!) : null,
       checkOut: r?.checkOutTime != null ? _fmt(r!.checkOutTime!) : null,
       status: status,
-      isGuard: r?.verificationType == 'qr_scan',
       isManual: r?.verificationType == 'manual',
       stillIn: r?.checkInTime != null && r?.checkOutTime == null,
       lateMinutes: r?.lateMinutes ?? 0,
@@ -710,13 +708,6 @@ class _AttRow extends StatelessWidget {
           Expanded(
             flex: 6,
             child: Row(children: [
-              if (row.isGuard)
-                Tooltip(
-                  message: 'Guard Mode',
-                  child: Icon(Icons.shield_rounded,
-                      size: 14,
-                      color: AppColors.primaryBlue.withAlpha(180)),
-                ),
               if (row.isManual) ...[
                 const SizedBox(width: 4),
                 Tooltip(

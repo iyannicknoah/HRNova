@@ -51,12 +51,10 @@ class CompanySettingsModel {
     this.performanceCriteria = PerformanceCriterion.defaults,
     this.managerPhone = '',
     this.hrAdminPhone = '',
-    this.guardPhone = '',
     this.managerEmail = '',
     this.hrAdminEmail = '',
     this.directorEmail = '',
     this.directorPhone = '',
-    this.guardModeEnabled = true,
     this.rraExportEnabled = true,
     this.timezone = 'Africa/Kigali',
     this.currency = 'RWF',
@@ -108,7 +106,6 @@ class CompanySettingsModel {
   final String notificationMethod;
   final String managerPhone;
   final String hrAdminPhone;
-  final String guardPhone;
   final String managerEmail;
   final String hrAdminEmail;
   final String directorEmail;
@@ -116,7 +113,6 @@ class CompanySettingsModel {
 
   // Feature flags
   final bool isOnboardingComplete;
-  final bool guardModeEnabled;
   final bool rraExportEnabled;
   final bool enableWhatsappLeave;
   final bool enableSelfieAttendance;
@@ -177,12 +173,10 @@ class CompanySettingsModel {
       }(),
       managerPhone: map['managerPhone'] as String? ?? '',
       hrAdminPhone: map['hrAdminPhone'] as String? ?? '',
-      guardPhone: map['guardPhone'] as String? ?? '',
       managerEmail: map['managerEmail'] as String? ?? '',
       hrAdminEmail: map['hrAdminEmail'] as String? ?? '',
       directorEmail: map['directorEmail'] as String? ?? '',
       directorPhone: map['directorPhone'] as String? ?? '',
-      guardModeEnabled: map['guardModeEnabled'] as bool? ?? true,
       rraExportEnabled: map['rraExportEnabled'] as bool? ?? true,
       timezone: map['timezone'] as String? ?? 'Africa/Kigali',
       currency: map['currency'] as String? ?? 'RWF',
@@ -231,12 +225,10 @@ class CompanySettingsModel {
     'performanceCriteria': performanceCriteria.map((c) => c.toMap()).toList(),
     'managerPhone': managerPhone,
     'hrAdminPhone': hrAdminPhone,
-    'guardPhone': guardPhone,
     'managerEmail': managerEmail,
     'hrAdminEmail': hrAdminEmail,
     'directorEmail': directorEmail,
     'directorPhone': directorPhone,
-    'guardModeEnabled': guardModeEnabled,
     'rraExportEnabled': rraExportEnabled,
     'timezone': timezone,
     'currency': currency,
@@ -275,12 +267,10 @@ class CompanySettingsModel {
     List<PerformanceCriterion>? performanceCriteria,
     String? managerPhone,
     String? hrAdminPhone,
-    String? guardPhone,
     String? managerEmail,
     String? hrAdminEmail,
     String? directorEmail,
     String? directorPhone,
-    bool? guardModeEnabled,
     bool? rraExportEnabled,
     String? phone,
     String? email,
@@ -316,12 +306,10 @@ class CompanySettingsModel {
         performanceCriteria: performanceCriteria ?? this.performanceCriteria,
         managerPhone: managerPhone ?? this.managerPhone,
         hrAdminPhone: hrAdminPhone ?? this.hrAdminPhone,
-        guardPhone: guardPhone ?? this.guardPhone,
         managerEmail: managerEmail ?? this.managerEmail,
         hrAdminEmail: hrAdminEmail ?? this.hrAdminEmail,
         directorEmail: directorEmail ?? this.directorEmail,
         directorPhone: directorPhone ?? this.directorPhone,
-        guardModeEnabled: guardModeEnabled ?? this.guardModeEnabled,
         rraExportEnabled: rraExportEnabled ?? this.rraExportEnabled,
         timezone: timezone,
         currency: currency,

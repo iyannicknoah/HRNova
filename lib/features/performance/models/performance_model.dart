@@ -14,6 +14,7 @@ class PerformanceModel {
     this.managerNotes,
     required this.scoredBy,
     required this.scoredAt,
+    this.systemScoredKeys = const [],
   });
 
   final String id;
@@ -28,6 +29,8 @@ class PerformanceModel {
   final String? managerNotes;
   final String scoredBy;
   final DateTime scoredAt;
+  // Criteria keys auto-computed by system (read-only in manager UI)
+  final List<String> systemScoredKeys;
 
   static String docId(String employeeId, String month) => '${employeeId}_$month';
 
@@ -46,6 +49,7 @@ class PerformanceModel {
       managerNotes: m['managerNotes'] as String?,
       scoredBy: m['scoredBy'] as String? ?? '',
       scoredAt: _parseDate(m['scoredAt']),
+      systemScoredKeys: (m['systemScoredKeys'] as List?)?.cast<String>() ?? const [],
     );
   }
 
@@ -61,6 +65,7 @@ class PerformanceModel {
     if (managerNotes != null) 'managerNotes': managerNotes,
     'scoredBy': scoredBy,
     'scoredAt': scoredAt.toIso8601String(),
+    if (systemScoredKeys.isNotEmpty) 'systemScoredKeys': systemScoredKeys,
   };
 
   static DateTime _parseDate(dynamic v) {

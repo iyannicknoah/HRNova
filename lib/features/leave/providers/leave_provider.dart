@@ -17,7 +17,7 @@ Query<Map<String, dynamic>> _branchLeaveQuery(
 ) {
   final role     = ref.watch(currentUserRoleProvider);
   final branchId = ref.watch(currentBranchIdProvider);
-  if (role == AppConstants.roleBranchHrAdmin && branchId != null) {
+  if ((role == AppConstants.roleBranchHrAdmin || role == AppConstants.roleManager) && branchId != null) {
     return base.where('branchId', isEqualTo: branchId);
   }
   return base;
@@ -58,6 +58,28 @@ final allLeaveRequestsProvider =
       .snapshots()
       .map((s) =>
           s.docs.map((d) => LeaveRequestModel.fromMap(d.id, d.data())).toList());
+});
+
+// ── Stream: expired (pending requests whose endDate is in the past) ──────────
+
+final expiredLeaveRequestsProvider =
+    StreamProvider.autoDispose<List<LeaveRequestModel>>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value([]);
+  final base = _branchLeaveQuery(
+    ref,
+    FirebaseService.leaveRef(companyId).where('status', isEqualTo: 'pending'),
+  );
+  return base.snapshots().map((s) {
+    final cutoff = DateTime.now();
+    final today = DateTime(cutoff.year, cutoff.month, cutoff.day);
+    final list = s.docs
+        .map((d) => LeaveRequestModel.fromMap(d.id, d.data()))
+        .where((r) => r.endDate.isBefore(today))
+        .toList()
+      ..sort((a, b) => b.endDate.compareTo(a.endDate));
+    return list;
+  });
 });
 
 // ── Stream: one employee's requests ──────────────────────────────────────────
@@ -267,9 +289,11 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
       final effectiveDays = recalcDays > 0 ? recalcDays : req.totalDays > 0 ? req.totalDays : 1;
 
       // 1. Update request status + correct totalDays if it was wrong
+      final approverRole = _ref.read(currentUserRoleProvider) ?? 'hr_admin';
       batch.update(FirebaseService.leaveRef(companyId).doc(req.id), {
         'status': 'approved',
         'approvedBy': _uid,
+        'approvedByRole': approverRole,
         'approvedAt': FieldValue.serverTimestamp(),
         'totalDays': effectiveDays,
       });
@@ -338,10 +362,12 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
       final db = FirebaseService.db;
       final batch = db.batch();
 
+      final approverRole = _ref.read(currentUserRoleProvider) ?? 'hr_admin';
       batch.update(FirebaseService.leaveRef(companyId).doc(req.id), {
         'status': 'rejected',
         'rejectedReason': reason,
         'rejectedBy': _uid,
+        'rejectedByRole': approverRole,
         'rejectedAt': FieldValue.serverTimestamp(),
       });
 
@@ -356,6 +382,207 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      await batch.commit();
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  // ── Transaction-guarded approve (manager OR HR — whoever acts first wins) ────
+  Future<String?> approveLeaveGuarded(LeaveRequestModel req) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      final settings = _ref.read(companySettingsProvider).value;
+      final workingDays = settings?.workingDays ??
+          const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      final approverRole = _ref.read(currentUserRoleProvider) ?? 'manager';
+
+      final db = FirebaseService.db;
+      final reqRef = FirebaseService.leaveRef(companyId).doc(req.id);
+      String? alreadyHandledBy;
+
+      await db.runTransaction((tx) async {
+        final snap = await tx.get(reqRef);
+        final status = snap.data()?['status'] as String? ?? '';
+        if (status != 'pending') {
+          alreadyHandledBy = snap.data()?['approvedByRole'] ?? snap.data()?['rejectedByRole'] ?? 'someone';
+          return;
+        }
+        final recalcDays = WorkingDaysService.calculate(req.startDate, req.endDate, workingDays);
+        final effectiveDays = recalcDays > 0 ? recalcDays : req.totalDays > 0 ? req.totalDays : 1;
+
+        tx.update(reqRef, {
+          'status': 'approved',
+          'approvedBy': _uid,
+          'approvedByRole': approverRole,
+          'approvedAt': FieldValue.serverTimestamp(),
+          'totalDays': effectiveDays,
+        });
+        final balanceKey = _balanceKey(req.leaveType);
+        if (balanceKey != null) {
+          tx.update(FirebaseService.employeesRef(companyId).doc(req.employeeId), {
+            'leaveBalances.$balanceKey': FieldValue.increment(-effectiveDays),
+          });
+        }
+      });
+
+      if (alreadyHandledBy != null) {
+        state = const AsyncValue.data(null);
+        return 'Already handled by $alreadyHandledBy.';
+      }
+
+      // Write calendar entries + notification outside transaction (non-critical)
+      final batch = db.batch();
+      var current = DateTime(req.startDate.year, req.startDate.month, req.startDate.day);
+      final last  = DateTime(req.endDate.year, req.endDate.month, req.endDate.day);
+      while (!current.isAfter(last)) {
+        final dayName = _dayName(current.weekday);
+        final mmdd = '${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
+        if (workingDays.contains(dayName) && !AppConstants.rwandaHolidays.contains(mmdd)) {
+          final dateStr = leaveDateKey(current);
+          batch.set(FirebaseService.leavesCalendarRef(companyId).doc('${dateStr}_${req.employeeId}'), {
+            'employeeId': req.employeeId, 'employeeName': req.employeeName,
+            'date': dateStr, 'leaveType': req.leaveType, 'leaveRequestId': req.id,
+          });
+        }
+        current = current.add(const Duration(days: 1));
+      }
+      batch.set(FirebaseService.notificationsRef(companyId).doc(), {
+        'type': 'leave_approved', 'title': 'Leave Approved',
+        'body': 'Your ${_typeLabel(req.leaveType)} leave has been approved.',
+        'employeeId': req.employeeId, 'leaveRequestId': req.id,
+        'isRead': false, 'createdAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  // ── Transaction-guarded reject ─────────────────────────────────────────────
+  Future<String?> rejectLeaveGuarded(LeaveRequestModel req, String reason) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      final approverRole = _ref.read(currentUserRoleProvider) ?? 'manager';
+      final db = FirebaseService.db;
+      final reqRef = FirebaseService.leaveRef(companyId).doc(req.id);
+      String? alreadyHandledBy;
+
+      await db.runTransaction((tx) async {
+        final snap = await tx.get(reqRef);
+        final status = snap.data()?['status'] as String? ?? '';
+        if (status != 'pending') {
+          alreadyHandledBy = snap.data()?['approvedByRole'] ?? snap.data()?['rejectedByRole'] ?? 'someone';
+          return;
+        }
+        tx.update(reqRef, {
+          'status': 'rejected', 'rejectedReason': reason,
+          'rejectedBy': _uid, 'rejectedByRole': approverRole,
+          'rejectedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+      if (alreadyHandledBy != null) {
+        state = const AsyncValue.data(null);
+        return 'Already handled by $alreadyHandledBy.';
+      }
+
+      await FirebaseService.notificationsRef(companyId!).add({
+        'type': 'leave_rejected', 'title': 'Leave Request Declined',
+        'body': 'Your ${_typeLabel(req.leaveType)} leave was declined. Reason: $reason',
+        'employeeId': req.employeeId, 'leaveRequestId': req.id,
+        'isRead': false, 'createdAt': FieldValue.serverTimestamp(),
+      });
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  // ── HR Admin override (reverse a decision with reason) ────────────────────
+  Future<void> overrideLeaveDecision({
+    required LeaveRequestModel req,
+    required String newStatus, // 'approved' or 'rejected'
+    required String reason,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+      final settings = _ref.read(companySettingsProvider).value;
+      final workingDays = settings?.workingDays ??
+          const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      final db = FirebaseService.db;
+      final batch = db.batch();
+      final reqRef = FirebaseService.leaveRef(companyId).doc(req.id);
+
+      if (newStatus == 'approved') {
+        final recalcDays = WorkingDaysService.calculate(req.startDate, req.endDate, workingDays);
+        final effectiveDays = recalcDays > 0 ? recalcDays : req.totalDays > 0 ? req.totalDays : 1;
+        batch.update(reqRef, {
+          'status': 'approved', 'approvedBy': _uid, 'approvedByRole': 'hr_admin',
+          'approvedAt': FieldValue.serverTimestamp(), 'totalDays': effectiveDays,
+          'overriddenBy': _uid, 'overrideReason': reason, 'overriddenAt': FieldValue.serverTimestamp(),
+        });
+        final balanceKey = _balanceKey(req.leaveType);
+        if (balanceKey != null) {
+          batch.update(FirebaseService.employeesRef(companyId).doc(req.employeeId), {
+            'leaveBalances.$balanceKey': FieldValue.increment(-effectiveDays),
+          });
+        }
+        var current = DateTime(req.startDate.year, req.startDate.month, req.startDate.day);
+        final last = DateTime(req.endDate.year, req.endDate.month, req.endDate.day);
+        while (!current.isAfter(last)) {
+          final dayName = _dayName(current.weekday);
+          final mmdd = '${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
+          if (workingDays.contains(dayName) && !AppConstants.rwandaHolidays.contains(mmdd)) {
+            final dateStr = leaveDateKey(current);
+            batch.set(FirebaseService.leavesCalendarRef(companyId).doc('${dateStr}_${req.employeeId}'), {
+              'employeeId': req.employeeId, 'employeeName': req.employeeName,
+              'date': dateStr, 'leaveType': req.leaveType, 'leaveRequestId': req.id,
+            });
+          }
+          current = current.add(const Duration(days: 1));
+        }
+      } else {
+        // Override to rejected: restore balance, delete calendar docs
+        batch.update(reqRef, {
+          'status': 'rejected', 'rejectedReason': reason,
+          'rejectedBy': _uid, 'rejectedByRole': 'hr_admin',
+          'rejectedAt': FieldValue.serverTimestamp(),
+          'overriddenBy': _uid, 'overrideReason': reason, 'overriddenAt': FieldValue.serverTimestamp(),
+        });
+        final balanceKey = _balanceKey(req.leaveType);
+        if (balanceKey != null) {
+          batch.update(FirebaseService.employeesRef(companyId).doc(req.employeeId), {
+            'leaveBalances.$balanceKey': FieldValue.increment(req.totalDays),
+          });
+        }
+        // Delete calendar entries
+        final calDocs = await FirebaseService.leavesCalendarRef(companyId)
+            .where('leaveRequestId', isEqualTo: req.id)
+            .get();
+        for (final d in calDocs.docs) { batch.delete(d.reference); }
+      }
+
+      batch.set(FirebaseService.notificationsRef(companyId).doc(), {
+        'type': newStatus == 'approved' ? 'leave_approved' : 'leave_rejected',
+        'title': newStatus == 'approved' ? 'Leave Approved (Override)' : 'Leave Rejected (Override)',
+        'body': 'HR Admin has overridden your leave request. Reason: $reason',
+        'employeeId': req.employeeId, 'leaveRequestId': req.id,
+        'isRead': false, 'createdAt': FieldValue.serverTimestamp(),
+      });
       await batch.commit();
       state = const AsyncValue.data(null);
     } catch (e, st) {
