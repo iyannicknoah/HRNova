@@ -88,6 +88,47 @@ class ReportNotifier extends StateNotifier<ReportState> {
     }
   }
 
+  Future<void> generateAttendance({String? month, String? branchId}) async {
+    state = const ReportState(loading: true);
+    try {
+      final res = await ApiService().post('/api/reports/monthly', data: {
+        'companyId': companyId,
+        if (month != null) 'month': month,
+        if (branchId != null) 'branchId': branchId,
+      });
+      state = ReportState(report: res.data['report'] as String?);
+    } catch (e) {
+      state = ReportState(error: e.toString());
+    }
+  }
+
+  Future<void> generatePerformance({String? month, String? branchId}) async {
+    state = const ReportState(loading: true);
+    try {
+      final res = await ApiService().post('/api/reports/performance', data: {
+        'companyId': companyId,
+        if (month != null) 'month': month,
+        if (branchId != null) 'branchId': branchId,
+      });
+      state = ReportState(report: res.data['report'] as String?);
+    } catch (e) {
+      state = ReportState(error: e.toString());
+    }
+  }
+
+  Future<void> generateBranches({String? month}) async {
+    state = const ReportState(loading: true);
+    try {
+      final res = await ApiService().post('/api/reports/monthly', data: {
+        'companyId': companyId,
+        if (month != null) 'month': month,
+      });
+      state = ReportState(report: res.data['report'] as String?);
+    } catch (e) {
+      state = ReportState(error: e.toString());
+    }
+  }
+
   void clear() => state = const ReportState();
 }
 

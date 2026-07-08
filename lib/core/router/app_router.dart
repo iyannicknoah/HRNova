@@ -10,6 +10,7 @@ import '../../features/settings/providers/settings_provider.dart';
 
 import '../../features/mobile/screens/mobile_home_screen.dart';
 import '../../features/mobile/screens/mobile_onboarding_screen.dart';
+import '../../features/attendance/screens/guard_mode_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/suspension_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
@@ -137,12 +138,22 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       if (blocked.any((b) => path == b || path.startsWith('$b/'))) return '/dashboard';
     }
 
-    // From /login or /mobile-onboarding → role-based home
-    if (path == '/login' || path == '/mobile-onboarding') return _homeForRole(role);
+    // From /login or /guard-login or /mobile-onboarding → role-based home
+    if (path == '/login' || path == '/guard-login' || path == '/mobile-onboarding') {
+      return _homeForRole(role);
+    }
 
     // On mobile, employee stays in /mobile-home
     if (!kIsWeb && role == AppConstants.roleEmployee && path != '/mobile-home') {
       return '/mobile-home';
+    }
+
+    // On mobile, HR roles stay in /guard (QR scanner)
+    if (!kIsWeb &&
+        (role == AppConstants.roleHrAdmin ||
+            role == AppConstants.roleBranchHrAdmin) &&
+        path != '/guard') {
+      return '/guard';
     }
 
     return null;
@@ -151,6 +162,11 @@ class AppRouterNotifier extends Notifier<GoRouter> {
   String _homeForRole(String? role) {
     if (role == AppConstants.roleSuperAdmin) return '/super-admin';
     if (!kIsWeb && role == AppConstants.roleEmployee) return '/mobile-home';
+    if (!kIsWeb &&
+        (role == AppConstants.roleHrAdmin ||
+            role == AppConstants.roleBranchHrAdmin)) {
+      return '/guard';
+    }
     return '/dashboard';
   }
 }
@@ -201,6 +217,14 @@ List<RouteBase> _buildRoutes() => [
       GoRoute(
         path: '/mobile-home',
         builder: (context, state) => const MobileHomeScreen(),
+      ),
+      GoRoute(
+        path: '/guard-login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/guard',
+        builder: (context, state) => const GuardModeScreen(),
       ),
 
       // ── Standalone authenticated routes (no sidebar) ─────────────────────

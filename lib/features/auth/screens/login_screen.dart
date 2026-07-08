@@ -264,6 +264,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Powered by ICYEREKEZO DIGITAL Innovation',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white38,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
                   ],
                 ),
               ),

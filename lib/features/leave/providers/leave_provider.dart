@@ -152,6 +152,28 @@ final approvedLeavesByDateProvider =
       .toSet());
 });
 
+// ── Active leave roster: approved leaves active today ─────────────────────────
+
+final activeLeaveRosterProvider =
+    StreamProvider.autoDispose<List<LeaveRequestModel>>((ref) {
+  final companyId = ref.watch(currentCompanyIdProvider);
+  if (companyId == null) return Stream.value([]);
+  final now = DateTime.now();
+  final todayStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final base = _branchLeaveQuery(
+    ref,
+    FirebaseService.leaveRef(companyId)
+        .where('status', isEqualTo: 'approved')
+        .where('startDate', isLessThanOrEqualTo: '${todayStr}T23:59:59.999'),
+  );
+  return base.snapshots().map((s) => s.docs
+      .where((d) => (d.data()['endDate'] as String? ?? '').compareTo(todayStr) >= 0)
+      .map((d) => LeaveRequestModel.fromMap(d.id, d.data()))
+      .toList()
+    ..sort((a, b) => a.endDate.compareTo(b.endDate)));
+});
+
 // ── Stream: count of approved leaves active today ─────────────────────────────
 
 final approvedLeavesTodayProvider = StreamProvider.autoDispose<int>((ref) {
@@ -496,7 +518,7 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
         return 'Already handled by $alreadyHandledBy.';
       }
 
-      await FirebaseService.notificationsRef(companyId!).add({
+      await FirebaseService.notificationsRef(companyId).add({
         'type': 'leave_rejected', 'title': 'Leave Request Declined',
         'body': 'Your ${_typeLabel(req.leaveType)} leave was declined. Reason: $reason',
         'employeeId': req.employeeId, 'leaveRequestId': req.id,
@@ -605,6 +627,101 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
       await FirebaseService.employeesRef(companyId)
           .doc(employeeId)
           .update({'leaveBalances.$key': newBalance});
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  // ── HR: mark employee on leave directly (source = hr_manual) ──────────────
+  Future<void> hrMarkOnLeave({
+    required String employeeId,
+    required String employeeName,
+    required String leaveType,
+    required DateTime startDate,
+    required DateTime endDate,
+    required String reason,
+    String? branchId,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final companyId = _companyId;
+      if (companyId == null) throw Exception('Not authenticated.');
+
+      final settings = _ref.read(companySettingsProvider).value;
+      final workingDays = settings?.workingDays ??
+          const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+      final totalDays = WorkingDaysService.calculate(startDate, endDate, workingDays);
+      final effectiveDays = totalDays > 0 ? totalDays : 1;
+
+      final db = FirebaseService.db;
+      final batch = db.batch();
+
+      // 1. Create approved leave document
+      final docRef = FirebaseService.leaveRef(companyId).doc();
+      batch.set(docRef, {
+        'companyId': companyId,
+        'employeeId': employeeId,
+        'employeeName': employeeName,
+        'leaveType': leaveType,
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+        'totalDays': effectiveDays,
+        'reason': reason,
+        'status': 'approved',
+        'source': 'hr_manual',
+        if (branchId != null) 'branchId': branchId,
+        'approvedBy': _uid,
+        'approvedByRole': 'hr_admin',
+        'approvedAt': FieldValue.serverTimestamp(),
+        'requestedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Deduct leave balance
+      final balanceKey = _balanceKey(leaveType);
+      if (balanceKey != null) {
+        batch.update(FirebaseService.employeesRef(companyId).doc(employeeId), {
+          'leaveBalances.$balanceKey': FieldValue.increment(-effectiveDays),
+        });
+      }
+
+      // 3. Write leaves_calendar entries for each working day
+      var current = DateTime(startDate.year, startDate.month, startDate.day);
+      final last = DateTime(endDate.year, endDate.month, endDate.day);
+      while (!current.isAfter(last)) {
+        final dayName = _dayName(current.weekday);
+        final mmdd =
+            '${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
+        if (workingDays.contains(dayName) &&
+            !AppConstants.rwandaHolidays.contains(mmdd)) {
+          final dateStr = leaveDateKey(current);
+          batch.set(
+              FirebaseService.leavesCalendarRef(companyId).doc('${dateStr}_$employeeId'), {
+            'employeeId': employeeId,
+            'employeeName': employeeName,
+            'date': dateStr,
+            'leaveType': leaveType,
+            'leaveRequestId': docRef.id,
+          });
+        }
+        current = current.add(const Duration(days: 1));
+      }
+
+      // 4. Notify employee
+      batch.set(FirebaseService.notificationsRef(companyId).doc(), {
+        'type': 'leave_approved',
+        'title': 'Leave Recorded by HR',
+        'body':
+            '${_typeLabel(leaveType)} leave ($effectiveDays days) has been recorded for you by HR.',
+        'employeeId': employeeId,
+        'leaveRequestId': docRef.id,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

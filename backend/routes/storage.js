@@ -49,9 +49,26 @@ router.post('/delete-batch', verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/storage/upload-cv  (scaffold for Part 10)
-router.post('/upload-cv', upload.single('cv'), async (_req, res) => {
-  res.json({ message: 'upload-cv scaffold — Part 10' });
+// POST /api/storage/upload-cv  (NO AUTH — public form)
+router.post('/upload-cv', upload.single('cv'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: 'Only PDF files are accepted' });
+    }
+    const { companyId, jobId, applicantName } = req.body;
+    if (!companyId || !jobId) return res.status(400).json({ error: 'companyId and jobId required' });
+
+    const safe = (applicantName || 'applicant').toLowerCase().trim()
+      .replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 40);
+    const filename = `${Date.now()}_${safe}.pdf`;
+    const key = buildKey(companyId, `cvs/${jobId}`, filename);
+    const url = await uploadFile(key, req.file.buffer, 'application/pdf');
+    res.json({ url, key });
+  } catch (err) {
+    console.error('[upload-cv]', err);
+    res.status(500).json({ error: err.message || 'Upload failed' });
+  }
 });
 
 module.exports = router;

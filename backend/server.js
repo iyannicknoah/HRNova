@@ -50,6 +50,7 @@ app.use('/api/employees', require('./routes/employees'));
 app.use('/api/exports',   require('./routes/exports'));
 app.use('/api/ai',        require('./routes/ai'));
 app.use('/api/reports',   require('./routes/reports'));
+app.use('/api/recruitment', require('./routes/recruitment'));
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
@@ -406,8 +407,8 @@ cron.schedule('0 8 * * 1', async () => {
   }
 });
 
-// ── WEEKLY REPORT — Every Monday at 9:30 AM ──────────────────────────────────
-cron.schedule('30 9 * * 1', async () => {
+// ── WEEKLY REPORT — Every Friday at 5:30 PM ──────────────────────────────────
+cron.schedule('30 17 * * 5', async () => {
   if (_weeklyRunning) { console.log('[Cron] Weekly already running, skipping'); return; }
   _weeklyRunning = true;
   console.log('[Cron] Weekly report start:', new Date().toISOString());

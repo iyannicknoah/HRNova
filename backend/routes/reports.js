@@ -183,63 +183,214 @@ router.post('/ask', verifyToken, async (req, res) => {
 
     const today = _today();
     const month = _currentMonth();
+    const name  = await _companyName(db, companyId);
 
-    const weekStartFn = () => {
-      const d = new Date();
-      const day = d.getDay() || 7;
-      d.setDate(d.getDate() - day + 1);
-      return d.toISOString().split('T')[0];
+    // Always load full company snapshot — no keyword guessing
+    const [
+      empSnap, branchSnap, deptSnap, pendingLeaveSnap, approvedLeaveSnap,
+      perfSnap, payrollSnap, todayAttSnap,
+    ] = await Promise.all([
+      db.collection('companies').doc(companyId).collection('employees').get().catch(() => ({ docs: [] })),
+      db.collection('companies').doc(companyId).collection('branches').get().catch(() => ({ docs: [] })),
+      db.collection('companies').doc(companyId).collection('departments').get().catch(() => ({ docs: [] })),
+      db.collection('companies').doc(companyId).collection('leave_requests').where('status', '==', 'pending').get().catch(() => ({ docs: [], size: 0 })),
+      db.collection('companies').doc(companyId).collection('leave_requests').where('status', '==', 'approved').where('startDate', '>=', `${month}-01`).get().catch(() => ({ docs: [] })),
+      db.collection('companies').doc(companyId).collection('performance').where('month', '==', month).get().catch(() => ({ docs: [] })),
+      db.collection('companies').doc(companyId).collection('payroll_runs').where('month', '==', month).limit(1).get().catch(() => ({ docs: [] })),
+      db.collection('companies').doc(companyId).collection('attendance').where('date', '==', today).get().catch(() => ({ docs: [] })),
+    ]);
+
+    // Employees
+    const allEmps = empSnap.docs.map(d => d.data());
+    const activeEmps = allEmps.filter(e => e.status === 'active');
+    const filteredEmps = branchId ? activeEmps.filter(e => e.branchId === branchId) : activeEmps;
+
+    // Departments breakdown
+    const deptMap = {};
+    for (const e of filteredEmps) {
+      const dept = e.department || 'Unknown';
+      deptMap[dept] = (deptMap[dept] || 0) + 1;
+    }
+
+    // Branches
+    const branches = branchSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const branchEmpCount = {};
+    for (const b of branches) {
+      branchEmpCount[b.name || b.id] = activeEmps.filter(e => e.branchId === b.id).length;
+    }
+
+    // Today's attendance
+    const todayRecs = branchId
+      ? todayAttSnap.docs.filter(d => d.data().branchId === branchId)
+      : todayAttSnap.docs;
+    const presentToday = todayRecs.filter(d => d.data().checkInTime && !d.data().isAbsent).length;
+    const lateToday    = todayRecs.filter(d => d.data().isLate && !d.data().isAbsent).length;
+    const absentToday  = todayRecs.filter(d => d.data().isAbsent).length;
+    const onLeaveToday = todayRecs.filter(d => d.data().isOnLeave).length;
+    const totalToday   = filteredEmps.length;
+    const attRateToday = totalToday > 0 ? ((presentToday / totalToday) * 100).toFixed(1) : 0;
+
+    // Leave
+    const pendingLeaves = pendingLeaveSnap.docs
+      .filter(d => !branchId || d.data().branchId === branchId)
+      .map(d => ({ employee: d.data().employeeName, type: d.data().leaveType, days: d.data().totalDays, dept: d.data().department }));
+    const approvedLeaveByType = {};
+    for (const d of approvedLeaveSnap.docs) {
+      const t = d.data().leaveType || 'other';
+      approvedLeaveByType[t] = (approvedLeaveByType[t] || 0) + (d.data().totalDays || 1);
+    }
+
+    // Performance
+    const perfRecs = branchId
+      ? perfSnap.docs.filter(d => d.data().branchId === branchId)
+      : perfSnap.docs;
+    const scores = perfRecs.map(d => d.data().overallScore || 0).filter(s => s > 0);
+    const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : null;
+    const topPerformers = perfRecs
+      .map(d => d.data())
+      .sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0))
+      .slice(0, 5)
+      .map(r => `${r.employeeName} (${r.department}): ${r.overallScore}/5`);
+    const needsImprovement = perfRecs
+      .map(d => d.data())
+      .filter(r => (r.overallScore || 5) < 3)
+      .map(r => `${r.employeeName} (${r.department}): ${r.overallScore}/5`);
+
+    // Payroll
+    const payroll = payrollSnap.docs[0]?.data() || null;
+
+    // Build the full context object for Nova
+    const ctx = {
+      companyName: name,
+      today,
+      currentMonth: month,
+      employees: {
+        total: allEmps.length,
+        active: filteredEmps.length,
+        byDepartment: deptMap,
+        list: filteredEmps.slice(0, 30).map(e => ({
+          name: e.fullName || e.name,
+          department: e.department,
+          branch: e.branchName || branches.find(b => b.id === e.branchId)?.name,
+          jobTitle: e.jobTitle,
+          status: e.status,
+        })),
+      },
+      branches: {
+        total: branches.length,
+        list: branches.map(b => b.name || b.id),
+        employeesPerBranch: branchEmpCount,
+      },
+      todayAttendance: {
+        date: today,
+        totalEmployees: totalToday,
+        present: presentToday,
+        late: lateToday,
+        absent: absentToday,
+        onLeave: onLeaveToday,
+        attendanceRate: `${attRateToday}%`,
+      },
+      leave: {
+        pendingCount: pendingLeaves.length,
+        pendingRequests: pendingLeaves.slice(0, 10),
+        approvedThisMonth: approvedLeaveByType,
+      },
+      performance: scores.length > 0 ? {
+        month,
+        reviewedCount: scores.length,
+        averageScore: avgScore,
+        topPerformers,
+        needsImprovement,
+        excellent: scores.filter(s => s >= 4.5).length,
+        good: scores.filter(s => s >= 3 && s < 4.5).length,
+        poor: scores.filter(s => s < 3).length,
+      } : { month, message: 'No performance reviews recorded this month' },
+      payroll: payroll ? {
+        month,
+        employeesOnPayroll: payroll.employeeCount,
+        totalNetPaid: `RWF ${Math.round(payroll.totalNet || 0).toLocaleString()}`,
+        totalGross: `RWF ${Math.round(payroll.totalGross || 0).toLocaleString()}`,
+        totalPAYE: `RWF ${Math.round(payroll.totalPAYE || 0).toLocaleString()}`,
+        totalRSSB: `RWF ${Math.round(payroll.totalRSSB || 0).toLocaleString()}`,
+      } : { month, message: 'No payroll run found for this month' },
     };
 
-    const name = await _companyName(db, companyId);
-    const q    = question.toLowerCase();
-    const ctx  = { today, month };
-
-    // Populate context based on question keywords
-    if (q.includes('today') || q.includes('present') || q.includes('absent') || q.includes('attendance')) {
-      ctx.todayAttendance = await buildDailySummary(db, companyId, today, branchId || null);
-    }
-    if (q.includes('leave') || q.includes('pending')) {
-      let lQ = db.collection('companies').doc(companyId).collection('leave_requests')
-        .where('status', '==', 'pending');
-      if (branchId) lQ = lQ.where('branchId', '==', branchId);
-      const lSnap = await lQ.get().catch(() => ({ docs: [], size: 0 }));
-      ctx.pendingLeaves = lSnap.size;
-      ctx.pendingLeaveDetails = lSnap.docs.slice(0, 5).map(d => ({
-        employee: d.data().employeeName,
-        type: d.data().leaveType,
-        days: d.data().totalDays,
-      }));
-    }
-    if (q.includes('performance') || q.includes('score')) {
-      let pQ = db.collection('companies').doc(companyId).collection('performance')
-        .where('month', '==', month);
-      if (branchId) pQ = pQ.where('branchId', '==', branchId);
-      const pSnap = await pQ.get().catch(() => ({ docs: [] }));
-      const scores = pSnap.docs.map(d => d.data().overallScore || 0).filter(s => s > 0);
-      ctx.performance = {
-        month, scoredCount: scores.length,
-        avgScore: scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : null,
-      };
-    }
-    if (q.includes('employee') || q.includes('staff') || q.includes('active')) {
-      let eQ = db.collection('companies').doc(companyId).collection('employees')
-        .where('status', '==', 'active');
-      if (branchId) eQ = eQ.where('branchId', '==', branchId);
-      const eSnap = await eQ.get().catch(() => ({ size: 0 }));
-      ctx.activeEmployees = eSnap.size;
-    }
-    if (q.includes('week') && !q.includes('month')) {
-      ctx.weekSummary = await buildWeeklySummary(db, companyId, weekStartFn(), branchId || null);
-    }
-    if (q.includes('month') || q.includes('monthly')) {
-      ctx.monthlySummary = await buildMonthlySummary(db, companyId, month, branchId || null);
-    }
-
+    const { answerQuestion } = require('../services/aiService');
     const answer = await answerQuestion(question, ctx, name);
-    res.json({ answer, context: ctx });
+    res.json({ answer });
   } catch (e) {
     console.error('[Reports] ask:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/reports/performance ───────────────────────────────────────────
+router.post('/performance', verifyToken, async (req, res) => {
+  try {
+    const db = getFirestore('default');
+    const companyId = req.body.companyId || req.companyId;
+    if (!companyId) return res.status(400).json({ error: 'companyId required' });
+
+    const month = req.body.month || _currentMonth();
+    const branchId = req.body.branchId || null;
+
+    let pQ = db.collection('companies').doc(companyId).collection('performance')
+      .where('month', '==', month);
+    if (branchId) pQ = pQ.where('branchId', '==', branchId);
+
+    const [pSnap, name] = await Promise.all([pQ.get(), _companyName(db, companyId)]);
+    const records = pSnap.docs.map(d => d.data());
+    const scores = records.map(r => r.overallScore || 0).filter(s => s > 0);
+    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+
+    const summary = {
+      month, branchId,
+      totalReviewed: records.length,
+      averageScore: +avg.toFixed(2),
+      excellent: scores.filter(s => s >= 4.5).length,
+      good: scores.filter(s => s >= 3 && s < 4.5).length,
+      poor: scores.filter(s => s < 3).length,
+      topPerformers: records
+        .sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0))
+        .slice(0, 5)
+        .map(r => ({ name: r.employeeName, department: r.department, score: r.overallScore })),
+    };
+
+    const { callGemini } = require('../services/aiService');
+    const tops = summary.topPerformers.map(p => `- **${p.name}** (${p.department}): **${p.score}/5**`).join('\n') || '- No top performers recorded';
+    const prompt = `You are a professional HR analyst for ${name}. Write a Performance Review Report for ${month}.
+
+## Performance Figures
+- Employees reviewed: **${summary.totalReviewed}**
+- Average performance score: **${summary.averageScore}/5**
+- Excellent ratings (≥4.5): **${summary.excellent}**
+- Good ratings (3–4.5): **${summary.good}**
+- Needs improvement (<3): **${summary.poor}**
+
+## Top Performers
+${tops}
+
+Format rules:
+- Use ## for section headings
+- Bold key numbers like **12** or **4.2/5**
+- Write in complete paragraphs — no bullet lists for narrative
+- Do not repeat the title in the body
+- Use simple, clear English — short sentences, everyday words
+- Write like you are explaining to a colleague, not writing an academic paper
+
+Write 3 paragraphs: (1) overall performance summary using the exact numbers, (2) highlight the top performers by name and mention anyone who needs improvement, (3) one clear and practical recommendation for next month. Rwanda HR context.`;
+
+    const report = await callGemini(prompt, 1500);
+
+    const docId = branchId ? `${month}_performance_${branchId}` : `${month}_performance`;
+    await db.collection('companies').doc(companyId).collection('reports').doc(docId).set({
+      type: 'performance', month, branchId: branchId || null, summary, report,
+      generatedAt: new Date(), generatedBy: req.uid,
+    });
+
+    res.json({ report, summary, docId });
+  } catch (e) {
+    console.error('[Reports] performance:', e.message);
     res.status(500).json({ error: e.message });
   }
 });

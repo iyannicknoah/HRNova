@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -65,8 +65,7 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
 
   void _tick() {
     final n = DateTime.now();
-    final s =
-        '${_p(n.hour)}:${_p(n.minute)}:${_p(n.second)}';
+    final s = '${_p(n.hour)}:${_p(n.minute)}:${_p(n.second)}';
     if (mounted) setState(() => _timeStr = s);
   }
 
@@ -89,7 +88,6 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
     setState(() => _state = _ScanState.loading);
 
     try {
-      // Lookup employee by QR code
       final employee = await ref.read(employeeByQRProvider(qrCode).future);
 
       if (employee == null || !employee.isActive) {
@@ -98,7 +96,6 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
         return;
       }
 
-      // Check today's attendance record
       final todayRecord = await ref
           .read(attendanceNotifierProvider.notifier)
           .getTodayRecord(employee.id);
@@ -106,7 +103,6 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
       if (todayRecord != null &&
           todayRecord.checkInTime != null &&
           todayRecord.checkOutTime != null) {
-        // Already fully done for today
         final ciStr = _p(todayRecord.checkInTime!.hour) +
             ':' +
             _p(todayRecord.checkInTime!.minute);
@@ -126,7 +122,6 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
       }
 
       if (todayRecord != null && todayRecord.checkInTime != null) {
-        // Has check-in, needs check-out
         await ref
             .read(attendanceNotifierProvider.notifier)
             .checkOut(employeeId: employee.id);
@@ -152,7 +147,6 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
         return;
       }
 
-      // No record → check in
       final record = await ref
           .read(attendanceNotifierProvider.notifier)
           .checkIn(
@@ -161,7 +155,6 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
             isManual: false,
           );
 
-      // Check-in after work hours → absent, don't count as checked in
       if (record.isAbsent) {
         final settings = ref.read(companySettingsProvider).value;
         setState(() {
@@ -191,9 +184,7 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
           lateMinutes: record.lateMinutes,
           checkInTimeStr: checkInStr,
         );
-        _state = isLate
-            ? _ScanState.lateArrival
-            : _ScanState.checkInSuccess;
+        _state = isLate ? _ScanState.lateArrival : _ScanState.checkInSuccess;
         _checkedInCount++;
       });
       _scheduleReset();
@@ -219,22 +210,22 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
 
   Widget _stateOverlay() {
     return switch (_state) {
-      _ScanState.scanning        => const SizedBox.shrink(key: ValueKey('scan')),
-      _ScanState.loading         => const _LoadingOverlay(key: ValueKey('load')),
-      _ScanState.notFound        => const _NotFoundOverlay(key: ValueKey('nf')),
-      _ScanState.checkInSuccess  => _result == null
+      _ScanState.scanning => const SizedBox.shrink(key: ValueKey('scan')),
+      _ScanState.loading => const _LoadingOverlay(key: ValueKey('load')),
+      _ScanState.notFound => const _NotFoundOverlay(key: ValueKey('nf')),
+      _ScanState.checkInSuccess => _result == null
           ? const SizedBox.shrink()
           : _CheckInOverlay(result: _result!, isLate: false, key: const ValueKey('in')),
-      _ScanState.lateArrival     => _result == null
+      _ScanState.lateArrival => _result == null
           ? const SizedBox.shrink()
           : _CheckInOverlay(result: _result!, isLate: true, key: const ValueKey('late')),
       _ScanState.checkOutSuccess => _result == null
           ? const SizedBox.shrink()
           : _CheckOutOverlay(result: _result!, key: const ValueKey('out')),
-      _ScanState.alreadyDone     => _result == null
+      _ScanState.alreadyDone => _result == null
           ? const SizedBox.shrink()
           : _AlreadyDoneOverlay(result: _result!, key: const ValueKey('done')),
-      _ScanState.afterHours      => _result == null
+      _ScanState.afterHours => _result == null
           ? const SizedBox.shrink()
           : _AfterHoursOverlay(result: _result!, key: const ValueKey('ah')),
     };
@@ -242,15 +233,18 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
+    final companyName =
+        ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A1628),
       body: Column(children: [
-        _TopBar(timeStr: _timeStr, checkedIn: _checkedInCount, companyName: companyName),
+        _TopBar(
+            timeStr: _timeStr,
+            checkedIn: _checkedInCount,
+            companyName: companyName),
         Expanded(
           child: Stack(fit: StackFit.expand, children: [
-            // Live camera / QR scanner
             MobileScanner(
               controller: _scannerController,
               onDetect: (capture) {
@@ -260,9 +254,7 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
                 }
               },
             ),
-            // QR frame overlay
             const _ScanOverlay(),
-            // State result overlays
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
               transitionBuilder: (child, anim) =>
@@ -355,15 +347,12 @@ class _FramePainter extends CustomPainter {
     final top = cy - frameH / 2;
     final rect = Rect.fromLTWH(left, top, frameW, frameH);
 
-    // Dark vignette with transparent hole
     final vigPath = Path()
       ..fillType = PathFillType.evenOdd
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
       ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)));
-    canvas.drawPath(
-        vigPath, Paint()..color = Colors.black.withAlpha(140));
+    canvas.drawPath(vigPath, Paint()..color = Colors.black.withAlpha(140));
 
-    // Blue corner brackets
     const c = Color(0xFF4A9EFF);
     const len = 26.0;
     const thick = 3.5;
@@ -375,9 +364,21 @@ class _FramePainter extends CustomPainter {
 
     final corners = [
       [Offset(left, top + len), Offset(left, top), Offset(left + len, top)],
-      [Offset(left + frameW - len, top), Offset(left + frameW, top), Offset(left + frameW, top + len)],
-      [Offset(left + frameW, top + frameH - len), Offset(left + frameW, top + frameH), Offset(left + frameW - len, top + frameH)],
-      [Offset(left + len, top + frameH), Offset(left, top + frameH), Offset(left, top + frameH - len)],
+      [
+        Offset(left + frameW - len, top),
+        Offset(left + frameW, top),
+        Offset(left + frameW, top + len)
+      ],
+      [
+        Offset(left + frameW, top + frameH - len),
+        Offset(left + frameW, top + frameH),
+        Offset(left + frameW - len, top + frameH)
+      ],
+      [
+        Offset(left + len, top + frameH),
+        Offset(left, top + frameH),
+        Offset(left, top + frameH - len)
+      ],
     ];
     for (final pts in corners) {
       final path = Path()
@@ -387,7 +388,6 @@ class _FramePainter extends CustomPainter {
       canvas.drawPath(path, p);
     }
 
-    // Hint text
     final tp = TextPainter(
       text: const TextSpan(
         text: 'Position employee QR code inside the frame',
@@ -397,8 +397,7 @@ class _FramePainter extends CustomPainter {
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: 280);
-    tp.paint(canvas,
-        Offset(cx - tp.width / 2, top + frameH + 20));
+    tp.paint(canvas, Offset(cx - tp.width / 2, top + frameH + 20));
   }
 
   @override
@@ -460,8 +459,8 @@ class _NotFoundOverlay extends StatelessWidget {
           CircleAvatar(
             radius: 40,
             backgroundColor: Colors.white24,
-            child: Icon(Icons.person_off_rounded,
-                size: 40, color: Colors.white),
+            child:
+                Icon(Icons.person_off_rounded, size: 40, color: Colors.white),
           ),
           SizedBox(height: 20),
           Text('Employee Not Found',
@@ -498,8 +497,7 @@ class _CheckInOverlay extends StatelessWidget {
         Positioned.fill(
           child: Center(
             child: Icon(Icons.check_circle_outline_rounded,
-                size: 400,
-                color: Colors.white.withAlpha(18)),
+                size: 400, color: Colors.white.withAlpha(18)),
           ),
         ),
         Center(
@@ -514,12 +512,11 @@ class _CheckInOverlay extends StatelessWidget {
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
-                style: const TextStyle(
-                    color: Colors.white70, fontSize: 17)),
+                style: const TextStyle(color: Colors.white70, fontSize: 17)),
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 24, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(30),
                   borderRadius: BorderRadius.circular(100)),
@@ -539,8 +536,8 @@ class _CheckInOverlay extends StatelessWidget {
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text(t,
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 17)),
+                  style:
+                      const TextStyle(color: Colors.white70, fontSize: 17)),
             ] else ...[
               Text(t,
                   style: const TextStyle(
@@ -588,8 +585,7 @@ class _CheckOutOverlay extends StatelessWidget {
         Positioned.fill(
           child: Center(
             child: Icon(Icons.logout_rounded,
-                size: 400,
-                color: Colors.white.withAlpha(18)),
+                size: 400, color: Colors.white.withAlpha(18)),
           ),
         ),
         Center(
@@ -604,12 +600,11 @@ class _CheckOutOverlay extends StatelessWidget {
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
-                style: const TextStyle(
-                    color: Colors.white70, fontSize: 17)),
+                style: const TextStyle(color: Colors.white70, fontSize: 17)),
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 24, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(30),
                   borderRadius: BorderRadius.circular(100)),
@@ -628,8 +623,7 @@ class _CheckOutOverlay extends StatelessWidget {
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text('Worked: ${h}h ${m}m today',
-                style: const TextStyle(
-                    color: Colors.white70, fontSize: 20)),
+                style: const TextStyle(color: Colors.white70, fontSize: 20)),
           ]),
         ),
       ]),
@@ -661,8 +655,7 @@ class _AlreadyDoneOverlay extends StatelessWidget {
               style: TextStyle(color: Colors.white70, fontSize: 17)),
           const SizedBox(height: 6),
           Text('Checked in at ${result.checkInTimeStr}',
-              style: const TextStyle(
-                  color: Colors.white54, fontSize: 15)),
+              style: const TextStyle(color: Colors.white54, fontSize: 15)),
         ]),
       ),
     );
@@ -687,17 +680,21 @@ class _AfterHoursOverlay extends StatelessWidget {
         ),
         Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _GuardAvatar(name: result.name, photoUrl: result.photoUrl, size: 100),
+            _GuardAvatar(
+                name: result.name, photoUrl: result.photoUrl, size: 100),
             const SizedBox(height: 20),
             Text(result.name,
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
                 style: const TextStyle(color: Colors.white70, fontSize: 17)),
             const SizedBox(height: 22),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(25),
                   borderRadius: BorderRadius.circular(100)),
@@ -711,7 +708,9 @@ class _AfterHoursOverlay extends StatelessWidget {
             const SizedBox(height: 16),
             Text('Work ended at ${result.checkInTimeStr}',
                 style: const TextStyle(
-                    color: Colors.white70, fontSize: 18, fontWeight: FontWeight.w600)),
+                    color: Colors.white70,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             const Text('Check-in is no longer accepted for today',
                 style: TextStyle(color: Colors.white54, fontSize: 15)),
@@ -738,8 +737,7 @@ class _GuardAvatar extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(
-              color: Colors.white.withAlpha(80), width: 3),
+          border: Border.all(color: Colors.white.withAlpha(80), width: 3),
         ),
         child: ClipOval(
           child: Image.network(photoUrl!,
@@ -754,11 +752,8 @@ class _GuardAvatar extends StatelessWidget {
   Widget _initials() {
     final colors = AppColors.gradientForName(name);
     final parts = name.split(' ');
-    final ini = parts
-        .take(2)
-        .map((p) => p.isNotEmpty ? p[0] : '')
-        .join()
-        .toUpperCase();
+    final ini =
+        parts.take(2).map((p) => p.isNotEmpty ? p[0] : '').join().toUpperCase();
     return Container(
       width: size,
       height: size,
@@ -768,8 +763,7 @@ class _GuardAvatar extends StatelessWidget {
             colors: colors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight),
-        border:
-            Border.all(color: Colors.white.withAlpha(80), width: 3),
+        border: Border.all(color: Colors.white.withAlpha(80), width: 3),
       ),
       alignment: Alignment.center,
       child: Text(ini,

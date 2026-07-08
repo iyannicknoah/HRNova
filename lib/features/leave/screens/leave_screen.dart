@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/working_days_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/models/branch_model.dart';
 import '../../branches/providers/branches_provider.dart';
+import '../../employees/providers/employees_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../models/leave_request_model.dart';
 import '../providers/leave_provider.dart';
 
@@ -38,6 +41,7 @@ String _srcLabel(String s) => switch (s) {
       'mobile_app' => 'Mobile',
       'whatsapp_portal' => 'WhatsApp',
       'web_dashboard' => 'Web',
+      'hr_manual' => 'HR Manual',
       _ => s,
     };
 
@@ -60,7 +64,8 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
     super.initState();
     final role = ref.read(currentUserRoleProvider) ?? '';
     _isTopHr = role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin;
-    _tabs = TabController(length: _isTopHr ? 3 : 4, vsync: this);
+    // Leave Roster tab added for all roles; top HR: 4 tabs, others: 5 tabs
+    _tabs = TabController(length: _isTopHr ? 4 : 5, vsync: this);
   }
 
   @override
@@ -83,11 +88,13 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
               controller: _tabs,
               children: _isTopHr
                   ? const [
+                      _LeaveRosterTab(),
                       _AllRequestsTab(showBranchFilter: true),
                       _ExpiredTab(),
                       _CalendarTab(),
                     ]
                   : const [
+                      _LeaveRosterTab(),
                       _PendingTab(),
                       _AllRequestsTab(showBranchFilter: false),
                       _ExpiredTab(),
@@ -138,7 +145,8 @@ class _LeaveTabBar extends StatelessWidget {
       decoration: BoxDecoration(color: context.appCard),
       child: TabBar(
         controller: controller,
-        isScrollable: false,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
         labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
@@ -147,8 +155,8 @@ class _LeaveTabBar extends StatelessWidget {
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
         tabs: isTopHr
-            ? const [Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')]
-            : const [Tab(text: 'Pending Approvals'), Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')],
+            ? const [Tab(text: 'Leave Roster'), Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')]
+            : const [Tab(text: 'Leave Roster'), Tab(text: 'Pending'), Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')],
       ),
     );
   }
@@ -228,6 +236,746 @@ class _InitialsAvatar extends StatelessWidget {
               color: Colors.white,
               fontSize: size * 0.36,
               fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+// ── LEAVE ROSTER TAB ─────────────────────────────────────────────────────────
+
+class _LeaveRosterTab extends ConsumerWidget {
+  const _LeaveRosterTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rosterAsync = ref.watch(activeLeaveRosterProvider);
+    final role = ref.watch(currentUserRoleProvider) ?? '';
+    final canMarkLeave = role == AppConstants.roleHrAdmin ||
+        role == AppConstants.roleGroupHrAdmin ||
+        role == AppConstants.roleBranchHrAdmin;
+    final today = DateTime.now();
+    final dateF = DateFormat('MMM d, yyyy');
+
+    return rosterAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+          child: Text('Error: $e', style: TextStyle(color: context.appSubtext))),
+      data: (roster) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header bar
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+            decoration: BoxDecoration(
+              color: context.appCard,
+              border: Border(bottom: BorderSide(color: context.appBorder)),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withAlpha(28),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${roster.length} employee${roster.length == 1 ? '' : 's'} away',
+                            style: const TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'As of ${DateFormat('EEEE, d MMMM y').format(today)}',
+                      style: TextStyle(color: context.appSubtext, fontSize: 13),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                if (canMarkLeave)
+                  ElevatedButton.icon(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => const _MarkOnLeaveDialog(),
+                    ),
+                    icon: const Icon(Icons.beach_access_rounded, size: 16),
+                    label: const Text('Mark on Leave'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Roster list
+          Expanded(
+            child: roster.isEmpty
+                ? Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.people_outline_rounded,
+                          size: 56, color: context.appSubtext.withAlpha(120)),
+                      const SizedBox(height: 12),
+                      Text('No one is on leave today',
+                          style: TextStyle(
+                              color: context.appText,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      Text('All employees are present.',
+                          style: TextStyle(color: context.appSubtext, fontSize: 15)),
+                    ]),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: roster
+                          .map((r) => SizedBox(
+                                width: 400,
+                                child: _RosterCard(req: r, today: today, dateF: dateF),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RosterCard extends StatelessWidget {
+  const _RosterCard({required this.req, required this.today, required this.dateF});
+  final LeaveRequestModel req;
+  final DateTime today;
+  final DateFormat dateF;
+
+  @override
+  Widget build(BuildContext context) {
+    final daysLeft = req.endDate.difference(DateTime(today.year, today.month, today.day)).inDays;
+    final isLastDay = daysLeft == 0;
+    final leaveColor = _leaveColor(req.leaveType);
+    final isHrManual = req.source == 'hr_manual';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.appBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(context.isDark ? 40 : 10),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _InitialsAvatar(name: req.employeeName, size: 42),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(req.employeeName,
+                        style: TextStyle(
+                            color: context.appText,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        _TypeBadge(req.leaveType),
+                        const SizedBox(width: 6),
+                        if (isHrManual)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.warningAmber.withAlpha(28),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text('HR Manual',
+                                style: TextStyle(
+                                    color: AppColors.warningAmber,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isLastDay
+                      ? AppColors.warningAmber.withAlpha(28)
+                      : AppColors.successGreen.withAlpha(22),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      isLastDay ? 'Last day' : '$daysLeft',
+                      style: TextStyle(
+                        color: isLastDay ? AppColors.warningAmber : AppColors.successGreen,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (!isLastDay)
+                      Text('days left',
+                          style: TextStyle(
+                              color: isLastDay ? AppColors.warningAmber : AppColors.successGreen,
+                              fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: context.appBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.date_range_rounded, size: 14, color: context.appSubtext),
+                const SizedBox(width: 6),
+                Text(
+                  '${dateF.format(req.startDate)}  →  ${dateF.format(req.endDate)}',
+                  style: TextStyle(color: context.appSubtext, fontSize: 13),
+                ),
+                const Spacer(),
+                Text('${req.totalDays} day${req.totalDays == 1 ? '' : 's'}',
+                    style: TextStyle(
+                        color: context.appText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          if (req.reason.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '"${req.reason}"',
+              style: TextStyle(
+                  color: context.appSubtext,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Mark on Leave Dialog ──────────────────────────────────────────────────────
+
+class _MarkOnLeaveDialog extends ConsumerStatefulWidget {
+  const _MarkOnLeaveDialog();
+
+  @override
+  ConsumerState<_MarkOnLeaveDialog> createState() => _MarkOnLeaveDialogState();
+}
+
+class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
+  String? _selectedEmployeeId;
+  String? _selectedEmployeeName;
+  String? _selectedBranchId;
+  String _leaveType = 'annual';
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now();
+  final _reasonCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
+  bool _submitting = false;
+  String _employeeSearch = '';
+
+  static const _types = [
+    ('annual', 'Annual Leave'),
+    ('sick', 'Sick Leave'),
+    ('maternity', 'Maternity Leave'),
+    ('paternity', 'Paternity Leave'),
+    ('unpaid', 'Unpaid Leave'),
+    ('emergency', 'Emergency Leave'),
+    ('compassionate', 'Compassionate Leave'),
+  ];
+
+  @override
+  void dispose() {
+    _reasonCtrl.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_selectedEmployeeId == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please select an employee')));
+      return;
+    }
+    if (_reasonCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please enter a reason')));
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await ref.read(leaveNotifierProvider.notifier).hrMarkOnLeave(
+            employeeId: _selectedEmployeeId!,
+            employeeName: _selectedEmployeeName!,
+            leaveType: _leaveType,
+            startDate: _startDate,
+            endDate: _endDate,
+            reason: _reasonCtrl.text.trim(),
+            branchId: _selectedBranchId,
+          );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Employee marked on leave successfully'),
+              backgroundColor: AppColors.successGreen),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final employeesAsync = ref.watch(employeesProvider);
+    final employees = employeesAsync.valueOrNull ?? [];
+    final filtered = employees
+        .where((e) =>
+            e.status == 'active' &&
+            (_employeeSearch.isEmpty ||
+                e.fullName.toLowerCase().contains(_employeeSearch.toLowerCase())))
+        .toList();
+
+    final settings = ref.watch(companySettingsProvider).value;
+    final workingDays = settings?.workingDays ??
+        const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    final days = WorkingDaysService.calculate(_startDate, _endDate, workingDays);
+    final dateF = DateFormat('MMM d, yyyy');
+
+    return Dialog(
+      backgroundColor: context.appCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withAlpha(25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.beach_access_rounded,
+                        color: AppColors.primaryBlue, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Mark Employee on Leave',
+                      style: TextStyle(
+                          color: context.appText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close_rounded, color: context.appSubtext),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Employee search + select
+              Text('Employee',
+                  style: TextStyle(
+                      color: context.appSubtext,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              // Show selected or search
+              if (_selectedEmployeeId != null)
+                InkWell(
+                  onTap: () => setState(() {
+                    _selectedEmployeeId = null;
+                    _selectedEmployeeName = null;
+                    _searchCtrl.clear();
+                    _employeeSearch = '';
+                  }),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withAlpha(18),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.primaryBlue.withAlpha(80)),
+                    ),
+                    child: Row(
+                      children: [
+                        _InitialsAvatar(name: _selectedEmployeeName!, size: 28),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(_selectedEmployeeName!,
+                              style: const TextStyle(
+                                  color: AppColors.primaryBlue,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                        Icon(Icons.close_rounded,
+                            color: AppColors.primaryBlue, size: 16),
+                      ],
+                    ),
+                  ),
+                )
+              else ...[
+                TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _employeeSearch = v),
+                  style: TextStyle(color: context.appText, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Search employee by name...',
+                    hintStyle: TextStyle(color: context.appSubtext, fontSize: 14),
+                    prefixIcon: Icon(Icons.search_rounded, color: context.appSubtext, size: 18),
+                    filled: true,
+                    fillColor: context.appField,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: context.appBorder)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: context.appBorder)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.primaryBlue)),
+                  ),
+                ),
+                if (_employeeSearch.isNotEmpty && filtered.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    decoration: BoxDecoration(
+                      color: context.appCard,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: context.appBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(20),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        )
+                      ],
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: filtered.length.clamp(0, 8),
+                      itemBuilder: (_, i) {
+                        final e = filtered[i];
+                        return InkWell(
+                          onTap: () => setState(() {
+                            _selectedEmployeeId = e.id;
+                            _selectedEmployeeName = e.fullName;
+                            _selectedBranchId = e.branchId;
+                            _searchCtrl.clear();
+                            _employeeSearch = '';
+                          }),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            child: Row(
+                              children: [
+                                _InitialsAvatar(name: e.fullName, size: 28),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(e.fullName,
+                                          style: TextStyle(
+                                              color: context.appText,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500)),
+                                      Text(e.jobTitle,
+                                          style: TextStyle(
+                                              color: context.appSubtext,
+                                              fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ],
+              const SizedBox(height: 14),
+
+              // Leave type
+              Text('Leave Type',
+                  style: TextStyle(
+                      color: context.appSubtext,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: context.appField,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: context.appBorder),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _leaveType,
+                    dropdownColor: context.appCard,
+                    style: TextStyle(color: context.appText, fontSize: 14),
+                    icon: Icon(Icons.expand_more_rounded, color: context.appSubtext),
+                    isExpanded: true,
+                    onChanged: (v) => setState(() => _leaveType = v!),
+                    items: _types
+                        .map((t) => DropdownMenuItem(
+                              value: t.$1,
+                              child: Text(t.$2),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Dates
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Start Date',
+                            style: TextStyle(
+                                color: context.appSubtext,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        _DateButton(
+                          label: dateF.format(_startDate),
+                          onTap: () async {
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: _startDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (d != null) {
+                              setState(() {
+                                _startDate = d;
+                                if (_endDate.isBefore(_startDate)) _endDate = _startDate;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('End Date',
+                            style: TextStyle(
+                                color: context.appSubtext,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        _DateButton(
+                          label: dateF.format(_endDate),
+                          onTap: () async {
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: _endDate,
+                              firstDate: _startDate,
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (d != null) setState(() => _endDate = d);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withAlpha(18),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primaryBlue.withAlpha(50)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.info_outline_rounded,
+                      color: AppColors.primaryBlue, size: 15),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$days working day${days == 1 ? '' : 's'} will be deducted',
+                    style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 14),
+
+              // Reason
+              Text('Reason / Notes',
+                  style: TextStyle(
+                      color: context.appSubtext,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _reasonCtrl,
+                maxLines: 2,
+                style: TextStyle(color: context.appText, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'E.g. Employee came in person to request leave...',
+                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+                  filled: true,
+                  fillColor: context.appField,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: context.appBorder)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: context.appBorder)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.primaryBlue)),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: context.appSubtext,
+                        side: BorderSide(color: context.appBorder),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _submitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Text('Mark on Leave',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateButton extends StatelessWidget {
+  const _DateButton({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: context.appField,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.appBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded,
+                size: 14, color: context.appSubtext),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: context.appText, fontSize: 14)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -334,7 +1082,6 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
   @override
   Widget build(BuildContext context) {
     final req = widget.request;
-    final color = _leaveColor(req.leaveType);
 
     return Container(
       decoration: context.cardDeco(14),

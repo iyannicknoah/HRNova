@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
@@ -38,23 +39,34 @@ class ReportsScreen extends ConsumerStatefulWidget {
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> with TickerProviderStateMixin {
   late TabController _tabs;
-  bool _isGroup = false;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 7, vsync: this); // placeholder; rebuilt in didChangeDependencies
+    _tabs = TabController(length: 7, vsync: this);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _syncTabs();
+  }
+
+  bool _canSeeBranches(String? role, String? companyType) {
+    if (role == AppConstants.roleGroupHrAdmin) return true;
+    if (role == AppConstants.roleHrAdmin) return (companyType ?? 'single') == 'multi';
+    return false;
+  }
+
+  void _syncTabs() {
     final role = ref.read(currentUserRoleProvider);
-    _isGroup = role == AppConstants.roleGroupHrAdmin;
-    final tabCount = _isGroup ? 8 : 7;
-    if (_tabs.length != tabCount) {
+    final settings = ref.read(companySettingsProvider).value;
+    final isGroup = role == AppConstants.roleGroupHrAdmin;
+    final showBranches = _canSeeBranches(role, settings?.companyType);
+    final count = 6 + (isGroup ? 1 : 0) + (showBranches ? 1 : 0);
+    if (_tabs.length != count) {
       _tabs.dispose();
-      _tabs = TabController(length: tabCount, vsync: this);
+      _tabs = TabController(length: count, vsync: this);
     }
   }
 
@@ -66,20 +78,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final role = ref.watch(currentUserRoleProvider);
+    final settings = ref.watch(companySettingsProvider).value;
+    final isGroup = role == AppConstants.roleGroupHrAdmin;
+    final showBranches = _canSeeBranches(role, settings?.companyType);
+    final tabCount = 6 + (isGroup ? 1 : 0) + (showBranches ? 1 : 0);
+
+    if (_tabs.length != tabCount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(_syncTabs);
+      });
+    }
+
     return Scaffold(
       backgroundColor: context.appBg,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Header(isGroup: _isGroup, tabs: _tabs),
+          _Header(isGroup: isGroup, showBranches: showBranches, tabs: _tabs),
           Expanded(
             child: TabBarView(
               controller: _tabs,
               children: [
-                if (_isGroup) const _GroupTab(),
+                if (isGroup) const _GroupTab(),
                 const _AttendanceReportTab(),
                 const _PerformanceReportTab(),
-                const _BranchesReportTab(),
+                if (showBranches) const _BranchesReportTab(),
                 const _DailyTab(),
                 const _WeeklyTab(),
                 const _MonthlyTab(),
@@ -96,8 +120,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with TickerProvid
 // ── Header + TabBar ────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
   final bool isGroup;
+  final bool showBranches;
   final TabController tabs;
-  const _Header({required this.isGroup, required this.tabs});
+  const _Header({required this.isGroup, required this.showBranches, required this.tabs});
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +130,7 @@ class _Header extends StatelessWidget {
       if (isGroup) 'Group',
       'Attendance',
       'Performance',
-      'Branches',
+      if (showBranches) 'Branches',
       'Daily',
       'Weekly',
       'Monthly',
@@ -238,7 +263,14 @@ class _ReportCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(report, style: TextStyle(fontSize: 13, color: context.appText, height: 1.65)),
+            MarkdownBody(
+              data: report,
+              styleSheet: MarkdownStyleSheet(
+                p: TextStyle(fontSize: 13, color: context.appText, height: 1.65),
+                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText),
+                strong: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ],
         ),
       ),
@@ -388,8 +420,14 @@ class _AiSummaryPanel extends StatelessWidget {
         else if (reportText != null && reportText.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Text(reportText,
-                style: TextStyle(fontSize: 13, color: context.appText, height: 1.65)),
+            child: MarkdownBody(
+              data: reportText,
+              styleSheet: MarkdownStyleSheet(
+                p: TextStyle(fontSize: 13, color: context.appText, height: 1.65),
+                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText),
+                strong: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           )
         else
           Padding(
@@ -803,11 +841,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
           ),
           const SizedBox(height: 12),
           const _AutoNote('Morning reports are sent automatically to HR Admin and Manager at 9:30am every working day.'),
-          const SizedBox(height: 20),
-          // Live attendance data
-          _DailyLiveSection(date: _date, branchId: _branchId),
-          const SizedBox(height: 20),
-          // AI summary panel
+          const SizedBox(height: 12),
           _AiSummaryPanel(
             loading: state.loading,
             error: state.error,
@@ -816,6 +850,9 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
             periodLabel: dateFmt.format(_date),
             onGenerate: () => notifier.generateDaily(date: _fmt.format(_date), branchId: _branchId),
           ),
+          const SizedBox(height: 20),
+          // Live attendance data
+          _DailyLiveSection(date: _date, branchId: _branchId),
           if (docs.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
@@ -994,11 +1031,7 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          // Live weekly breakdown
-          _WeeklyLiveSection(weekStart: _weekStart, branchId: _branchId),
-          const SizedBox(height: 20),
-          // AI summary panel
+          const SizedBox(height: 12),
           _AiSummaryPanel(
             loading: state.loading,
             error: state.error,
@@ -1007,6 +1040,9 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
             periodLabel: periodLabel,
             onGenerate: () => notifier.generateWeekly(startDate: weekStartStr, branchId: _branchId),
           ),
+          const SizedBox(height: 20),
+          // Live weekly breakdown
+          _WeeklyLiveSection(weekStart: _weekStart, branchId: _branchId),
           if (docs.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
@@ -1101,11 +1137,7 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          // Live monthly overview
-          _MonthlyLiveSection(month: _month, branchId: _branchId),
-          const SizedBox(height: 20),
-          // AI summary panel
+          const SizedBox(height: 12),
           Builder(builder: (_) {
             final sd = docs.firstWhere(
               (d) => (d['month'] as String?) == _monthKey,
@@ -1120,6 +1152,9 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
               onGenerate: () => notifier.generateMonthly(month: _monthKey, branchId: _branchId),
             );
           }),
+          const SizedBox(height: 20),
+          // Live monthly overview
+          _MonthlyLiveSection(month: _month, branchId: _branchId),
           if (docs.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
@@ -1232,7 +1267,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
               setState(() => _pdfDownloading = true);
               try {
                 await GroupReportPdfService.download(
-                  companyName: 'HRNova',
+                  companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
                   date: _fmt.format(_date),
                   totalEmployees: totalActive,
                   totalPresent: totalPresent,
@@ -1261,6 +1296,18 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
         ]),
         const SizedBox(height: 12),
         const _AutoNote('Group reports are sent automatically to Group HR Admin at 9:30am every working day.'),
+        const SizedBox(height: 12),
+        _AiSummaryPanel(
+          loading: state.loading,
+          error: state.error,
+          freshReport: state.report,
+          savedDoc: docs.isNotEmpty ? docs.firstWhere(
+            (d) => (d['date'] as String?) == _fmt.format(_date),
+            orElse: () => docs.first,
+          ) : null,
+          periodLabel: DateFormat('d MMMM yyyy').format(_date),
+          onGenerate: () => notifier.generateGroupDaily(date: _fmt.format(_date)),
+        ),
 
         // ── Live KPI cards ────────────────────────────────────────────────────
         const SizedBox(height: 20),
@@ -1366,18 +1413,6 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
                 ),
               ])),
             ),
-        ],
-
-        // ── AI report result ──────────────────────────────────────────────────
-        if (state.error != null) ...[
-          const SizedBox(height: 16),
-          _ErrorBanner(state.error!),
-        ],
-        if (state.report != null) ...[
-          const SizedBox(height: 20),
-          _SectionLabel('AI Generated Report'),
-          const SizedBox(height: 10),
-          _ReportCard(doc: {'type': 'group_daily', 'report': state.report, 'date': _fmt.format(_date)}),
         ],
 
         // ── Previous reports ──────────────────────────────────────────────────
@@ -1712,7 +1747,7 @@ class _DailyPdfButtonState extends ConsumerState<_DailyPdfButton> {
                 orElse: () => branches.first).name;
           }
           await DailyReportPdfService.download(
-            companyName: 'HRNova',
+            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
             dateLabel: DateFormat('d MMMM yyyy').format(widget.date),
             dateKey: fmt.format(widget.date),
             totalActive: emps.length,
@@ -1807,7 +1842,7 @@ class _WeeklyPdfButtonState extends ConsumerState<_WeeklyPdfButton> {
                 orElse: () => branches.first).name;
           }
           await WeeklyReportPdfService.download(
-            companyName: 'HRNova',
+            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
             period: widget.periodLabel,
             fileKey: widget.fileKey,
             totalActive: emps.length,
@@ -1907,7 +1942,7 @@ class _MonthlyPdfButtonState extends ConsumerState<_MonthlyPdfButton> {
                 orElse: () => branches.first).name;
           }
           await MonthlyReportPdfService.download(
-            companyName: 'HRNova',
+            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
             month: monthKey,
             totalActive: totalActive,
             present: present, late: late,
@@ -2046,6 +2081,10 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
     final empsAsync = ref.watch(employeesProvider);
     final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
     final monthLabel = DateFormat('MMMM yyyy').format(_month);
+    final monthKey = DateFormat('yyyy-MM').format(_month);
+    final attAiState = ref.watch(reportNotifierProvider('attendance'));
+    final attAiNotifier = ref.read(reportNotifierProvider('attendance').notifier);
+    final monthlyDocs = ref.watch(reportsStreamProvider('monthly')).valueOrNull ?? [];
 
     final allEmps = empsAsync.valueOrNull ?? [];
     final emps = allEmps
@@ -2097,6 +2136,11 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                   : null,
             ),
             const Spacer(),
+            _GenButton(
+              loading: attAiState.loading,
+              onTap: () => attAiNotifier.generateAttendance(month: monthKey, branchId: _branchId),
+            ),
+            const SizedBox(width: 10),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.successGreen,
@@ -2115,7 +2159,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                                     orElse: () => branches.first).name
                             : null;
                         await AttendancePdfService.download(
-                          companyName: 'HRNova',
+                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
                           period: monthLabel,
                           employees: emps,
                           records: records,
@@ -2133,6 +2177,22 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
               label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
             ),
           ]),
+
+          const SizedBox(height: 12),
+          Builder(builder: (_) {
+            final sd = monthlyDocs.firstWhere(
+              (d) => (d['month'] as String?) == monthKey,
+              orElse: () => monthlyDocs.isNotEmpty ? monthlyDocs.first : <String, dynamic>{},
+            );
+            return _AiSummaryPanel(
+              loading: attAiState.loading,
+              error: attAiState.error,
+              freshReport: attAiState.report,
+              savedDoc: sd.isNotEmpty ? sd : null,
+              periodLabel: monthLabel,
+              onGenerate: () => attAiNotifier.generateAttendance(month: monthKey, branchId: _branchId),
+            );
+          }),
 
           const SizedBox(height: 20),
 
@@ -2391,6 +2451,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                   })(),
               ]),
             ),
+
           ],
           const SizedBox(height: 20),
         ],
@@ -2423,6 +2484,9 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
     final monthKey = DateFormat('yyyy-MM').format(_month);
     final perfAsync = ref.watch(performanceByMonthProvider(monthKey));
     final monthLabel = DateFormat('MMMM yyyy').format(_month);
+    final perfAiState = ref.watch(reportNotifierProvider('performance'));
+    final perfAiNotifier = ref.read(reportNotifierProvider('performance').notifier);
+    final perfDocs = ref.watch(reportsStreamProvider('performance')).valueOrNull ?? [];
 
     final allRecords = perfAsync.valueOrNull ?? [];
     final records = _branchId != null
@@ -2482,6 +2546,11 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                   : null,
             ),
             const Spacer(),
+            _GenButton(
+              loading: perfAiState.loading,
+              onTap: () => perfAiNotifier.generatePerformance(month: monthKey, branchId: _branchId),
+            ),
+            const SizedBox(width: 10),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.successGreen,
@@ -2500,7 +2569,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                                     orElse: () => branches.first).name
                             : null;
                         await PerformanceReportPdfService.download(
-                          companyName: 'HRNova',
+                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
                           month: monthKey,
                           records: records,
                           branchName: branchName,
@@ -2516,6 +2585,22 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
               label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
             ),
           ]),
+
+          const SizedBox(height: 12),
+          Builder(builder: (_) {
+            final sd = perfDocs.firstWhere(
+              (d) => (d['month'] as String?) == monthKey,
+              orElse: () => perfDocs.isNotEmpty ? perfDocs.first : <String, dynamic>{},
+            );
+            return _AiSummaryPanel(
+              loading: perfAiState.loading,
+              error: perfAiState.error,
+              freshReport: perfAiState.report,
+              savedDoc: sd.isNotEmpty ? sd : null,
+              periodLabel: monthLabel,
+              onGenerate: () => perfAiNotifier.generatePerformance(month: monthKey, branchId: _branchId),
+            );
+          }),
 
           const SizedBox(height: 20),
 
@@ -2738,6 +2823,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                       )),
             ],
           ],
+
           const SizedBox(height: 20),
         ],
       ),
@@ -2768,6 +2854,9 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
     final monthLabel = DateFormat('MMMM yyyy').format(_month);
     final monthKey = DateFormat('yyyy-MM').format(_month);
     final payrollAsync = ref.watch(payrollRunByMonthProvider(monthKey));
+    final branchAiState = ref.watch(reportNotifierProvider('branches'));
+    final branchAiNotifier = ref.read(reportNotifierProvider('branches').notifier);
+    final branchDocs = ref.watch(reportsStreamProvider('monthly')).valueOrNull ?? [];
 
     final branches = (branchesAsync.valueOrNull ?? [])
         .where((b) => b.isActive)
@@ -2800,6 +2889,11 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                   : null,
             ),
             const Spacer(),
+            _GenButton(
+              loading: branchAiState.loading,
+              onTap: () => branchAiNotifier.generateBranches(month: monthKey),
+            ),
+            const SizedBox(width: 10),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.successGreen,
@@ -2823,7 +2917,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                           }
                         }
                         await BranchesReportPdfService.download(
-                          companyName: 'HRNova',
+                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
                           period: monthLabel,
                           branches: branches,
                           employees: allEmps,
@@ -2842,6 +2936,22 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
               label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
             ),
           ]),
+
+          const SizedBox(height: 12),
+          Builder(builder: (_) {
+            final sd = branchDocs.firstWhere(
+              (d) => (d['month'] as String?) == monthKey,
+              orElse: () => branchDocs.isNotEmpty ? branchDocs.first : <String, dynamic>{},
+            );
+            return _AiSummaryPanel(
+              loading: branchAiState.loading,
+              error: branchAiState.error,
+              freshReport: branchAiState.report,
+              savedDoc: sd.isNotEmpty ? sd : null,
+              periodLabel: monthLabel,
+              onGenerate: () => branchAiNotifier.generateBranches(month: monthKey),
+            );
+          }),
 
           const SizedBox(height: 20),
 
@@ -3113,6 +3223,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                 ],
               );
             }),
+
           ],
           const SizedBox(height: 20),
         ],
