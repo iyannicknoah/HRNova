@@ -82,7 +82,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     final user = authAsync.value;
     if (user == null) {
       if (kIsWeb) return path == '/login' ? null : '/login';
-      return (path == '/login' || path == '/mobile-onboarding') ? null : '/mobile-onboarding';
+      return (path == '/login' || path == '/mobile-onboarding' || path == '/guard-login') ? null : '/mobile-onboarding';
     }
 
     final claimsAsync = ref.read(userClaimsProvider);

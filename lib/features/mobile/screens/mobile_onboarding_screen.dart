@@ -23,7 +23,7 @@ class MobileOnboardingScreen extends StatelessWidget {
               _RoleCard(
                 icon: Icons.badge_rounded,
                 title: 'Employee',
-                subtitle: 'View payslips, request leave\nand track your attendance',
+                subtitle: 'Payslips, leave requests\nand attendance tracking',
                 gradient: const LinearGradient(
                   colors: [Color(0xFF4A9EFF), Color(0xFF2E7DE8)],
                   begin: Alignment.topLeft,

@@ -520,7 +520,7 @@ class _SuccessView extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primaryBlue.withAlpha(12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
+                    border: Border.all(color: context.appBorder),
                   ),
                   child: Row(
                     children: [
