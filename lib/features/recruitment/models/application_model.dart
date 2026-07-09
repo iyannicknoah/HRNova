@@ -13,6 +13,8 @@ class ApplicationModel {
     this.coverLetter,
     this.cvUrl,
     this.cvKey,
+    this.certUrl,
+    this.certKey,
     this.aiScore,
     this.aiQualificationScore,
     this.aiExperienceScore,
@@ -43,6 +45,8 @@ class ApplicationModel {
   final String? coverLetter;
   final String? cvUrl;
   final String? cvKey;
+  final String? certUrl;
+  final String? certKey;
 
   // AI Scoring
   final double? aiScore; // 0-100 overall
@@ -89,6 +93,8 @@ class ApplicationModel {
       coverLetter: map['coverLetter'] as String?,
       cvUrl: map['cvUrl'] as String?,
       cvKey: map['cvKey'] as String?,
+      certUrl: map['certUrl'] as String?,
+      certKey: map['certKey'] as String?,
       aiScore: (map['aiScore'] as num?)?.toDouble(),
       aiQualificationScore: (map['aiQualificationScore'] as num?)?.toDouble(),
       aiExperienceScore: (map['aiExperienceScore'] as num?)?.toDouble(),
@@ -120,6 +126,8 @@ class ApplicationModel {
         if (coverLetter != null) 'coverLetter': coverLetter,
         if (cvUrl != null) 'cvUrl': cvUrl,
         if (cvKey != null) 'cvKey': cvKey,
+        if (certUrl != null) 'certUrl': certUrl,
+        if (certKey != null) 'certKey': certKey,
         if (aiScore != null) 'aiScore': aiScore,
         if (aiQualificationScore != null) 'aiQualificationScore': aiQualificationScore,
         if (aiExperienceScore != null) 'aiExperienceScore': aiExperienceScore,

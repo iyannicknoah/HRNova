@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/platform/file_upload_any_helper.dart';
 import '../../../core/platform/file_upload_helper.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -46,9 +47,54 @@ class _ApplyScreenState extends State<ApplyScreen> {
   bool _uploadingCv = false;
   String? _cvError;
 
+  // ── Certifications upload ─────────────────────────────────────────────────
+  String? _certFileName;
+  Uint8List? _certBytes;
+  String? _certUrl;
+  String? _certKey;
+  bool _uploadingCert = false;
+  String? _certError;
+
   // ── Submission ────────────────────────────────────────────────────────────
   bool _submitting = false;
   String? _submitError;
+
+  Future<void> _pickCert() async {
+    setState(() { _certError = null; });
+    try {
+      final result = await pickAnyFile();
+      if (result == null) return;
+      setState(() {
+        _certBytes = result.bytes;
+        _certFileName = result.name;
+        _uploadingCert = true;
+        _certUrl = null;
+        _certKey = null;
+      });
+
+      final formData = FormData.fromMap({
+        'cert': MultipartFile.fromBytes(result.bytes, filename: result.name),
+        'companyId': _companyId ?? '',
+        'jobId': _job?['id'] as String? ?? '',
+        'applicantName': _name.text.trim().isEmpty ? 'applicant' : _name.text.trim(),
+      });
+      final res = await ApiService().postMultipart('/api/storage/upload-cert', formData);
+      if (!mounted) return;
+      setState(() {
+        _certUrl = res.data['url'] as String?;
+        _certKey = res.data['key'] as String?;
+        _uploadingCert = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _certError = e.toString().replaceFirst('Exception: ', '');
+        _uploadingCert = false;
+        _certBytes = null;
+        _certFileName = null;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -152,6 +198,8 @@ class _ApplyScreenState extends State<ApplyScreen> {
         'coverLetter': _coverLetter.text.trim(),
         'cvUrl': _cvUrl,
         'cvKey': _cvKey,
+        'certUrl': _certUrl,
+        'certKey': _certKey,
         'companyName': _companyName,
       });
       if (!mounted) return;
@@ -233,6 +281,11 @@ class _ApplyScreenState extends State<ApplyScreen> {
                               cvUrl: _cvUrl,
                               cvError: _cvError,
                               onPickCv: _pickCv,
+                              certFileName: _certFileName,
+                              uploadingCert: _uploadingCert,
+                              certUrl: _certUrl,
+                              certError: _certError,
+                              onPickCert: _pickCert,
                               submitting: _submitting,
                               submitError: _submitError,
                               onSubmit: _submit,
@@ -356,6 +409,11 @@ class _ApplicationForm extends StatelessWidget {
   final String? cvUrl;
   final String? cvError;
   final VoidCallback onPickCv;
+  final String? certFileName;
+  final bool uploadingCert;
+  final String? certUrl;
+  final String? certError;
+  final VoidCallback onPickCert;
   final bool submitting;
   final String? submitError;
   final VoidCallback onSubmit;
@@ -372,6 +430,11 @@ class _ApplicationForm extends StatelessWidget {
     required this.cvUrl,
     required this.cvError,
     required this.onPickCv,
+    required this.certFileName,
+    required this.uploadingCert,
+    required this.certUrl,
+    required this.certError,
+    required this.onPickCert,
     required this.submitting,
     required this.submitError,
     required this.onSubmit,
@@ -468,11 +531,24 @@ class _ApplicationForm extends StatelessWidget {
             // CV Upload
             _Label('CV / Resume (PDF, max 5 MB)'),
             _CvUploadBox(
-              cvFileName: cvFileName,
+              fileName: cvFileName,
               uploading: uploadingCv,
-              cvUrl: cvUrl,
+              fileUrl: cvUrl,
               error: cvError,
               onPick: onPickCv,
+              hint: 'Click to upload PDF',
+            ),
+            const SizedBox(height: 14),
+
+            // Certifications Upload (optional)
+            _Label('Certifications (PDF or Image, optional)'),
+            _CvUploadBox(
+              fileName: certFileName,
+              uploading: uploadingCert,
+              fileUrl: certUrl,
+              error: certError,
+              onPick: onPickCert,
+              hint: 'Click to upload PDF or image',
             ),
             const SizedBox(height: 24),
 
@@ -561,17 +637,19 @@ class _Label extends StatelessWidget {
 
 // ── CV upload box ─────────────────────────────────────────────────────────────
 class _CvUploadBox extends StatelessWidget {
-  final String? cvFileName;
+  final String? fileName;
   final bool uploading;
-  final String? cvUrl;
+  final String? fileUrl;
   final String? error;
   final VoidCallback onPick;
+  final String hint;
   const _CvUploadBox({
-    required this.cvFileName,
+    required this.fileName,
     required this.uploading,
-    required this.cvUrl,
+    required this.fileUrl,
     required this.error,
     required this.onPick,
+    this.hint = 'Click to upload PDF',
   });
 
   @override
@@ -596,7 +674,7 @@ class _CvUploadBox extends StatelessWidget {
       );
     }
 
-    if (cvUrl != null) {
+    if (fileUrl != null) {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -610,7 +688,7 @@ class _CvUploadBox extends StatelessWidget {
                 color: AppColors.successGreen, size: 18),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(cvFileName ?? 'CV uploaded',
+              child: Text(fileName ?? 'File uploaded',
                   style: const TextStyle(
                       fontSize: 13, color: AppColors.successGreen),
                   overflow: TextOverflow.ellipsis),
@@ -643,14 +721,14 @@ class _CvUploadBox extends StatelessWidget {
                       : AppColors.cardBorder,
                   style: BorderStyle.solid),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.upload_file_rounded,
+                const Icon(Icons.upload_file_rounded,
                     color: AppColors.primaryBlue, size: 22),
-                SizedBox(width: 10),
-                Text('Click to upload PDF',
-                    style: TextStyle(
+                const SizedBox(width: 10),
+                Text(hint,
+                    style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.primaryBlue,
                         fontWeight: FontWeight.w600)),

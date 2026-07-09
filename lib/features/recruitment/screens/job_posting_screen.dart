@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/platform/platform_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -16,13 +17,42 @@ import 'application_detail_screen.dart' show AiScoreBadge, RecommendationBadge;
 // jobId == null → create form
 // jobId != null → applications list for that job
 class JobPostingScreen extends ConsumerWidget {
-  const JobPostingScreen({super.key, this.jobId});
+  const JobPostingScreen({super.key, this.jobId, this.editMode = false});
   final String? jobId;
+  final bool editMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (jobId == null) return const _JobForm();
+    if (editMode) return _JobEditLoader(jobId: jobId!);
     return _JobApplicationsPage(jobId: jobId!);
+  }
+}
+
+// Loads the job then renders the edit form
+class _JobEditLoader extends ConsumerWidget {
+  const _JobEditLoader({required this.jobId});
+  final String jobId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final companyId = ref.watch(currentCompanyIdProvider) ?? '';
+    final jobsAsync = ref.watch(jobPostingsStreamProvider(companyId));
+    return jobsAsync.when(
+      data: (jobs) {
+        final job = jobs.where((j) => j.id == jobId).firstOrNull;
+        if (job == null) {
+          return Scaffold(
+            body: Center(
+              child: Text('Job not found', style: TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+        return _JobForm(initialJob: job);
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
+    );
   }
 }
 
@@ -112,6 +142,25 @@ class _JobFormState extends ConsumerState<_JobForm> {
       'status': status,
     };
 
+    if (widget.initialJob != null) {
+      // Edit mode
+      final ok = await ref.read(recruitmentNotifierProvider.notifier)
+          .updateJob(widget.initialJob!.id, data);
+      if (!mounted) return;
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Job updated successfully')));
+        context.go('/recruitment/${widget.initialJob!.id}');
+      } else {
+        final err = ref.read(recruitmentNotifierProvider).error;
+        if (err != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(err), backgroundColor: AppColors.errorRed));
+        }
+      }
+      return;
+    }
+
     final ok = await ref.read(recruitmentNotifierProvider.notifier).createJob(data);
     if (!mounted) return;
 
@@ -139,7 +188,11 @@ class _JobFormState extends ConsumerState<_JobForm> {
     final notifier = ref.watch(recruitmentNotifierProvider);
 
     // Show success/link state after publish
-    if (_publicUrl != null) return _SuccessView(publicUrl: _publicUrl!, jobId: _createdJobId);
+    if (_publicUrl != null) return _SuccessView(
+      publicUrl: _publicUrl!,
+      jobId: _createdJobId,
+      jobTitle: _title.text,
+    );
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -157,7 +210,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                   color: context.appText,
                 ),
                 const SizedBox(width: 4),
-                Text('New Job Posting',
+                Text(widget.initialJob != null ? 'Edit Job Posting' : 'New Job Posting',
                     style: TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w800, color: context.appText)),
               ],
@@ -422,8 +475,10 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 side: BorderSide(color: context.appBorder),
                               ),
-                              child: Text('Save as Draft',
-                                  style: TextStyle(color: context.appText)),
+                              child: Text(
+                                widget.initialJob != null ? 'Save Draft' : 'Save as Draft',
+                                style: TextStyle(color: context.appText),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             FilledButton.icon(
@@ -433,8 +488,12 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                       width: 16, height: 16,
                                       child: CircularProgressIndicator(
                                           strokeWidth: 2, color: Colors.white))
-                                  : const Icon(Icons.publish_rounded, size: 18),
-                              label: Text(notifier.loading ? 'Publishing...' : 'Publish Job'),
+                                  : Icon(widget.initialJob != null
+                                      ? Icons.save_rounded
+                                      : Icons.publish_rounded, size: 18),
+                              label: Text(notifier.loading
+                                  ? (widget.initialJob != null ? 'Saving...' : 'Publishing...')
+                                  : (widget.initialJob != null ? 'Update Job' : 'Publish Job')),
                               style: FilledButton.styleFrom(
                                 backgroundColor: AppColors.primaryBlue,
                                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -481,7 +540,8 @@ class _JobFormState extends ConsumerState<_JobForm> {
 class _SuccessView extends StatelessWidget {
   final String publicUrl;
   final String? jobId;
-  const _SuccessView({required this.publicUrl, this.jobId});
+  final String jobTitle;
+  const _SuccessView({required this.publicUrl, this.jobId, required this.jobTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -546,29 +606,53 @@ class _SuccessView extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // WhatsApp share button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      final msg = Uri.encodeComponent(
+                          "We're hiring for $jobTitle! Apply here: $publicUrl");
+                      openInNewTab('https://wa.me/?text=$msg');
+                    },
+                    icon: const Icon(Icons.share_rounded, size: 18),
+                    label: const Text('Share via WhatsApp'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      foregroundColor: const Color(0xFF25D366),
+                      side: const BorderSide(color: Color(0xFF25D366)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    OutlinedButton(
-                      onPressed: () => context.go('/recruitment'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => context.go('/recruitment'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Back to Recruitment'),
                       ),
-                      child: const Text('Back to Recruitment'),
                     ),
                     if (jobId != null) ...[
                       const SizedBox(width: 12),
-                      FilledButton(
-                        onPressed: () => context.go('/recruitment/$jobId'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primaryBlue,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => context.go('/recruitment/$jobId'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primaryBlue,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('View Applications'),
                         ),
-                        child: const Text('View Applications'),
                       ),
                     ],
                   ],

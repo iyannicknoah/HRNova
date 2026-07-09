@@ -291,8 +291,16 @@ class _JobCard extends StatelessWidget {
                   icon: Icons.star_outline_rounded,
                   label: '${job.shortlistedCount} shortlisted',
                   color: AppColors.successGreen),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
 
+              IconButton(
+                icon: Icon(Icons.edit_outlined, size: 17, color: context.appSubtext),
+                tooltip: 'Edit job',
+                onPressed: () => context.go('/recruitment/${job.id}/edit'),
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(6),
+              ),
+              const SizedBox(width: 4),
               Icon(Icons.chevron_right_rounded,
                   color: context.appSubtext, size: 20),
             ],

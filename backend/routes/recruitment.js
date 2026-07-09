@@ -120,7 +120,7 @@ router.post('/public/apply', async (req, res) => {
   try {
     const db = getFirestore('default');
     const { companyId, jobId, jobTitle, applicantName, email, phone,
-            yearsExperience, coverLetter, cvUrl, cvKey, companyName } = req.body;
+            yearsExperience, coverLetter, cvUrl, cvKey, certUrl, certKey, companyName } = req.body;
 
     if (!companyId || !jobId || !applicantName || !email || !phone) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -135,6 +135,8 @@ router.post('/public/apply', async (req, res) => {
         coverLetter: coverLetter || '',
         cvUrl: cvUrl || null,
         cvKey: cvKey || null,
+        certUrl: certUrl || null,
+        certKey: certKey || null,
         status: 'pending',
         rejectionConfirmedByHR: false,
         aiStrengths: [],

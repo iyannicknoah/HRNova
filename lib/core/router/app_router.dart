@@ -292,6 +292,13 @@ List<RouteBase> _buildRoutes() => [
                 builder: (context, state) => const JobPostingScreen(),
               ),
               GoRoute(
+                path: ':jobId/edit',
+                builder: (context, state) => JobPostingScreen(
+                  jobId: state.pathParameters['jobId'],
+                  editMode: true,
+                ),
+              ),
+              GoRoute(
                 path: ':jobId',
                 builder: (context, state) => JobPostingScreen(
                   jobId: state.pathParameters['jobId'],
