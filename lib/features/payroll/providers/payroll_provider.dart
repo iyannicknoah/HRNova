@@ -241,6 +241,22 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
     }
   }
 
+  /// Delete a saved draft run (all payslips + run header) so payroll can be re-run.
+  Future<void> deleteDraft(String month) async {
+    final companyId = _companyId;
+    if (companyId == null) return;
+
+    final snap = await FirebaseService.payslipsRef(companyId, month).get();
+    final batch = FirebaseService.db.batch();
+    for (final d in snap.docs) {
+      batch.delete(d.reference);
+    }
+    batch.delete(FirebaseService.payrollRef(companyId).doc(month));
+    await batch.commit();
+
+    state = const PayrollState();
+  }
+
   /// Apply per-employee adjustment and re-save the payslip.
   Future<void> adjustPayslip(
     String month,

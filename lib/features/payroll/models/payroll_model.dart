@@ -14,6 +14,7 @@ class PayslipModel {
     required this.nationalId,
     required this.rssbNumber,
     required this.bankAccountNumber,
+    this.branchId,
     // Earnings
     required this.baseSalary,
     required this.transportAllowance,
@@ -71,6 +72,7 @@ class PayslipModel {
   final String nationalId;
   final String rssbNumber;
   final String bankAccountNumber;
+  final String? branchId;
 
   // Earnings
   final double baseSalary;
@@ -137,6 +139,7 @@ class PayslipModel {
       nationalId: map['nationalId'] as String? ?? '',
       rssbNumber: map['rssbNumber'] as String? ?? '',
       bankAccountNumber: map['bankAccountNumber'] as String? ?? '',
+      branchId: map['branchId'] as String?,
       baseSalary: (map['baseSalary'] as num?)?.toDouble() ?? 0,
       transportAllowance: (map['transportAllowance'] as num?)?.toDouble() ?? 0,
       housingAllowance: (map['housingAllowance'] as num?)?.toDouble() ?? 0,
@@ -190,6 +193,7 @@ class PayslipModel {
         'nationalId': nationalId,
         'rssbNumber': rssbNumber,
         'bankAccountNumber': bankAccountNumber,
+        if (branchId != null) 'branchId': branchId,
         'baseSalary': baseSalary,
         'transportAllowance': transportAllowance,
         'housingAllowance': housingAllowance,
@@ -275,6 +279,7 @@ class PayslipModel {
       nationalId: nationalId,
       rssbNumber: rssbNumber,
       bankAccountNumber: bankAccountNumber,
+      branchId: branchId,
       baseSalary: baseSalary,
       transportAllowance: transportAllowance,
       housingAllowance: housingAllowance,

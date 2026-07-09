@@ -216,6 +216,7 @@ class PayrollEngine {
       nationalId: employee.nationalId,
       rssbNumber: employee.rssbNumber,
       bankAccountNumber: employee.bankAccount,
+      branchId: employee.branchId,
       baseSalary: baseSalary,
       transportAllowance: transportAllowance,
       housingAllowance: housingAllowance,

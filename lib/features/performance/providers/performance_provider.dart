@@ -148,16 +148,19 @@ class PerformanceNotifier extends StateNotifier<AsyncValue<void>> {
     required String employeeName,
     required String jobTitle,
     required String department,
+    required int year,
   }) async {
     final companyId = _companyId;
     if (companyId == null) throw Exception('Not authenticated');
 
+    final yearStr = year.toString();
     final snapshot = await FirebaseService.performanceRef(companyId)
         .where('employeeId', isEqualTo: employeeId)
         .orderBy('month')
         .get();
     final records = snapshot.docs
         .map((d) => PerformanceModel.fromMap(d.id, d.data()))
+        .where((r) => r.month.startsWith(yearStr))
         .toList();
     final monthlyScores = records
         .map((r) => {'month': r.month, 'score': r.overallScore})

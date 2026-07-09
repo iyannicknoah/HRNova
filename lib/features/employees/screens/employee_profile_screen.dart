@@ -2362,6 +2362,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
   bool _generatingAnnual = false;
   String? _annualNarrative;
   bool _showPdfBtn = false;
+  int _selectedYear = DateTime.now().year;
 
   Future<void> _generateAnnualReport(List<PerformanceModel> records) async {
     setState(() => _generatingAnnual = true);

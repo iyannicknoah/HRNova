@@ -1230,6 +1230,7 @@ class _HRDashboardView extends ConsumerWidget {
     final sorted = List.from(scores)
       ..sort((a, b) => b.overallScore.compareTo(a.overallScore));
     final top5 = sorted.take(5).cast<PerformanceModel>().toList();
+    final empById = <String, EmployeeModel>{for (final em in allEmployees) em.id: em};
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
@@ -1256,12 +1257,22 @@ class _HRDashboardView extends ConsumerWidget {
           const SizedBox(width: 14),
           _KpiCard(
             icon: Icons.trending_down_rounded,
-            label: 'Needs Attention',
+            label: 'Lowest Department',
             value: lowestDept?.key ?? '—',
             sub: lowestDept != null
                 ? '${lowestDept.value.toStringAsFixed(1)}/5 avg'
                 : 'No data',
             color: AppColors.warningAmber,
+          ),
+          const SizedBox(width: 14),
+          _KpiCard(
+            icon: Icons.person_off_outlined,
+            label: 'Not Scored',
+            value: notScoredEmployees.length.toString(),
+            sub: notScoredEmployees.isEmpty
+                ? 'All employees scored'
+                : '${notScoredEmployees.length} employee${notScoredEmployees.length == 1 ? '' : 's'} pending',
+            color: AppColors.errorRed,
           ),
         ]),
         const SizedBox(height: 20),
@@ -1317,49 +1328,104 @@ class _HRDashboardView extends ConsumerWidget {
                             style: TextStyle(
                                 color: context.appSubtext, fontSize: 15))
                       else
-                        ...top5.asMap().entries.map((e) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Row(children: [
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: e.key == 0
-                                        ? const Color(0xFFFFD700).withAlpha(30)
-                                        : context.appField,
-                                    shape: BoxShape.circle,
+                        ...top5.asMap().entries.map((e) {
+                              final perf = e.value;
+                              final emp = empById[perf.employeeId];
+                              final prevScore =
+                                  prevScoreMap[perf.employeeId]?.overallScore;
+                              final diff = prevScore != null
+                                  ? perf.overallScore - prevScore
+                                  : null;
+                              final trendColor = diff == null
+                                  ? null
+                                  : diff > 0.05
+                                      ? AppColors.successGreen
+                                      : diff < -0.05
+                                          ? AppColors.errorRed
+                                          : AppColors.warningAmber;
+                              final trendIcon = diff == null
+                                  ? null
+                                  : diff > 0.05
+                                      ? Icons.trending_up_rounded
+                                      : diff < -0.05
+                                          ? Icons.trending_down_rounded
+                                          : Icons.trending_flat_rounded;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Row(children: [
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: e.key == 0
+                                          ? const Color(0xFFFFD700).withAlpha(30)
+                                          : context.appField,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text('${e.key + 1}',
+                                          style: TextStyle(
+                                              color: e.key == 0
+                                                  ? const Color(0xFFFFD700)
+                                                  : context.appSubtext,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700)),
+                                    ),
                                   ),
-                                  child: Center(
-                                    child: Text('${e.key + 1}',
-                                        style: TextStyle(
-                                            color: e.key == 0
-                                                ? const Color(0xFFFFD700)
-                                                : context.appSubtext,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700)),
+                                  const SizedBox(width: 8),
+                                  _SmallAvatar(
+                                    name: perf.employeeName,
+                                    photoUrl: emp?.profilePhotoUrl,
+                                    size: 28,
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(e.value.employeeName,
-                                            style: TextStyle(
-                                                color: context.appText,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600),
-                                            overflow: TextOverflow.ellipsis),
-                                        Text(e.value.department,
-                                            style: TextStyle(
-                                                color: context.appSubtext,
-                                                fontSize: 13)),
-                                      ]),
-                                ),
-                                _ScoreStars(e.value.overallScore, size: 10),
-                              ]),
-                            )),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(perf.employeeName,
+                                              style: TextStyle(
+                                                  color: context.appText,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600),
+                                              overflow: TextOverflow.ellipsis),
+                                          Text(perf.department,
+                                              style: TextStyle(
+                                                  color: context.appSubtext,
+                                                  fontSize: 13)),
+                                        ]),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      _ScoreStars(perf.overallScore, size: 10),
+                                      if (trendIcon != null &&
+                                          trendColor != null) ...[
+                                        const SizedBox(height: 3),
+                                        Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(trendIcon,
+                                                  color: trendColor, size: 11),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                diff! > 0
+                                                    ? '+${diff.toStringAsFixed(1)}'
+                                                    : diff.toStringAsFixed(1),
+                                                style: TextStyle(
+                                                    color: trendColor,
+                                                    fontSize: 11,
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                              ),
+                                            ]),
+                                      ],
+                                    ],
+                                  ),
+                                ]),
+                              );
+                            }),
                     ]),
               ),
             ),

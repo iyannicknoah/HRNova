@@ -7,6 +7,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../branches/providers/branches_provider.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/payroll_model.dart';
@@ -32,6 +33,9 @@ final _selectedMonthProvider = StateProvider<String>((ref) {
   return '${now.year}-${now.month.toString().padLeft(2, '0')}';
 });
 
+final _deptFilterProvider   = StateProvider<String?>((ref) => null);
+final _branchFilterProvider = StateProvider<String?>((ref) => null);
+
 // ─────────────────────────────────────────────────────────────────────────────
 class PayrollScreen extends ConsumerStatefulWidget {
   const PayrollScreen({super.key});
@@ -40,8 +44,8 @@ class PayrollScreen extends ConsumerStatefulWidget {
 }
 
 class _PayrollScreenState extends ConsumerState<PayrollScreen> {
-  bool _approving = false;
-  bool _sending   = false;
+  bool _approving  = false;
+  bool _sending    = false;
   int  _sendProgress = 0;
   int  _sendTotal    = 0;
 
@@ -75,35 +79,39 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                     }
                     if (run == null && calcState.payslips.isNotEmpty) {
                       return _ResultLayout(
-                        month:       month,
-                        payslips:    calcState.payslips,
-                        run:         null,
+                        month:        month,
+                        payslips:     calcState.payslips,
+                        run:          null,
                         payslipsAsync: const AsyncData([]),
-                        approving:   _approving,
-                        onApprove:   () => _approve(month),
-                        onSend:      null,
-                        sending:     _sending,
+                        approving:    _approving,
+                        onApprove:    () => _approve(month),
+                        onSend:       null,
+                        sending:      _sending,
                         sendProgress: _sendProgress,
-                        sendTotal:   _sendTotal,
-                        onExportRra: () => _export(month, 'rra-paye'),
+                        sendTotal:    _sendTotal,
+                        onExportRra:  () => _export(month, 'rra-paye'),
                         onExportRssb: () => _export(month, 'rssb'),
-                        settings:    settings,
+                        settings:     settings,
+                        onRecalculate: null,
                       );
                     }
                     return _ResultLayout(
-                      month:        month,
-                      payslips:     payslipsAsync.value ?? [],
-                      run:          run,
+                      month:         month,
+                      payslips:      payslipsAsync.value ?? [],
+                      run:           run,
                       payslipsAsync: payslipsAsync,
-                      approving:    _approving,
-                      onApprove:    run?.status == 'draft' ? () => _approve(month) : null,
-                      onSend:       run?.status == 'approved' ? _sendPayslips : null,
-                      sending:      _sending,
-                      sendProgress: _sendProgress,
-                      sendTotal:    _sendTotal,
-                      onExportRra:  () => _export(month, 'rra-paye'),
-                      onExportRssb: () => _export(month, 'rssb'),
-                      settings:     settings,
+                      approving:     _approving,
+                      onApprove:     run?.status == 'draft' ? () => _approve(month) : null,
+                      onSend:        run?.status == 'approved' ? _sendPayslips : null,
+                      sending:       _sending,
+                      sendProgress:  _sendProgress,
+                      sendTotal:     _sendTotal,
+                      onExportRra:   () => _export(month, 'rra-paye'),
+                      onExportRssb:  () => _export(month, 'rssb'),
+                      settings:      settings,
+                      onRecalculate: run?.status == 'draft'
+                          ? () => _deleteDraftAndRecalc(month)
+                          : null,
                     );
                   },
                 ),
@@ -180,6 +188,28 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     } catch (e) {
       if (mounted) _snack('Export failed: $e', AppColors.errorRed);
+    }
+  }
+
+  Future<void> _deleteDraftAndRecalc(String month) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _ConfirmDialog(
+        title: 'Delete Draft & Recalculate?',
+        body: 'This deletes the saved ${_monthLabel(month)} draft and re-runs the calculation. '
+              'Any manual bonus or deduction adjustments will be lost.',
+        confirmLabel: 'Recalculate',
+        confirmColor: AppColors.warningAmber,
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await ref.read(payrollNotifierProvider.notifier).deleteDraft(month);
+      if (mounted) {
+        await ref.read(payrollNotifierProvider.notifier).runPayroll(month);
+      }
+    } catch (e) {
+      if (mounted) _snack(e.toString(), AppColors.errorRed);
     }
   }
 
@@ -296,6 +326,8 @@ class _MonthStrip extends ConsumerWidget {
               onTap: () {
                 ref.read(_selectedMonthProvider.notifier).state = m;
                 ref.read(payrollNotifierProvider.notifier).reset();
+                ref.read(_deptFilterProvider.notifier).state   = null;
+                ref.read(_branchFilterProvider.notifier).state = null;
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
@@ -668,6 +700,7 @@ class _ResultLayout extends ConsumerWidget {
     required this.onExportRra,
     required this.onExportRssb,
     required this.settings,
+    this.onRecalculate,
   });
 
   final String month;
@@ -681,11 +714,30 @@ class _ResultLayout extends ConsumerWidget {
   final int sendProgress, sendTotal;
   final VoidCallback onExportRra, onExportRssb;
   final dynamic settings;
+  final VoidCallback? onRecalculate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isApproved = run?.status == 'approved';
-    final list = run != null ? (payslipsAsync.value ?? []) : payslips;
+    final rawList = run != null ? (payslipsAsync.value ?? []) : payslips;
+
+    // ── Filter ────────────────────────────────────────────────────────────────
+    final selectedDept     = ref.watch(_deptFilterProvider);
+    final selectedBranchId = ref.watch(_branchFilterProvider);
+
+    final list = rawList.where((p) {
+      if (selectedDept != null && p.department != selectedDept) return false;
+      if (selectedBranchId != null && p.branchId != selectedBranchId) return false;
+      return true;
+    }).toList();
+
+    final depts     = rawList.map((p) => p.department).toSet().toList()..sort();
+    final branchIds = rawList.map((p) => p.branchId).whereType<String>().toSet().toList();
+    final branchNameById = <String, String>{
+      for (final b in ref.watch(branchesStreamProvider).value ?? []) b.id: b.name,
+    };
+
+    final hasFilter = selectedDept != null || selectedBranchId != null;
 
     double tEarnings = 0, tGross = 0, tNet = 0, tPaye = 0, tRssb = 0;
     for (final p in list) {
@@ -696,8 +748,11 @@ class _ResultLayout extends ConsumerWidget {
       tRssb     += p.totalEmployeeRssb;
     }
 
-    // Anomaly: employees with ≥5 absent days or zero net
     final anomalies = list.where((p) => p.absentDays >= 5 || p.netSalary == 0).toList();
+
+    final countLabel = hasFilter
+        ? '${list.length} of ${rawList.length} employees · ${_monthLabel(month)}'
+        : '${list.length} employees · ${_monthLabel(month)}';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
@@ -705,13 +760,21 @@ class _ResultLayout extends ConsumerWidget {
 
         // ── Action bar ──────────────────────────────────────────────────────
         Row(children: [
-          Text('${list.length} employees · ${_monthLabel(month)}',
+          Text(countLabel,
               style: TextStyle(color: context.appText, fontSize: 16,
                   fontWeight: FontWeight.w700)),
           const Spacer(),
 
           if (!isApproved) ...[
-            // Save draft
+            if (onRecalculate != null) ...[
+              _OutBtn(
+                icon: Icons.refresh_rounded,
+                label: 'Recalculate',
+                onTap: onRecalculate,
+                color: AppColors.warningAmber,
+              ),
+              const SizedBox(width: 8),
+            ],
             if (run == null)
               _OutBtn(
                 icon: Icons.save_outlined,
@@ -719,12 +782,9 @@ class _ResultLayout extends ConsumerWidget {
                 onTap: () => ref.read(payrollNotifierProvider.notifier).savePayroll(month),
               ),
             const SizedBox(width: 10),
-            // Approve
             if (onApprove != null)
               _FillBtn(
-                icon: approving
-                    ? null
-                    : Icons.lock_rounded,
+                icon: approving ? null : Icons.lock_rounded,
                 label: approving ? 'Approving…' : 'Approve & Lock',
                 color: AppColors.successGreen,
                 onTap: approving ? null : onApprove,
@@ -733,7 +793,6 @@ class _ResultLayout extends ConsumerWidget {
           ],
 
           if (isApproved) ...[
-            // Send payslips
             if (sending)
               _SendingChip(progress: sendProgress, total: sendTotal)
             else
@@ -752,7 +811,19 @@ class _ResultLayout extends ConsumerWidget {
           ],
         ]),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+
+        // ── Filter bar ──────────────────────────────────────────────────────
+        if (depts.length >= 2 || branchIds.length >= 2)
+          _FilterBar(
+            depts: depts,
+            branchIds: branchIds,
+            branchNameById: branchNameById,
+            selectedDept: selectedDept,
+            selectedBranchId: selectedBranchId,
+          ),
+
+        const SizedBox(height: 2),
 
         // ── Metric cards ────────────────────────────────────────────────────
         _MetricGrid(
@@ -1043,6 +1114,22 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
             Expanded(flex: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (!widget.isLocked)
                 _TinyBtn(Icons.tune_rounded, 'Adjust', _showAdjust),
+              if (widget.isLocked)
+                Tooltip(
+                  message: widget.ps.emailSent ? 'Payslip emailed' : 'Not emailed yet',
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      widget.ps.emailSent
+                          ? Icons.mark_email_read_rounded
+                          : Icons.mail_outline_rounded,
+                      size: 15,
+                      color: widget.ps.emailSent
+                          ? AppColors.successGreen
+                          : context.appSubtext,
+                    ),
+                  ),
+                ),
               _TinyBtn(Icons.picture_as_pdf_rounded, 'PDF', _downloadPdf),
             ])),
           ]),
@@ -1236,6 +1323,126 @@ class _AdjField extends StatelessWidget {
           borderSide: BorderSide(color: context.appBorder)),
     ),
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILTER BAR  (dept + branch)
+// ─────────────────────────────────────────────────────────────────────────────
+class _FilterBar extends ConsumerWidget {
+  const _FilterBar({
+    required this.depts,
+    required this.branchIds,
+    required this.branchNameById,
+    required this.selectedDept,
+    required this.selectedBranchId,
+  });
+
+  final List<String> depts;
+  final List<String> branchIds;
+  final Map<String, String> branchNameById;
+  final String? selectedDept;
+  final String? selectedBranchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasFilter = selectedDept != null || selectedBranchId != null;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.filter_list_rounded, size: 15, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          if (depts.length >= 2) ...[
+            _DropFilter(
+              value: selectedDept ?? 'All Departments',
+              items: ['All Departments', ...depts],
+              onChanged: (v) => ref.read(_deptFilterProvider.notifier).state =
+                  (v == 'All Departments') ? null : v,
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (branchIds.length >= 2) ...[
+            _DropFilter(
+              value: selectedBranchId != null
+                  ? (branchNameById[selectedBranchId] ?? selectedBranchId!)
+                  : 'All Branches',
+              items: [
+                'All Branches',
+                ...branchIds.map((id) => branchNameById[id] ?? id),
+              ],
+              onChanged: (name) {
+                if (name == 'All Branches') {
+                  ref.read(_branchFilterProvider.notifier).state = null;
+                } else {
+                  final id = branchNameById.entries
+                      .firstWhere((e) => e.value == name,
+                          orElse: () => MapEntry(name ?? '', name ?? ''))
+                      .key;
+                  ref.read(_branchFilterProvider.notifier).state = id;
+                }
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (hasFilter)
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                ref.read(_deptFilterProvider.notifier).state   = null;
+                ref.read(_branchFilterProvider.notifier).state = null;
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: context.appTint,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: context.appBorder),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.close_rounded, size: 13, color: context.appSubtext),
+                  const SizedBox(width: 4),
+                  Text('Clear', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                ]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DropFilter extends StatelessWidget {
+  const _DropFilter({required this.value, required this.items, required this.onChanged});
+
+  final String value;
+  final List<String> items;
+  final void Function(String?) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.appBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isDense: true,
+          style: TextStyle(color: context.appText, fontSize: 13),
+          dropdownColor: context.appCard,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: context.appSubtext),
+          items: items
+              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
 }
 
 class _ConfirmDialog extends StatelessWidget {
