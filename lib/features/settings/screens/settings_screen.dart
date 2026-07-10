@@ -236,7 +236,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: AppIcon(icon, color: AppColors.primaryBlue, size: 20)),
                   const SizedBox(width: 14),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500)),
+                    Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
                     Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 14)),
                   ])),
                   AppIcon(open ? AppIcons.keyboardArrowUpRounded : AppIcons.keyboardArrowDownRounded, color: context.appSubtext),

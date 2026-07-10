@@ -255,7 +255,7 @@ class _AttendanceTable extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
             child: Row(
               children: [
-                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
+                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 TextButton(
                   onPressed: () => context.push('/attendance'),
@@ -384,7 +384,7 @@ class _QuickActionsPanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
+        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
         const SizedBox(height: 14),
         _ActionCard('Add Employee', AppIcons.personAddRounded, AppColors.primaryBlue,
             onTap: () => context.push('/employees/new')),
@@ -563,7 +563,7 @@ class _DeptStats extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
+          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
           if (top.isEmpty)
             Text('No department data yet', style: TextStyle(color: context.appSubtext, fontSize: 15))
@@ -757,7 +757,7 @@ class _ManagerPendingLeavePanel extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
             child: Row(children: [
-              Text('Pending Leave', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
+              Text('Pending Leave', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
               const SizedBox(width: 10),
               if (pending.isNotEmpty)
                 Container(
@@ -993,7 +993,7 @@ class _ManagerPerformanceCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Performance', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text('Performance', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
                   Text(DateFormat('MMMM yyyy').format(now), style: TextStyle(color: context.appSubtext, fontSize: 13)),
                 ],
               ),

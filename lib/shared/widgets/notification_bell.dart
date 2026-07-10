@@ -18,33 +18,20 @@ class NotificationBell extends ConsumerWidget {
     return GestureDetector(
       onTap: () => _showPanel(context, ref),
       child: Container(
-        width: 32,
-        height: 32,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: AppColors.white.withAlpha(10),
-          borderRadius: BorderRadius.circular(8),
+          color: context.appTint,
+          shape: BoxShape.circle,
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Center(
-              child: AppIcon(AppIcons.notificationsRounded,
-                  size: 17, color: AppColors.textSecondary),
-            ),
-            if (count > 0)
-              Positioned(
-                right: 5,
-                top: 5,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.errorRed,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-          ],
+        child: Center(
+          child: Badge(
+            label: Text('$count'),
+            isLabelVisible: count > 0,
+            backgroundColor: AppColors.errorRed,
+            child: const AppIcon(AppIcons.notificationsRounded,
+                size: 20, color: Colors.black87),
+          ),
         ),
       ),
     );

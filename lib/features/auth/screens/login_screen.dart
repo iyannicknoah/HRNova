@@ -74,29 +74,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'HR',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: context.appText,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                                const TextSpan(
-                                  text: 'Nova',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.primaryBlue,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Image.asset(
+                            context.isDark
+                                ? 'assets/icon/icon_dark.png'
+                                : 'assets/icon/icon_light.png',
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.contain,
                           ),
                         ],
                       ),
@@ -116,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       'Welcome back',
                                       style: TextStyle(
                                         fontSize: 18,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w700,
                                         color: context.appText,
                                       ),
                                     ),

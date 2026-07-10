@@ -11,11 +11,12 @@ import '../providers/super_admin_provider.dart';
 import '../services/super_admin_service.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
 // ─────────────────────────────────────────────────────────────────────────────
-const _sidebarBg = Color(0xFF0A1628);
 
 class _P {
   final Color bg, card, border, text, subText, fieldBg;
@@ -192,7 +193,7 @@ class _Btn extends StatelessWidget {
               ],
               Text(label, style: TextStyle(
                 color: outline ? c : Colors.white,
-                fontSize: 15, fontWeight: FontWeight.w600)),
+                fontSize: 15, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -348,10 +349,11 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: active ? AppColors.primaryBlue : p.card,
-            borderRadius: BorderRadius.circular(100)),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: active ? AppColors.primaryBlue : p.border)),
           child: Text(label, style: TextStyle(
             color: active ? Colors.white : p.subText,
-            fontSize: 14, fontWeight: FontWeight.w600)))));
+            fontSize: 14, fontWeight: FontWeight.w500)))));
   }
 }
 
@@ -395,38 +397,34 @@ class _Sidebar extends StatelessWidget {
     final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'super@hrnova.rw';
 
     return Container(
-      color: _sidebarBg,
+      decoration: BoxDecoration(
+        color: context.appCard,
+        border: Border(right: BorderSide(color: context.alternate)),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // Logo area
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              RichText(text: const TextSpan(
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-                children: [
-                  TextSpan(text: 'HR',   style: TextStyle(color: Colors.white)),
-                  TextSpan(text: 'Nova', style: TextStyle(color: AppColors.primaryBlue)),
-                ])),
-            ]),
-            const SizedBox(height: 4),
-            const Text('Super Admin Panel', style: TextStyle(
-              color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w400)),
+          child: Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                context.isDark
+                    ? 'assets/icon/icon_dark.png'
+                    : 'assets/icon/icon_light.png',
+                width: 22,
+                height: 22,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('HRNovva', style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: -0.3,
+              color: context.appText)),
           ]),
         ),
         const SizedBox(height: 12),
-        // Gradient separator
-        Container(
-          height: 1,
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [
-              AppColors.primaryBlue.withAlpha(0),
-              AppColors.primaryBlue,
-              AppColors.primaryBlue.withAlpha(0),
-            ]),
-          ),
-        ),
+        Divider(height: 1, thickness: 1, color: context.alternate),
         const SizedBox(height: 16),
         // Nav items
         Expanded(
@@ -447,9 +445,8 @@ class _Sidebar extends StatelessWidget {
           margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(8),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withAlpha(15), width: 0.5),
+            color: context.appTint,
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
             Container(
@@ -465,24 +462,35 @@ class _Sidebar extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Super Admin', style: TextStyle(
-                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+              Text('Super Admin', style: TextStyle(
+                color: context.appText, fontSize: 15, fontWeight: FontWeight.w500),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(userEmail, style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 13),
+              Text(userEmail, style: TextStyle(
+                color: context.appSubtext, fontSize: 13),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
             GestureDetector(
-              onTap: () => FirebaseAuth.instance.signOut(),
+              onTap: () async {
+                final confirmed = await showConfirmDialog(
+                  context,
+                  title: 'Log out?',
+                  message: 'Are you sure you want to log out of your account?',
+                  confirmLabel: 'Log Out',
+                  danger: true,
+                );
+                if (confirmed) {
+                  FirebaseAuth.instance.signOut();
+                }
+              },
               child: Tooltip(
                 message: 'Sign Out',
                 child: Container(
                   width: 32, height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(10),
+                    color: context.appBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const AppIcon(AppIcons.logoutRounded, size: 16, color: AppColors.textSecondary),
+                  child: AppIcon(AppIcons.logoutRounded, size: 16, color: context.appSubtext),
                 ),
               ),
             ),
@@ -504,6 +512,7 @@ class _SItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inactiveColor = Color.alphaBlend(context.appText.withAlpha(40), context.appSubtext);
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
@@ -512,26 +521,23 @@ class _SItem extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: onTap,
-          hoverColor: Colors.white.withAlpha(10),
+          hoverColor: context.appTint,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: active ? AppColors.primaryBlue.withAlpha(30) : Colors.transparent,
+              color: active ? AppColors.primaryBlue.withAlpha(20) : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
-              border: active
-                  ? Border.all(color: AppColors.primaryBlue.withAlpha(60), width: 0.5)
-                  : null,
             ),
             child: Row(children: [
               AppIcon(icon,
                 size: 18,
-                color: active ? AppColors.primaryBlue : AppColors.textSecondary),
+                color: active ? AppColors.primaryBlue : inactiveColor),
               const SizedBox(width: 10),
               Text(label, style: TextStyle(
-                color: active ? Colors.white : AppColors.textSecondary,
+                color: active ? AppColors.primaryBlue : inactiveColor,
                 fontSize: 15,
-                fontWeight: active ? FontWeight.w500 : FontWeight.w400)),
+                fontWeight: active ? FontWeight.w600 : FontWeight.w500)),
             ]),
           ),
         ),
@@ -592,13 +598,13 @@ class _TopBar extends ConsumerWidget {
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
-                  borderSide: BorderSide.none),
+                  borderSide: BorderSide(color: p.border)),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
-                  borderSide: BorderSide.none),
+                  borderSide: BorderSide(color: p.border)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
-                  borderSide: BorderSide.none),
+                  borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
               ),
             ),
           ),
@@ -609,12 +615,12 @@ class _TopBar extends ConsumerWidget {
           child: GestureDetector(
             onTap: () => ref.read(themeNotifierProvider.notifier).toggle(),
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: p.cardR(100),
               child: AppIcon(
                 p.dark ? AppIcons.lightModeRounded : AppIcons.darkModeRounded,
                 color: p.dark ? AppColors.warningAmber : AppColors.textSecondary,
-                size: 20)))),
+                size: 16)))),
       ]),
     );
   }
@@ -722,7 +728,7 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
             ])),
 
         if (_addCoOpen)
-          Positioned(left: 220, top: 0, right: 0, bottom: 0,
+          Positioned(left: 0, top: 0, right: 0, bottom: 0,
             child: Row(children: [
               Expanded(child: GestureDetector(
                 onTap: _closeAddCo,
@@ -1034,15 +1040,9 @@ class _CoRowState extends State<_CoRow> {
             Expanded(flex: 3, child: Row(children: [
               _CoAvatar(co.name, size: 36),
               const SizedBox(width: 10),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(co.name, style: TextStyle(
-                  color: p.text, fontSize: 16, fontWeight: FontWeight.w500),
-                  overflow: TextOverflow.ellipsis),
-                Text(co.hrAdminEmail, style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13),
-                  overflow: TextOverflow.ellipsis),
-              ])),
+              Expanded(child: Text(co.name, style: TextStyle(
+                color: p.text, fontSize: 16, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis)),
             ])),
             Expanded(flex: 2, child: Align(
               alignment: Alignment.centerLeft,
@@ -1614,15 +1614,10 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                         Expanded(flex: 3, child: Row(children: [
                           _CoAvatar(co.name, size: 34),
                           const SizedBox(width: 10),
-                          Expanded(child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(co.name, style: TextStyle(
-                              color: p.text, fontSize: 16,
-                              fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis),
-                            Text(co.hrAdminEmail, style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 13)),
-                          ])),
+                          Expanded(child: Text(co.name, style: TextStyle(
+                            color: p.text, fontSize: 16,
+                            fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis)),
                         ])),
                         Expanded(flex: 2, child: Align(
                           alignment: Alignment.centerLeft,
@@ -1831,9 +1826,9 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                 onPressed: () => setState(() => _obscure = !_obscure))
             : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: p.border)),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: p.border)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
@@ -1853,24 +1848,8 @@ class _AddCoPanelState extends State<_AddCoPanel> {
           padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
           color: p.bg,
           child: Row(children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryBlue, Color(0xFF6B8EFF)],
-                  begin: Alignment.topLeft, end: Alignment.bottomRight),
-                borderRadius: BorderRadius.circular(14)),
-              child: const AppIcon(AppIcons.businessRounded,
-                color: Colors.white, size: 22)),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              const Text('Add New Company',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-              Text('Fill in the company details below',
-                style: TextStyle(
-                  color: p.subText, fontSize: 16, fontWeight: FontWeight.w400)),
-            ])),
+            Expanded(child: Text('Add New Company',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: p.text))),
             MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -1901,7 +1880,8 @@ class _AddCoPanelState extends State<_AddCoPanel> {
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: p.card, borderRadius: BorderRadius.circular(12)),
+                  color: p.card, borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: p.border)),
                 child: Row(children: [
                   _TypeToggle('Single Branch', 'single', _type,
                     (v) => setState(() => _type = v), p),
@@ -1919,7 +1899,8 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                 height: 50,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: p.card, borderRadius: BorderRadius.circular(12)),
+                  color: p.card, borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: p.border)),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _industry,
@@ -2287,7 +2268,8 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
                 height: 42,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: p.fieldBg, borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: p.border)),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _date,
@@ -2309,7 +2291,8 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
                 height: 42,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: p.fieldBg, borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: p.border)),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _method,
@@ -2361,12 +2344,12 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-          filled: true, fillColor: p.fieldBg,
+          filled: false,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: p.border)),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: p.border)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),

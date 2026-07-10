@@ -10,6 +10,7 @@ import 'employee_avatar.dart';
 import 'notification_bell.dart';
 import '../../core/theme/app_icons.dart';
 import '../../shared/widgets/app_icon.dart';
+import 'confirm_dialog.dart';
 
 class _NavItem {
   const _NavItem({required this.label, required this.icon, required this.route, this.roles});
@@ -75,47 +76,31 @@ class HRNovaSidebar extends ConsumerWidget {
           // Logo area
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: Image.asset(
-                        context.isDark
-                            ? 'assets/icon/icon_dark.png'
-                            : 'assets/icon/icon_light.png',
-                        width: 28,
-                        height: 28,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'HRNovva',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.3,
-                        color: context.appText,
-                      ),
-                    ),
-                    const Spacer(),
-                    const NotificationBell(),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  companyName,
-                  style: TextStyle(
-                    color: context.appSubtext,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.asset(
+                    context.isDark
+                        ? 'assets/icon/icon_dark.png'
+                        : 'assets/icon/icon_light.png',
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.cover,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(width: 8),
+                Text(
+                  'HRNovva',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.3,
+                    color: context.appText,
+                  ),
+                ),
+                const Spacer(),
+                const NotificationBell(),
               ],
             ),
           ),
@@ -212,7 +197,18 @@ class HRNovaSidebar extends ConsumerWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => ref.read(authNotifierProvider.notifier).signOut(),
+                  onTap: () async {
+                    final confirmed = await showConfirmDialog(
+                      context,
+                      title: 'Log out?',
+                      message: 'Are you sure you want to log out of your account?',
+                      confirmLabel: 'Log Out',
+                      danger: true,
+                    );
+                    if (confirmed) {
+                      ref.read(authNotifierProvider.notifier).signOut();
+                    }
+                  },
                   child: Tooltip(
                     message: 'Sign Out',
                     child: Container(
@@ -314,9 +310,9 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Nudged a little closer to full-strength text color so inactive
-    // items read less faded than the plain subtext tone.
-    final inactiveColor = Color.alphaBlend(context.appText.withAlpha(40), context.appSubtext);
+    // Nudged closer to full-strength text color so inactive items read
+    // as a soft near-black rather than the plain faded subtext tone.
+    final inactiveColor = Color.alphaBlend(context.appText.withAlpha(90), context.appSubtext);
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
@@ -332,9 +328,6 @@ class _SidebarItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: isActive ? AppColors.primaryBlue.withAlpha(20) : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
-              border: isActive
-                  ? Border.all(color: AppColors.primaryBlue.withAlpha(60), width: 1)
-                  : null,
             ),
             child: Row(
               children: [
@@ -349,7 +342,7 @@ class _SidebarItem extends StatelessWidget {
                   style: TextStyle(
                     color: isActive ? AppColors.primaryBlue : inactiveColor,
                     fontSize: 15,
-                    fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
               ],

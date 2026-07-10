@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_icons.dart';
+import '../../core/theme/theme_ext.dart';
 import 'app_icon.dart';
 
 class HRNovaTextField extends StatelessWidget {
@@ -41,7 +42,7 @@ class HRNovaTextField extends StatelessWidget {
   final void Function(String)? onFieldSubmitted;
   final String? initialValue;
 
-  static const _radius = 12.0;
+  static const _radius = 16.0;
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +51,10 @@ class HRNovaTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
+            color: context.appText,
             letterSpacing: 0.2,
           ),
         ),
@@ -71,30 +72,30 @@ class HRNovaTextField extends StatelessWidget {
           autofocus: autofocus,
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
-            color: AppColors.textPrimary,
+            color: context.appText,
             fontWeight: FontWeight.w400,
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-                color: AppColors.textSecondary, fontWeight: FontWeight.w400),
+            hintStyle: TextStyle(
+                color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
             prefixIcon: prefixIcon != null
-                ? AppIcon(prefixIcon!, color: AppColors.textSecondary, size: 20)
+                ? AppIcon(prefixIcon!, color: context.appSubtext, size: 20)
                 : null,
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: enabled ? AppColors.white : AppColors.lightBlue50,
+            fillColor: enabled ? context.appCard : context.appTint,
             contentPadding:
                 const EdgeInsetsDirectional.fromSTEB(14, 15, 15, 15),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(_radius),
-              borderSide: const BorderSide(color: AppColors.cardBorder),
+              borderSide: BorderSide(color: context.appBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(_radius),
-              borderSide: const BorderSide(color: AppColors.cardBorder),
+              borderSide: BorderSide(color: context.appBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(_radius),
@@ -112,7 +113,7 @@ class HRNovaTextField extends StatelessWidget {
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(_radius),
-              borderSide: const BorderSide(color: AppColors.cardBorder),
+              borderSide: BorderSide(color: context.appBorder),
             ),
           ),
         ),

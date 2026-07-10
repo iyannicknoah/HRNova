@@ -435,7 +435,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildNotifications() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 14),
       _textField('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
       const SizedBox(height: 14),
@@ -465,7 +465,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 24),
       const Divider(color: _border, height: 1),
       const SizedBox(height: 20),
-      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 6),
       Container(
         padding: const EdgeInsets.all(12),
