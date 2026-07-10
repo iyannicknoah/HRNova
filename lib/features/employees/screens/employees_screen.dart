@@ -560,10 +560,7 @@ class _EmployeeTable extends StatelessWidget {
                       Expanded(flex: 30, child: Row(children: [
                         _Avatar(name: e.fullName, photoUrl: e.profilePhotoUrl, size: 34),
                         const SizedBox(width: 10),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(e.fullName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText), overflow: TextOverflow.ellipsis),
-                          Text(e.email, style: TextStyle(fontSize: 15, color: context.appSubtext), overflow: TextOverflow.ellipsis),
-                        ])),
+                        Expanded(child: Text(e.fullName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText), overflow: TextOverflow.ellipsis)),
                       ])),
                       Expanded(flex: 18, child: Text(e.department, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: context.appText))),
                       Expanded(flex: 18, child: Text(e.jobTitle.isEmpty ? '—' : e.jobTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: context.appText), overflow: TextOverflow.ellipsis)),

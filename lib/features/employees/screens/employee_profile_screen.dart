@@ -89,6 +89,8 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _ProfileHeader(employee: employee),
+              const SizedBox(height: 6),
               isManager
                   ? _TabBar(
                       controller: _tabs,
@@ -169,6 +171,122 @@ class _Pill extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Persistent identity header — shared across every tab
+// ─────────────────────────────────────────────────────────────────────────────
+class _ProfileHeader extends ConsumerWidget {
+  const _ProfileHeader({required this.employee});
+  final EmployeeModel employee;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(companySettingsProvider).value;
+    final annualEntitlement = settings?.annualLeaveDays ?? AppConstants.annualLeaveDaysPerYear;
+    final leaveRequests = ref.watch(employeeLeaveRequestsProvider(employee.id)).valueOrNull ?? [];
+    final annualUsed = leaveRequests
+        .where((r) => r.status == 'approved' && r.leaveType == AppConstants.leaveTypeAnnual)
+        .fold(0, (s, r) => s + r.totalDays);
+    final annualBalance = (annualEntitlement - annualUsed).clamp(0, annualEntitlement);
+    final monthsSinceStart = DateTime.now().difference(employee.startDate).inDays ~/ 30;
+    final isBurnoutRisk = monthsSinceStart >= 5 && annualBalance >= annualEntitlement;
+    final statusColor = employee.isActive ? AppColors.successGreen : AppColors.errorRed;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.fromLTRB(12, 16, 16, 16),
+      decoration: context.cardDeco(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          InkWell(
+            onTap: () => context.pop(),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: AppIcon(AppIcons.arrowBackIosNew, size: 17, color: context.appSubtext),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: statusColor, width: 2),
+            ),
+            child: _LargeAvatar(name: employee.fullName, photoUrl: employee.profilePhotoUrl),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(employee.fullName,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText),
+                    overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (employee.jobTitle.isNotEmpty)
+                      Text(employee.jobTitle, style: TextStyle(fontSize: 14, color: context.appSubtext)),
+                    if (employee.jobTitle.isNotEmpty) _MetaDot(color: context.appSubtext),
+                    Text(employee.department, style: TextStyle(fontSize: 14, color: context.appSubtext)),
+                    _MetaDot(color: context.appSubtext),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 6, height: 6,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor)),
+                      const SizedBox(width: 5),
+                      Text(employee.isActive ? 'Active' : 'Inactive',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: statusColor)),
+                    ]),
+                    _MetaDot(color: context.appSubtext),
+                    Text('Since ${_ProfileTab._shortDate(employee.startDate)}',
+                        style: TextStyle(fontSize: 14, color: context.appSubtext)),
+                    if (isBurnoutRisk) ...[
+                      _MetaDot(color: context.appSubtext),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Burnout Risk',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF7D4A00))),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton.icon(
+            onPressed: () => context.push('/employees/new?editId=${employee.id}'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const AppIcon(AppIcons.editRounded, size: 16),
+            label: const Text('Edit', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaDot extends StatelessWidget {
+  const _MetaDot({required this.color});
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 3, height: 3,
+    decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Tab bar
 // ─────────────────────────────────────────────────────────────────────────────
 class _TabBar extends StatelessWidget {
@@ -214,112 +332,10 @@ class _ProfileTab extends ConsumerWidget {
         .fold(0, (s, r) => s + r.totalDays);
     final annualUsed = usedOf(AppConstants.leaveTypeAnnual);
     final annualBalance = (annualEntitlement - annualUsed).clamp(0, annualEntitlement);
-    final monthsSinceStart = DateTime.now().difference(employee.startDate).inDays ~/ 30;
-    final isBurnoutRisk = monthsSinceStart >= 5 && annualBalance >= annualEntitlement;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // ── Hero banner ──────────────────────────────────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(children: [
-            // Gradient top strip with back + edit buttons
-            Container(
-              height: 72,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primaryBlue.withAlpha(180), AppColors.primaryBlue.withAlpha(60)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  InkWell(
-                    onTap: () => context.pop(),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: AppIcon(AppIcons.arrowBackIosNew, size: 16,
-                          color: Colors.white.withAlpha(220)),
-                    ),
-                  ),
-                  const Spacer(),
-                  FilledButton.icon(
-                    onPressed: () => context.push(
-                        '/employees/new?editId=${employee.id}'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFF59E0B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const AppIcon(AppIcons.editRounded, size: 16),
-                    label: const Text('Edit Employee',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Transform.translate(
-                  offset: const Offset(0, -32),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: context.appCard, width: 4),
-                        boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 12)],
-                      ),
-                      child: _LargeAvatar(name: employee.fullName, photoUrl: employee.profilePhotoUrl),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(employee.fullName,
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
-                          const SizedBox(height: 2),
-                          Text(employee.jobTitle.isEmpty ? employee.department : employee.jobTitle,
-                              style: TextStyle(fontSize: 15, color: context.appSubtext)),
-                        ]),
-                      ),
-                    ),
-                  ]),
-                ),
-                Transform.translate(
-                  offset: const Offset(0, -16),
-                  child: Wrap(spacing: 8, runSpacing: 6, children: [
-                    _StatChip(AppIcons.businessRounded, employee.department, context.pillBlueBg, context.pillBlueText),
-                    _StatChip(
-                      null,
-                      employee.isActive ? 'Active' : 'Inactive',
-                      employee.isActive ? context.pillGreenBg : context.pillRedBg,
-                      employee.isActive ? context.pillGreenText : context.pillRedText,
-                    ),
-                    _StatChip(AppIcons.calendarTodayRounded, 'Since ${_shortDate(employee.startDate)}',
-                        context.pillNavyBg, context.pillNavyText),
-                    if (isBurnoutRisk)
-                      _StatChip(AppIcons.warningAmberRounded, 'Burnout Risk',
-                          const Color(0xFFFFF3CD), const Color(0xFF7D4A00)),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 16),
         // ── Quick stats ───────────────────────────────────────────────────────
         Row(children: [
           if (!hideSalary) ...[
@@ -338,110 +354,127 @@ class _ProfileTab extends ConsumerWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Left: Personal + Employment
           Expanded(
-            child: Column(children: [
-              _Section(
-                title: 'Personal Information',
-                icon: AppIcons.personOutlineRounded,
-                children: [
-                  _Field('Full Name', employee.fullName),
-                  _Field('National ID', employee.nationalId.isEmpty ? '—' : employee.nationalId),
-                  _Field('Phone', employee.phone.isEmpty ? '—' : employee.phone),
-                  _Field('Email', employee.email.isEmpty ? '—' : employee.email),
-                  _Field('Date of Birth', EmployeeModel.fmtDate(employee.dateOfBirth)),
-                  _Field('Emergency Contact', employee.emergencyContact.isEmpty ? '—' : employee.emergencyContact),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _Section(
-                title: 'Employment',
-                icon: AppIcons.workOutlineRounded,
-                children: [
-                  _Field('Department', employee.department),
-                  _Field('Job Title', employee.jobTitle.isEmpty ? '—' : employee.jobTitle),
-                  _Field('Role', _capitalize(employee.role)),
-                  _Field('Start Date', EmployeeModel.fmtDate(employee.startDate)),
-                  if (employee.endDate != null) _Field('End Date', EmployeeModel.fmtDate(employee.endDate)),
-                  _Field('RSSB Number', employee.rssbNumber.isEmpty ? '—' : employee.rssbNumber),
-                ],
-              ),
-            ]),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: context.cardDeco(),
+              child: Column(children: [
+                _Section(
+                  title: 'Personal Information',
+                  icon: AppIcons.personOutlineRounded,
+                  children: [
+                    _Field('Full Name', employee.fullName),
+                    _Field('National ID', employee.nationalId.isEmpty ? '—' : employee.nationalId),
+                    _Field('Phone', employee.phone.isEmpty ? '—' : employee.phone),
+                    _Field('Email', employee.email.isEmpty ? '—' : employee.email),
+                    _Field('Date of Birth', EmployeeModel.fmtDate(employee.dateOfBirth)),
+                    _Field('Emergency Contact', employee.emergencyContact.isEmpty ? '—' : employee.emergencyContact),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Divider(height: 1, color: context.appBorder),
+                const SizedBox(height: 22),
+                _Section(
+                  title: 'Employment',
+                  icon: AppIcons.workOutlineRounded,
+                  children: [
+                    _Field('Department', employee.department),
+                    _Field('Job Title', employee.jobTitle.isEmpty ? '—' : employee.jobTitle),
+                    _Field('Role', _capitalize(employee.role)),
+                    _Field('Start Date', EmployeeModel.fmtDate(employee.startDate)),
+                    if (employee.endDate != null) _Field('End Date', EmployeeModel.fmtDate(employee.endDate)),
+                    _Field('RSSB Number', employee.rssbNumber.isEmpty ? '—' : employee.rssbNumber),
+                  ],
+                ),
+              ]),
+            ),
           ),
           const SizedBox(width: 14),
           // Right: Salary + Leave
           Expanded(
-            child: Column(children: [
-              if (!hideSalary)
-                _Section(
-                  title: 'Salary & Compensation',
-                  icon: AppIcons.paymentsOutlined,
-                  children: [
-                    _Field('Salary Type', _stLabel(employee.salaryType)),
-                    if (employee.salaryType == 'fixed_monthly') _Field('Monthly Salary', _fmtRwf(employee.salaryAmount)),
-                    if (employee.salaryType == 'daily_rate') _Field('Daily Rate', _fmtRwf(employee.dailyRate)),
-                    if (employee.salaryType == 'hourly_rate') _Field('Hourly Rate', _fmtRwf(employee.hourlyRate)),
-                    _Field('Transport Allowance', _fmtRwf(employee.transportAllowance)),
-                    _Field('Housing Allowance', _fmtRwf(employee.housingAllowance)),
-                    _Field('Bank Account', employee.bankAccount.isEmpty ? '—' : employee.bankAccount),
-                  ],
-                ),
-              const SizedBox(height: 14),
-              _Section(
-                title: 'Leave Balances',
-                icon: AppIcons.beachAccessRounded,
-                children: [
-                  _LeaveBalanceRow('Annual', (annualEntitlement - annualUsed).clamp(0, annualEntitlement), annualEntitlement, AppColors.primaryBlue),
-                  _LeaveBalanceRow('Sick', (AppConstants.sickLeaveDays - usedOf(AppConstants.leaveTypeSick)).clamp(0, AppConstants.sickLeaveDays), AppConstants.sickLeaveDays, AppColors.successGreen),
-                  _LeaveBalanceRow('Maternity', (AppConstants.maternityLeaveDays - usedOf(AppConstants.leaveTypeMaternity)).clamp(0, AppConstants.maternityLeaveDays), AppConstants.maternityLeaveDays, const Color(0xFF9C27B0)),
-                  _LeaveBalanceRow('Paternity', (AppConstants.paternityLeaveDays - usedOf(AppConstants.leaveTypePaternity)).clamp(0, AppConstants.paternityLeaveDays), AppConstants.paternityLeaveDays, const Color(0xFF00897B)),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: context.cardDeco(),
+              child: Column(children: [
+                if (!hideSalary) ...[
+                  _Section(
+                    title: 'Salary & Compensation',
+                    icon: AppIcons.paymentsOutlined,
+                    children: [
+                      _Field('Salary Type', _stLabel(employee.salaryType)),
+                      if (employee.salaryType == 'fixed_monthly') _Field('Monthly Salary', _fmtRwf(employee.salaryAmount)),
+                      if (employee.salaryType == 'daily_rate') _Field('Daily Rate', _fmtRwf(employee.dailyRate)),
+                      if (employee.salaryType == 'hourly_rate') _Field('Hourly Rate', _fmtRwf(employee.hourlyRate)),
+                      _Field('Transport Allowance', _fmtRwf(employee.transportAllowance)),
+                      _Field('Housing Allowance', _fmtRwf(employee.housingAllowance)),
+                      _Field('Bank Account', employee.bankAccount.isEmpty ? '—' : employee.bankAccount),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  Divider(height: 1, color: context.appBorder),
+                  const SizedBox(height: 22),
                 ],
-              ),
-              if (employee.notes != null && employee.notes!.isNotEmpty) ...[
-                const SizedBox(height: 14),
                 _Section(
-                  title: 'Notes',
-                  icon: AppIcons.notesRounded,
+                  title: 'Leave Balances',
+                  icon: AppIcons.beachAccessRounded,
                   children: [
-                    Text(employee.notes!, style: TextStyle(fontSize: 15, color: context.appText, height: 1.5)),
+                    _LeaveBalanceRow('Annual', (annualEntitlement - annualUsed).clamp(0, annualEntitlement), annualEntitlement, AppColors.primaryBlue),
+                    _LeaveBalanceRow('Sick', (AppConstants.sickLeaveDays - usedOf(AppConstants.leaveTypeSick)).clamp(0, AppConstants.sickLeaveDays), AppConstants.sickLeaveDays, AppColors.successGreen),
+                    _LeaveBalanceRow('Maternity', (AppConstants.maternityLeaveDays - usedOf(AppConstants.leaveTypeMaternity)).clamp(0, AppConstants.maternityLeaveDays), AppConstants.maternityLeaveDays, const Color(0xFF9C27B0)),
+                    _LeaveBalanceRow('Paternity', (AppConstants.paternityLeaveDays - usedOf(AppConstants.leaveTypePaternity)).clamp(0, AppConstants.paternityLeaveDays), AppConstants.paternityLeaveDays, const Color(0xFF00897B)),
                   ],
                 ),
-              ],
-              if (employee.email.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                _Section(
-                  title: 'Login Credentials',
-                  icon: AppIcons.keyRounded,
-                  children: [
-                    _CredRow(
-                      label: 'Email',
-                      value: employee.email,
-                    ),
-                    const SizedBox(height: 8),
-                    _CredRow(
-                      label: 'Initial Password',
-                      value: '${employee.companyId.length >= 4 ? employee.companyId.substring(0, 4) : employee.companyId}@${employee.id.length >= 6 ? employee.id.substring(0, 6) : employee.id}',
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningAmber.withAlpha(15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.warningAmber.withAlpha(50)),
+                if (employee.notes != null && employee.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 22),
+                  Divider(height: 1, color: context.appBorder),
+                  const SizedBox(height: 22),
+                  _Section(
+                    title: 'Notes',
+                    icon: AppIcons.notesRounded,
+                    children: [
+                      Text(employee.notes!, style: TextStyle(fontSize: 15, color: context.appText, height: 1.5)),
+                    ],
+                  ),
+                ],
+                if (employee.email.isNotEmpty) ...[
+                  const SizedBox(height: 22),
+                  Divider(height: 1, color: context.appBorder),
+                  const SizedBox(height: 22),
+                  _Section(
+                    title: 'Login Credentials',
+                    icon: AppIcons.keyRounded,
+                    children: [
+                      _CredRow(
+                        label: 'Email',
+                        value: employee.email,
                       ),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const AppIcon(AppIcons.infoOutlineRounded, size: 13, color: AppColors.warningAmber),
-                        const SizedBox(width: 8),
-                        const Expanded(child: Text(
-                          'This is the initial password. May be outdated if the employee already changed it.',
-                          style: TextStyle(fontSize: 13, color: AppColors.warningAmber),
-                        )),
-                      ]),
-                    ),
-                  ],
-                ),
-              ],
-              _BranchTransferSection(employee: employee, ref: ref),
-            ]),
+                      const SizedBox(height: 8),
+                      _CredRow(
+                        label: 'Initial Password',
+                        value: '${employee.companyId.length >= 4 ? employee.companyId.substring(0, 4) : employee.companyId}@${employee.id.length >= 6 ? employee.id.substring(0, 6) : employee.id}',
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningAmber.withAlpha(15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.warningAmber.withAlpha(50)),
+                        ),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const AppIcon(AppIcons.infoOutlineRounded, size: 13, color: AppColors.warningAmber),
+                          const SizedBox(width: 8),
+                          const Expanded(child: Text(
+                            'This is the initial password. May be outdated if the employee already changed it.',
+                            style: TextStyle(fontSize: 13, color: AppColors.warningAmber),
+                          )),
+                        ]),
+                      ),
+                    ],
+                  ),
+                ],
+                _BranchTransferSection(employee: employee, ref: ref),
+              ]),
+            ),
           ),
         ]),
       ]),
@@ -466,30 +499,6 @@ class _ProfileTab extends ConsumerWidget {
     }
     return buf.toString();
   }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip(this.icon, this.label, this.bg, this.fg);
-  final IconRef? icon;
-  final String label;
-  final Color bg, fg;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      icon != null
-          ? AppIcon(icon!, size: 11, color: fg)
-          : Container(
-              width: 7,
-              height: 7,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: fg),
-            ),
-      const SizedBox(width: 5),
-      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: fg)),
-    ]),
-  );
 }
 
 class _QuickStat extends StatelessWidget {
@@ -529,33 +538,17 @@ class _Section extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: context.appCard,
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-        child: Row(children: [
-          Container(
-            width: 28, height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withAlpha(15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: AppIcon(icon, size: 14, color: AppColors.primaryBlue),
-          ),
-          const SizedBox(width: 10),
-          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
-        ]),
-      ),
-      Divider(height: 1, color: context.appBorder),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Column(children: children),
-      ),
-    ]),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(children: [
+        AppIcon(icon, size: 15, color: AppColors.primaryBlue),
+        const SizedBox(width: 8),
+        Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
+      ]),
+      const SizedBox(height: 14),
+      ...children,
+    ],
   );
 }
 
@@ -694,7 +687,9 @@ class _BranchTransferSection extends StatelessWidget {
         : null;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 14),
+      const SizedBox(height: 22),
+      Divider(height: 1, color: context.appBorder),
+      const SizedBox(height: 22),
       _Section(
         title: 'Branch Assignment',
         icon: AppIcons.businessRounded,

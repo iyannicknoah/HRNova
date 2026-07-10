@@ -475,6 +475,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.appBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,14 +512,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         controller: ctrl,
         keyboardType: keyboard,
         maxLines: maxLines,
-        style: const TextStyle(fontSize: 15),
+        style: TextStyle(fontSize: 16, color: context.appText, fontWeight: FontWeight.w400),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-          filled: true, fillColor: context.appField,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
+          filled: true, fillColor: Colors.transparent,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         ),
         validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
@@ -537,7 +538,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       TextFormField(
         controller: ctrl,
         readOnly: true,
-        style: const TextStyle(fontSize: 15),
+        style: TextStyle(fontSize: 16, color: context.appText, fontWeight: FontWeight.w400),
         onTap: () async {
           final picked = await showDatePicker(
             context: context,
@@ -549,12 +550,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         },
         decoration: InputDecoration(
           hintText: 'Select date',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
           suffixIcon: AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
-          filled: true, fillColor: context.appField,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          filled: true, fillColor: Colors.transparent,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         ),
         validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
@@ -569,8 +570,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       const SizedBox(height: 6),
       Container(
         decoration: BoxDecoration(
-          color: context.appField,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: context.appBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -594,8 +594,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       const SizedBox(height: 6),
       Container(
         decoration: BoxDecoration(
-          color: context.appField,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: context.appBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -650,14 +649,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       TextFormField(
         controller: _password,
         obscureText: _obscurePassword,
-        style: const TextStyle(fontSize: 15),
+        style: TextStyle(fontSize: 16, color: context.appText, fontWeight: FontWeight.w400),
         decoration: InputDecoration(
           hintText: 'Leave blank to auto-generate',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-          filled: true, fillColor: context.appField,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
+          filled: true, fillColor: Colors.transparent,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           suffixIcon: IconButton(
             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
