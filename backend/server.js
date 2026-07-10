@@ -54,7 +54,7 @@ app.use('/api/recruitment', require('./routes/recruitment'));
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'HRNova API' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'HRNovva API' });
 });
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
@@ -620,7 +620,7 @@ cron.schedule('0 9 25 * *', async () => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`HRNova API running on http://localhost:${PORT}`);
+  console.log(`HRNovva API running on http://localhost:${PORT}`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
 });
 

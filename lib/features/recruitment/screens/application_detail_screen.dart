@@ -5,9 +5,13 @@ import 'package:intl/intl.dart';
 import '../../../core/platform/platform_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/application_model.dart';
 import '../providers/recruitment_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class ApplicationDetailScreen extends ConsumerWidget {
   const ApplicationDetailScreen({
@@ -79,7 +83,7 @@ class _DetailBody extends ConsumerWidget {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
+                icon: const AppIcon(AppIcons.arrowBackRounded),
                 onPressed: () => context.go('/recruitment/$jobId'),
                 color: context.appText,
               ),
@@ -90,7 +94,7 @@ class _DetailBody extends ConsumerWidget {
                     Text(app.applicantName,
                         style: TextStyle(
                             fontSize: 17,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             color: context.appText)),
                     Text('${app.jobTitle} · Applied ${DateFormat('dd MMM yyyy').format(app.appliedAt)}',
                         style: TextStyle(fontSize: 12, color: context.appSubtext)),
@@ -99,51 +103,42 @@ class _DetailBody extends ConsumerWidget {
               ),
 
               if (app.cvUrl != null)
-                OutlinedButton.icon(
+                HRNovaButton(
+                  label: 'Download CV',
+                  icon: AppIcons.downloadRounded,
+                  outlined: true,
+                  backgroundColor: context.appSubtext,
+                  isFullWidth: false,
+                  height: 40,
                   onPressed: () => openInNewTab(app.cvUrl!),
-                  icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text('Download CV'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    side: BorderSide(color: context.appBorder),
-                  ),
                 ),
               const SizedBox(width: 10),
 
               // Action buttons
               if (app.status == 'pending' || app.status == 'shortlisted') ...[
                 if (app.status != 'shortlisted')
-                  OutlinedButton(
+                  HRNovaButton(
+                    label: 'Decline',
+                    outlined: true,
+                    backgroundColor: AppColors.errorRed,
+                    isFullWidth: false,
+                    height: 40,
                     onPressed: notifier.loading
                         ? null
                         : () => _confirmDecline(context, ref),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      side: const BorderSide(color: AppColors.errorRed),
-                      foregroundColor: AppColors.errorRed,
-                    ),
-                    child: const Text('Decline'),
                   ),
                 const SizedBox(width: 8),
-                FilledButton(
+                HRNovaButton(
+                  label: app.status == 'shortlisted'
+                      ? 'Send Interview Invite'
+                      : 'Shortlist',
+                  backgroundColor: AppColors.successGreen,
+                  isLoading: notifier.loading,
+                  isFullWidth: false,
+                  height: 40,
                   onPressed: notifier.loading
                       ? null
                       : () => _showShortlistDialog(context, ref),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.successGreen,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: notifier.loading
-                      ? const SizedBox(
-                          width: 16, height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(app.status == 'shortlisted'
-                          ? 'Send Interview Invite'
-                          : 'Shortlist'),
                 ),
               ],
             ],
@@ -215,39 +210,55 @@ class _DetailBody extends ConsumerWidget {
   }
 
   void _confirmDecline(BuildContext context, WidgetRef ref) {
-    showDialog(
+    AppDialogShell.show(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: context.appCard,
-        title: Text('Decline Application',
-            style: TextStyle(fontWeight: FontWeight.w700, color: context.appText)),
-        content: Text(
-          'Mark ${app.applicantName} as declined?\n\nNo email will be sent now. You can send rejection emails in bulk from the applications list.',
-          style: TextStyle(fontSize: 13, color: context.appText, height: 1.5),
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Decline Application',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
+            const SizedBox(height: 15),
+            Text(
+              'Mark ${app.applicantName} as declined?\n\nNo email will be sent now. You can send rejection emails in bulk from the applications list.',
+              style: TextStyle(fontSize: 13, color: context.appText, height: 1.5),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                HRNovaButton.text(
+                  label: 'Cancel',
+                  onPressed: () => Navigator.pop(context),
+                  textColor: context.appSubtext,
+                ),
+                HRNovaButton(
+                  label: 'Decline',
+                  isFullWidth: false,
+                  backgroundColor: AppColors.errorRed,
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await ref
+                        .read(recruitmentNotifierProvider.notifier)
+                        .declineApplication(app.id);
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: context.appSubtext))),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref
-                  .read(recruitmentNotifierProvider.notifier)
-                  .declineApplication(app.id);
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.errorRed),
-            child: const Text('Decline'),
-          ),
-        ],
       ),
     );
   }
 
   void _showShortlistDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
+    AppDialogShell.show(
       context: context,
-      builder: (_) => _ShortlistDialog(app: app, jobId: jobId),
+      alignment: Alignment.center,
+      child: _ShortlistDialog(app: app, jobId: jobId),
     );
   }
 }
@@ -332,7 +343,7 @@ class _ScoreBar extends StatelessWidget {
           child: Text('${score?.toInt() ?? 0}',
               textAlign: TextAlign.right,
               style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+                  fontSize: 12, fontWeight: FontWeight.w600, color: color)),
         ),
       ],
     );
@@ -361,7 +372,7 @@ class _StrengthsConcerns extends StatelessWidget {
                     children: [
                       const Padding(
                         padding: EdgeInsets.only(top: 2),
-                        child: Icon(Icons.check_circle_rounded,
+                        child: AppIcon(AppIcons.checkCircleRounded,
                             color: AppColors.successGreen, size: 14),
                       ),
                       const SizedBox(width: 8),
@@ -388,7 +399,7 @@ class _StrengthsConcerns extends StatelessWidget {
                     children: [
                       const Padding(
                         padding: EdgeInsets.only(top: 2),
-                        child: Icon(Icons.warning_amber_rounded,
+                        child: AppIcon(AppIcons.warningAmberRounded,
                             color: AppColors.warningAmber, size: 14),
                       ),
                       const SizedBox(width: 8),
@@ -417,20 +428,20 @@ class _ApplicantInfo extends StatelessWidget {
       title: 'Applicant',
       child: Column(
         children: [
-          _InfoRow(icon: Icons.email_outlined, label: app.email),
-          _InfoRow(icon: Icons.phone_outlined, label: app.phone),
+          _InfoRow(icon: AppIcons.emailOutlined, label: app.email),
+          _InfoRow(icon: AppIcons.phoneOutlined, label: app.phone),
           _InfoRow(
-              icon: Icons.work_history_outlined,
+              icon: AppIcons.workHistoryOutlined,
               label: '${app.yearsExperience} years experience'),
           if (app.status == 'declined' && app.rejectionSentAt != null)
             _InfoRow(
-              icon: Icons.mail_outlined,
+              icon: AppIcons.mailOutlined,
               label: 'Rejection sent ${DateFormat('dd MMM').format(app.rejectionSentAt!)}',
               color: AppColors.errorRed,
             ),
           if (app.interviewInviteSentAt != null)
             _InfoRow(
-              icon: Icons.send_rounded,
+              icon: AppIcons.sendRounded,
               label: 'Invite sent ${DateFormat('dd MMM').format(app.interviewInviteSentAt!)}',
               color: AppColors.successGreen,
             ),
@@ -441,7 +452,7 @@ class _ApplicantInfo extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final IconData icon;
+  final IconRef icon;
   final String label;
   final Color? color;
   const _InfoRow({required this.icon, required this.label, this.color});
@@ -453,7 +464,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: c),
+          AppIcon(icon, size: 14, color: c),
           const SizedBox(width: 8),
           Expanded(
               child: Text(label,
@@ -478,11 +489,11 @@ class _InterviewInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (app.interviewDate != null)
-            _InfoRow(icon: Icons.calendar_today_outlined, label: app.interviewDate!),
+            _InfoRow(icon: AppIcons.calendarTodayOutlined, label: app.interviewDate!),
           if (app.interviewTime != null)
-            _InfoRow(icon: Icons.access_time_rounded, label: app.interviewTime!),
+            _InfoRow(icon: AppIcons.accessTimeRounded, label: app.interviewTime!),
           if (app.interviewLocation != null)
-            _InfoRow(icon: Icons.location_on_outlined, label: app.interviewLocation!),
+            _InfoRow(icon: AppIcons.locationOnOutlined, label: app.interviewLocation!),
         ],
       ),
     );
@@ -516,16 +527,17 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
   Widget build(BuildContext context) {
     final notifier = ref.watch(recruitmentNotifierProvider);
 
-    return AlertDialog(
-      backgroundColor: context.appCard,
-      title: Text('Shortlist ${widget.app.applicantName}',
-          style: TextStyle(fontWeight: FontWeight.w700, color: context.appText)),
-      content: SizedBox(
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
         width: 400,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('Shortlist ${widget.app.applicantName}',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
+            const SizedBox(height: 15),
             Text('The applicant will be moved to Shortlisted status.',
                 style: TextStyle(fontSize: 13, color: context.appSubtext)),
             const SizedBox(height: 16),
@@ -562,7 +574,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.calendar_today_outlined, size: 16, color: context.appSubtext),
+                      AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
                       const SizedBox(width: 8),
                       Text(
                         _interviewDate != null
@@ -585,7 +597,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                 decoration: InputDecoration(
                   hintText: 'Time (e.g. 10:00 AM)',
                   hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-                  prefixIcon: Icon(Icons.access_time_rounded, size: 16, color: context.appSubtext),
+                  prefixIcon: AppIcon(AppIcons.accessTimeRounded, size: 16, color: context.appSubtext),
                   filled: true,
                   fillColor: context.appField,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -604,7 +616,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                 decoration: InputDecoration(
                   hintText: 'Location or meeting link',
                   hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-                  prefixIcon: Icon(Icons.location_on_outlined, size: 16, color: context.appSubtext),
+                  prefixIcon: AppIcon(AppIcons.locationOnOutlined, size: 16, color: context.appSubtext),
                   filled: true,
                   fillColor: context.appField,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -617,48 +629,52 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                 ),
               ),
             ],
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                HRNovaButton.text(
+                  label: 'Cancel',
+                  onPressed: () => Navigator.pop(context),
+                  textColor: context.appSubtext,
+                ),
+                HRNovaButton(
+                  label: _sendInvite ? 'Shortlist & Send Invite' : 'Shortlist',
+                  isFullWidth: false,
+                  isLoading: notifier.loading,
+                  backgroundColor: AppColors.successGreen,
+                  onPressed: notifier.loading
+                      ? null
+                      : () async {
+                          if (_sendInvite && _interviewDate == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please select an interview date')));
+                            return;
+                          }
+                          final ok = await ref
+                              .read(recruitmentNotifierProvider.notifier)
+                              .shortlistApplication(
+                                appId: widget.app.id,
+                                jobId: widget.jobId,
+                                sendInvite: _sendInvite,
+                                interviewDate: _interviewDate != null
+                                    ? DateFormat('dd MMM yyyy').format(_interviewDate!)
+                                    : null,
+                                interviewTime: _timeCtrl.text.trim().isNotEmpty
+                                    ? _timeCtrl.text.trim()
+                                    : null,
+                                interviewLocation: _locationCtrl.text.trim().isNotEmpty
+                                    ? _locationCtrl.text.trim()
+                                    : null,
+                              );
+                          if (mounted && ok) Navigator.pop(context);
+                        },
+                ),
+              ],
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: context.appSubtext))),
-        FilledButton(
-          onPressed: notifier.loading
-              ? null
-              : () async {
-                  if (_sendInvite && _interviewDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please select an interview date')));
-                    return;
-                  }
-                  final ok = await ref
-                      .read(recruitmentNotifierProvider.notifier)
-                      .shortlistApplication(
-                        appId: widget.app.id,
-                        jobId: widget.jobId,
-                        sendInvite: _sendInvite,
-                        interviewDate: _interviewDate != null
-                            ? DateFormat('dd MMM yyyy').format(_interviewDate!)
-                            : null,
-                        interviewTime: _timeCtrl.text.trim().isNotEmpty
-                            ? _timeCtrl.text.trim()
-                            : null,
-                        interviewLocation: _locationCtrl.text.trim().isNotEmpty
-                            ? _locationCtrl.text.trim()
-                            : null,
-                      );
-                  if (mounted && ok) Navigator.pop(context);
-                },
-          style: FilledButton.styleFrom(backgroundColor: AppColors.successGreen),
-          child: notifier.loading
-              ? const SizedBox(
-                  width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Text(_sendInvite ? 'Shortlist & Send Invite' : 'Shortlist'),
-        ),
-      ],
     );
   }
 }
@@ -686,7 +702,7 @@ class _Card extends StatelessWidget {
             children: [
               Text(title,
                   style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w700, color: context.appText)),
+                      fontSize: 13, fontWeight: FontWeight.w600, color: context.appText)),
               const Spacer(),
               if (trailing != null) trailing!,
             ],
@@ -729,7 +745,7 @@ class AiScoreBadge extends StatelessWidget {
       child: Text('$score',
           style: TextStyle(
               fontSize: large ? 20 : 14,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: color)),
     );
   }
@@ -742,16 +758,16 @@ class RecommendationBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, text, label) = switch (recommendation) {
-      'accept' => (AppColors.pillGreenBg, AppColors.pillGreenText, 'Strong Match'),
-      'review' => (AppColors.pillBlueBg, AppColors.pillBlueText, 'Review'),
-      'reject' => (AppColors.pillRedBg, AppColors.pillRedText, 'Not Suitable'),
-      _ => (AppColors.pillNavyBg, AppColors.pillNavyText, 'Pending'),
+      'accept' => (context.pillGreenBg, context.pillGreenText, 'Strong Match'),
+      'review' => (context.pillBlueBg, context.pillBlueText, 'Review'),
+      'reject' => (context.pillRedBg, context.pillRedText, 'Not Suitable'),
+      _ => (context.pillNavyBg, context.pillNavyText, 'Pending'),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(label,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: text)),
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: text)),
     );
   }
 }

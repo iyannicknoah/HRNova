@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../settings/providers/settings_provider.dart';
 import '../models/job_posting_model.dart';
 import '../providers/recruitment_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class RecruitmentScreen extends ConsumerWidget {
   const RecruitmentScreen({super.key});
@@ -43,7 +45,7 @@ class RecruitmentScreen extends ConsumerWidget {
                     children: [
                       Text('Job Postings',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
+                              fontSize: 16, fontWeight: FontWeight.w600, color: context.appText)),
                       const Spacer(),
                       if (jobsAsync.value?.isNotEmpty == true)
                         Text('${jobsAsync.value!.length} jobs',
@@ -97,22 +99,19 @@ class _Header extends StatelessWidget {
                   colors: [Color(0xFF4A9EFF), Color(0xFF2979E0)]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.work_rounded, color: Colors.white, size: 18),
+            child: const AppIcon(AppIcons.workRounded, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
           Text('Recruitment',
               style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
+                  fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
           const Spacer(),
-          FilledButton.icon(
+          HRNovaButton(
+            label: 'New Job Posting',
+            icon: AppIcons.addRounded,
+            isFullWidth: false,
+            height: 44,
             onPressed: () => context.go('/recruitment/new'),
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text('New Job Posting'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
           ),
         ],
       ),
@@ -129,13 +128,13 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StatCard(label: 'Open Positions', value: stats.openPositions, color: AppColors.primaryBlue, icon: Icons.work_outline_rounded),
+        _StatCard(label: 'Open Positions', value: stats.openPositions),
         const SizedBox(width: 12),
-        _StatCard(label: 'Total Applications', value: stats.totalApplications, color: AppColors.accentTeal, icon: Icons.description_outlined),
+        _StatCard(label: 'Total Applications', value: stats.totalApplications),
         const SizedBox(width: 12),
-        _StatCard(label: 'Shortlisted', value: stats.shortlisted, color: AppColors.warningAmber, icon: Icons.star_outline_rounded),
+        _StatCard(label: 'Shortlisted', value: stats.shortlisted),
         const SizedBox(width: 12),
-        _StatCard(label: 'Hired', value: stats.hired, color: AppColors.successGreen, icon: Icons.check_circle_outline_rounded),
+        _StatCard(label: 'Hired', value: stats.hired),
       ],
     );
   }
@@ -144,31 +143,20 @@ class _StatsRow extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final String label;
   final int value;
-  final Color color;
-  final IconData icon;
-  const _StatCard({required this.label, required this.value, required this.color, required this.icon});
+  const _StatCard({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: context.cardDeco(12),
+        padding: const EdgeInsets.all(20),
+        decoration: context.cardDeco(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                color: color.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 16, color: color),
-            ),
-            const SizedBox(height: 12),
             Text('$value',
                 style: TextStyle(
-                    fontSize: 26, fontWeight: FontWeight.w800, color: context.appText)),
+                    fontSize: 26, fontWeight: FontWeight.w700, color: context.appText)),
             const SizedBox(height: 2),
             Text(label,
                 style: TextStyle(fontSize: 12, color: context.appSubtext)),
@@ -191,7 +179,7 @@ class _StatsRowSkeleton extends StatelessWidget {
           margin: const EdgeInsets.only(right: 12),
           decoration: BoxDecoration(
             color: context.appCard,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
           ),
         ),
       )),
@@ -214,13 +202,9 @@ class _JobCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         onTap: () => context.go('/recruitment/${job.id}'),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -233,7 +217,7 @@ class _JobCard extends StatelessWidget {
                   color: AppColors.primaryBlue.withAlpha(15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.work_outline_rounded,
+                child: const AppIcon(AppIcons.workOutlineRounded,
                     color: AppColors.primaryBlue, size: 20),
               ),
               const SizedBox(width: 14),
@@ -248,7 +232,7 @@ class _JobCard extends StatelessWidget {
                         Text(job.title,
                             style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w600,
                                 color: context.appText)),
                         const SizedBox(width: 8),
                         _StatusBadge(status: job.status),
@@ -257,13 +241,13 @@ class _JobCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.business_rounded,
+                        AppIcon(AppIcons.businessRounded,
                             size: 12, color: context.appSubtext),
                         const SizedBox(width: 4),
                         Text(job.department,
                             style: TextStyle(fontSize: 12, color: context.appSubtext)),
                         const SizedBox(width: 12),
-                        Icon(Icons.calendar_today_outlined,
+                        AppIcon(AppIcons.calendarTodayOutlined,
                             size: 12,
                             color: isExpired
                                 ? AppColors.errorRed
@@ -283,25 +267,25 @@ class _JobCard extends StatelessWidget {
 
               // Stats
               _CountChip(
-                  icon: Icons.description_outlined,
+                  icon: AppIcons.descriptionOutlined,
                   label: '${job.totalApplications} applied',
                   color: AppColors.primaryBlue),
               const SizedBox(width: 8),
               _CountChip(
-                  icon: Icons.star_outline_rounded,
+                  icon: AppIcons.starOutlineRounded,
                   label: '${job.shortlistedCount} shortlisted',
                   color: AppColors.successGreen),
               const SizedBox(width: 8),
 
               IconButton(
-                icon: Icon(Icons.edit_outlined, size: 17, color: context.appSubtext),
+                icon: AppIcon(AppIcons.editOutlined, size: 17, color: context.appSubtext),
                 tooltip: 'Edit job',
                 onPressed: () => context.go('/recruitment/${job.id}/edit'),
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.all(6),
               ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right_rounded,
+              AppIcon(AppIcons.chevronRightRounded,
                   color: context.appSubtext, size: 20),
             ],
           ),
@@ -318,10 +302,10 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, text, label) = switch (status) {
-      'open' => (AppColors.pillGreenBg, AppColors.pillGreenText, 'Open'),
-      'draft' => (AppColors.pillAmberBg, AppColors.pillAmberText, 'Draft'),
-      'closed' => (AppColors.pillNavyBg, AppColors.pillNavyText, 'Closed'),
-      _ => (AppColors.pillNavyBg, AppColors.pillNavyText, status),
+      'open' => (context.pillGreenBg, context.pillGreenText, 'Open'),
+      'draft' => (context.pillAmberBg, context.pillAmberText, 'Draft'),
+      'closed' => (context.pillNavyBg, context.pillNavyText, 'Closed'),
+      _ => (context.pillNavyBg, context.pillNavyText, status),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -331,13 +315,13 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600, color: text)),
+              fontSize: 11, fontWeight: FontWeight.w500, color: text)),
     );
   }
 }
 
 class _CountChip extends StatelessWidget {
-  final IconData icon;
+  final IconRef icon;
   final String label;
   final Color color;
   const _CountChip({required this.icon, required this.label, required this.color});
@@ -353,11 +337,11 @@ class _CountChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          AppIcon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           Text(label,
               style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+                  fontSize: 11, fontWeight: FontWeight.w500, color: color)),
         ],
       ),
     );
@@ -382,30 +366,25 @@ class _EmptyJobs extends StatelessWidget {
                 color: AppColors.primaryBlue.withAlpha(15),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(Icons.work_outline_rounded,
+              child: const AppIcon(AppIcons.workOutlineRounded,
                   color: AppColors.primaryBlue, size: 34),
             ),
             const SizedBox(height: 16),
             Text('No job postings yet',
                 style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: context.appText)),
             const SizedBox(height: 8),
             Text('Create your first job posting to start receiving applications.',
                 style: TextStyle(fontSize: 13, color: context.appSubtext)),
             const SizedBox(height: 20),
-            FilledButton.icon(
+            HRNovaButton(
+              label: 'Create Job Posting',
+              icon: AppIcons.addRounded,
+              isFullWidth: false,
+              height: 44,
               onPressed: onNew,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Create Job Posting'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
             ),
           ],
         ),

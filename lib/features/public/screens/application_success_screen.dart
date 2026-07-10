@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/hrnova_button.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class ApplicationSuccessScreen extends StatelessWidget {
   const ApplicationSuccessScreen({super.key});
@@ -22,13 +25,13 @@ class ApplicationSuccessScreen extends StatelessWidget {
                     colors: [AppColors.primaryBlue, Color(0xFF2979E0)]),
                 borderRadius: BorderRadius.circular(7),
               ),
-              child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 16),
+              child: const AppIcon(AppIcons.boltRounded, color: Colors.white, size: 16),
             ),
             const SizedBox(width: 8),
-            const Text('HRNova',
+            const Text('HRNovva',
                 style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: 16)),
           ],
         ),
@@ -51,7 +54,7 @@ class ApplicationSuccessScreen extends StatelessWidget {
                     color: AppColors.successGreen.withAlpha(18),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded,
+                  child: const AppIcon(AppIcons.checkCircleRounded,
                       color: AppColors.successGreen, size: 48),
                 ),
                 const SizedBox(height: 24),
@@ -59,7 +62,7 @@ class ApplicationSuccessScreen extends StatelessWidget {
                 const Text('Application Submitted!',
                     style: TextStyle(
                         fontSize: 24,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 12),
@@ -78,7 +81,7 @@ class ApplicationSuccessScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: AppColors.primaryBlue.withAlpha(8),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                         color: AppColors.primaryBlue.withAlpha(25)),
                   ),
@@ -88,7 +91,7 @@ class ApplicationSuccessScreen extends StatelessWidget {
                       const Text('What happens next?',
                           style: TextStyle(
                               fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.primaryBlue)),
                       const SizedBox(height: 12),
                       _Step(number: '1', text: 'Our team reviews your application'),
@@ -99,20 +102,12 @@ class ApplicationSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
 
-                OutlinedButton(
+                HRNovaButton(
+                  label: 'Back to Job Board',
+                  outlined: true,
+                  isFullWidth: false,
+                  textColor: AppColors.textSecondary,
                   onPressed: () => context.go('/'),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.cardBorder),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Back to Job Board',
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -147,7 +142,7 @@ class _Step extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 11,
                       color: Colors.white,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w600)),
             ),
           ),
           Expanded(

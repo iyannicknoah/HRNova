@@ -34,12 +34,12 @@ async function _emailReport(db, companyId, reportText, typeLabel, toEmail) {
     await sendEmail({
       to,
       toName: 'HR Admin',
-      subject: `HRNova ${typeLabel} Report — ${new Date().toLocaleDateString('en-RW')}`,
+      subject: `HRNovva ${typeLabel} Report — ${new Date().toLocaleDateString('en-RW')}`,
       htmlContent: `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:620px;margin:auto;padding:24px">
-        <h2 style="color:#1e3a5f;margin:0 0 4px">HRNova ${typeLabel} Report</h2>
+        <h2 style="color:#1e3a5f;margin:0 0 4px">HRNovva ${typeLabel} Report</h2>
         <p style="color:#64748b;font-size:12px;margin:0 0 16px">Generated ${new Date().toLocaleString('en-RW')}</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;white-space:pre-line;color:#0f172a;font-size:14px;line-height:1.75">${reportText}</div>
-        <p style="color:#94a3b8;font-size:11px;margin-top:16px">Automated report from HRNova • Rwanda</p>
+        <p style="color:#94a3b8;font-size:11px;margin-top:16px">Automated report from HRNovva • Rwanda</p>
       </body></html>`,
     });
   } catch (e) { console.error('[Reports] email error:', e.message); }

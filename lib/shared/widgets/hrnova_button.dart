@@ -1,5 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_icons.dart';
+import 'app_icon.dart';
 
 class HRNovaButton extends StatelessWidget {
   const HRNovaButton({
@@ -12,7 +14,24 @@ class HRNovaButton extends StatelessWidget {
     this.textColor,
     this.icon,
     this.outlined = false,
+    this.isTextButton = false,
+    this.height = 48,
   });
+
+  /// Transparent, underlined text-only button — matches the studied
+  /// design's "Forgot password?" / "Sign up" secondary actions.
+  const HRNovaButton.text({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.textColor,
+    this.height = 30,
+  })  : isLoading = false,
+        isFullWidth = false,
+        backgroundColor = null,
+        icon = null,
+        outlined = false,
+        isTextButton = true;
 
   final String label;
   final VoidCallback? onPressed;
@@ -20,10 +39,12 @@ class HRNovaButton extends StatelessWidget {
   final bool isFullWidth;
   final Color? backgroundColor;
   final Color? textColor;
-  final IconData? icon;
+  final IconRef? icon;
   final bool outlined;
+  final bool isTextButton;
+  final double height;
 
-  static const _radius = 100.0;
+  static const _radius = 30.0;
 
   @override
   Widget build(BuildContext context) {
@@ -31,25 +52,53 @@ class HRNovaButton extends StatelessWidget {
     final fg = textColor ?? AppColors.white;
     final disabled = onPressed == null || isLoading;
 
-    if (outlined) {
+    if (isTextButton) {
+      final color = textColor ?? AppColors.textPrimary;
       return SizedBox(
-        height: 48,
+        height: height,
+        child: TextButton(
+          onPressed: disabled ? null : onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: color,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(_radius)),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          child: isLoading
+              ? _buildChild(color)
+              : Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                    color: color,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+        ),
+      );
+    }
+
+    if (outlined) {
+      final outlineColor = textColor ?? bg;
+      return SizedBox(
+        height: height,
         width: isFullWidth ? double.infinity : null,
         child: OutlinedButton(
           onPressed: disabled ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            side: BorderSide(color: bg, width: 1.5),
+            side: BorderSide(color: outlineColor, width: 1.5),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius)),
-            foregroundColor: bg,
+            foregroundColor: outlineColor,
           ),
-          child: _buildChild(bg),
+          child: _buildChild(outlineColor),
         ),
       );
     }
 
     return SizedBox(
-      height: 48,
+      height: height,
       width: isFullWidth ? double.infinity : null,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -64,7 +113,7 @@ class HRNovaButton extends StatelessWidget {
             shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius)),
-            minimumSize: Size(isFullWidth ? double.infinity : 0, 48),
+            minimumSize: Size(isFullWidth ? double.infinity : 0, height),
             padding: const EdgeInsets.symmetric(horizontal: 20),
           ),
           child: _buildChild(fg),
@@ -88,15 +137,15 @@ class HRNovaButton extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18),
+          AppIcon(icon!, size: 18),
           const SizedBox(width: 8),
           Text(label,
               style:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         ],
       );
     }
     return Text(label,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16));
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16));
   }
 }

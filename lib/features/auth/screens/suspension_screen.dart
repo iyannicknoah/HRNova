@@ -1,8 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class SuspensionScreen extends ConsumerWidget {
   const SuspensionScreen({super.key});
@@ -10,7 +13,7 @@ class SuspensionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundBlue,
+      backgroundColor: context.appBg,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -22,22 +25,22 @@ class SuspensionScreen extends ConsumerWidget {
                 children: [
                   // Logo
                   RichText(
-                    text: const TextSpan(
+                    text: TextSpan(
                       children: [
                         TextSpan(
                           text: 'HR',
                           style: TextStyle(
                             fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            color: context.appText,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        TextSpan(
+                        const TextSpan(
                           text: 'Nova',
                           style: TextStyle(
                             fontSize: 28,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.primaryBlue,
                             letterSpacing: -0.5,
                           ),
@@ -55,8 +58,8 @@ class SuspensionScreen extends ConsumerWidget {
                       color: AppColors.errorRed.withAlpha(12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.block_rounded,
+                    child: const AppIcon(
+                      AppIcons.blockRounded,
                       color: AppColors.errorRed,
                       size: 40,
                     ),
@@ -64,24 +67,24 @@ class SuspensionScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // Title
-                  const Text(
+                  Text(
                     'Account Suspended',
                     style: TextStyle(
                       fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      color: context.appText,
                       letterSpacing: -0.3,
                     ),
                   ),
                   const SizedBox(height: 12),
 
                   // Message
-                  const Text(
-                    "Your company's HRNova account has been suspended. This may be due to a billing issue or a policy violation.",
+                  Text(
+                    "Your company's HRNovva account has been suspended. This may be due to a billing issue or a policy violation.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: context.appSubtext,
                       height: 1.6,
                     ),
                   ),
@@ -92,14 +95,14 @@ class SuspensionScreen extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 14),
                     decoration: BoxDecoration(
-                      color: AppColors.lightBlue50,
+                      color: context.appTint,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: context.alternate),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.mail_outline_rounded,
+                        AppIcon(AppIcons.mailOutlineRounded,
                             color: AppColors.primaryBlue, size: 18),
                         SizedBox(width: 8),
                         Text(
@@ -107,7 +110,7 @@ class SuspensionScreen extends ConsumerWidget {
                           style: TextStyle(
                             color: AppColors.primaryBlue,
                             fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],

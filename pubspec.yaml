@@ -1,5 +1,5 @@
 name: hrnova
-description: "HRNova — Your HR Team, Supercharged"
+description: "HRNovva — Your HR Team, Supercharged"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -29,13 +29,44 @@ dependencies:
   intl: ^0.20.2
   shared_preferences: ^2.5.3
   flutter_local_notifications: ^18.0.1
-  google_fonts: ^6.2.1
   flutter_markdown: ^0.7.7
+  heroicons: ^0.11.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/icon.png
+    - assets/icon/icon_light.png
+    - assets/icon/icon_dark.png
+  fonts:
+    - family: General Sans
+      fonts:
+        - asset: assets/fonts/GeneralSans/GeneralSans-Light.ttf
+          weight: 300
+        - asset: assets/fonts/GeneralSans/GeneralSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/GeneralSans/GeneralSans-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/GeneralSans/GeneralSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/GeneralSans/GeneralSans-Semibold.ttf
+          weight: 600
+        - asset: assets/fonts/GeneralSans/GeneralSans-Bold.ttf
+          weight: 700

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/status_badge.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class JobBoardScreen extends StatefulWidget {
   const JobBoardScreen({super.key, required this.companySlug});
@@ -62,13 +65,13 @@ class _JobBoardScreenState extends State<JobBoardScreen> {
                     colors: [AppColors.primaryBlue, Color(0xFF2979E0)]),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 18),
+              child: const AppIcon(AppIcons.boltRounded, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 8),
-            const Text('HRNova',
+            const Text('HRNovva',
                 style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: 16)),
           ],
         ),
@@ -102,7 +105,7 @@ class _JobBoardScreenState extends State<JobBoardScreen> {
                                         '${_jobs.length} Open Position${_jobs.length == 1 ? '' : 's'}',
                                         style: const TextStyle(
                                             fontSize: 20,
-                                            fontWeight: FontWeight.w800,
+                                            fontWeight: FontWeight.w700,
                                             color: AppColors.textPrimary),
                                       ),
                                       const SizedBox(height: 16),
@@ -147,7 +150,7 @@ class _CompanyHeader extends StatelessWidget {
                 company!['name'] as String? ?? '',
                 style: const TextStyle(
                     fontSize: 28,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: -0.5),
               ),
@@ -157,7 +160,7 @@ class _CompanyHeader extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.primaryBlue.withAlpha(30),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: AppColors.primaryBlue.withAlpha(60)),
                   ),
                   child: Text(company!['industry'] as String,
@@ -197,14 +200,8 @@ class _JobListCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.cardBorder),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -217,12 +214,12 @@ class _JobListCard extends StatelessWidget {
                   Text(job['title'] as String? ?? '',
                       style: const TextStyle(
                           fontSize: 17,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary)),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.business_rounded,
+                      const AppIcon(AppIcons.businessRounded,
                           size: 13, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(job['department'] as String? ?? '',
@@ -230,7 +227,7 @@ class _JobListCard extends StatelessWidget {
                               fontSize: 13, color: AppColors.textSecondary)),
                       if (showSalary && salaryMin != null) ...[
                         const SizedBox(width: 16),
-                        const Icon(Icons.attach_money_rounded,
+                        const AppIcon(AppIcons.attachMoneyRounded,
                             size: 13, color: AppColors.textSecondary),
                         Text(
                           salaryMax != null
@@ -246,7 +243,7 @@ class _JobListCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today_outlined,
+                        AppIcon(AppIcons.calendarTodayOutlined,
                             size: 13,
                             color: isExpired
                                 ? AppColors.errorRed
@@ -270,30 +267,14 @@ class _JobListCard extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             if (!isExpired)
-              FilledButton(
+              HRNovaButton(
+                label: 'Apply Now',
+                isFullWidth: false,
+                height: 42,
                 onPressed: () => context.go('/apply/$companySlug/$jobSlug'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Apply Now'),
               )
             else
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.pillNavyBg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text('Closed',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.pillNavyText,
-                        fontWeight: FontWeight.w600)),
-              ),
+              const StatusBadge(text: 'Closed', type: StatusType.neutral),
           ],
         ),
       ),
@@ -316,13 +297,13 @@ class _NoJobs extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 60),
       child: Column(
         children: [
-          Icon(Icons.work_off_outlined,
+          AppIcon(AppIcons.workOffOutlined,
               size: 56, color: AppColors.textSecondary),
           SizedBox(height: 16),
           Text('No open positions right now',
               style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary)),
           SizedBox(height: 8),
           Text('Check back later for new opportunities.',
@@ -346,13 +327,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded,
+            const AppIcon(AppIcons.errorOutlineRounded,
                 size: 48, color: AppColors.errorRed),
             const SizedBox(height: 16),
             const Text('Could not load job board',
                 style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text(error,
@@ -377,11 +358,11 @@ class _Footer extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: const Column(
         children: [
-          Text('Powered by HRNova',
+          Text('Powered by HRNovva',
               style: TextStyle(
                   color: Color(0xFF475569),
                   fontSize: 12,
-                  fontWeight: FontWeight.w500)),
+                  fontWeight: FontWeight.w400)),
           SizedBox(height: 4),
           Text('Your HR Team, Supercharged',
               style: TextStyle(color: Color(0xFF334155), fontSize: 11)),

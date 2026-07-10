@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 import '../../features/leave/providers/leave_provider.dart';
+import '../../core/theme/app_icons.dart';
+import '../../shared/widgets/app_icon.dart';
 
 class NotificationBell extends ConsumerWidget {
   const NotificationBell({super.key});
@@ -25,7 +28,7 @@ class NotificationBell extends ConsumerWidget {
           clipBehavior: Clip.none,
           children: [
             const Center(
-              child: Icon(Icons.notifications_rounded,
+              child: AppIcon(AppIcons.notificationsRounded,
                   size: 17, color: AppColors.textSecondary),
             ),
             if (count > 0)
@@ -105,7 +108,7 @@ class _NotificationPanelCard extends StatelessWidget {
     return Material(
       elevation: 12,
       borderRadius: BorderRadius.circular(16),
-      color: const Color(0xFF0D1628),
+      color: AppColors.darkBackground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -117,7 +120,7 @@ class _NotificationPanelCard extends StatelessWidget {
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w600)),
               const Spacer(),
               if (hasUnread)
                 GestureDetector(
@@ -129,7 +132,7 @@ class _NotificationPanelCard extends StatelessWidget {
               const SizedBox(width: 10),
               GestureDetector(
                 onTap: onClose,
-                child: const Icon(Icons.close_rounded,
+                child: const AppIcon(AppIcons.closeRounded,
                     size: 17, color: AppColors.textSecondary),
               ),
             ]),
@@ -142,7 +145,7 @@ class _NotificationPanelCard extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.notifications_none_rounded,
+                        AppIcon(AppIcons.notificationsNoneRounded,
                             size: 40, color: AppColors.textSecondary),
                         SizedBox(height: 8),
                         Text('No notifications',
@@ -177,10 +180,10 @@ class _NotificationPanelCard extends StatelessWidget {
                                 width: 34,
                                 height: 34,
                                 decoration: BoxDecoration(
-                                  color: _iconBg(type),
+                                  color: _iconBg(context, type),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(_iconFor(type),
+                                child: AppIcon(_iconFor(type),
                                     size: 15, color: _iconColor(type)),
                               ),
                               const SizedBox(width: 10),
@@ -194,7 +197,7 @@ class _NotificationPanelCard extends StatelessWidget {
                                             color: Colors.white,
                                             fontSize: 14,
                                             fontWeight: isUnread
-                                                ? FontWeight.w600
+                                                ? FontWeight.w500
                                                 : FontWeight.w400)),
                                     const SizedBox(height: 3),
                                     Text(n['body'] as String? ?? '',
@@ -232,18 +235,18 @@ class _NotificationPanelCard extends StatelessWidget {
     );
   }
 
-  IconData _iconFor(String type) => switch (type) {
-        'leave_request' => Icons.beach_access_rounded,
-        'leave_approved' => Icons.check_circle_rounded,
-        'leave_rejected' => Icons.cancel_rounded,
-        _ => Icons.notifications_rounded,
+  IconRef _iconFor(String type) => switch (type) {
+        'leave_request' => AppIcons.beachAccessRounded,
+        'leave_approved' => AppIcons.checkCircleRounded,
+        'leave_rejected' => AppIcons.cancelRounded,
+        _ => AppIcons.notificationsRounded,
       };
 
-  Color _iconBg(String type) => switch (type) {
-        'leave_request' => AppColors.pillBlueBg,
-        'leave_approved' => AppColors.pillGreenBg,
-        'leave_rejected' => AppColors.pillRedBg,
-        _ => AppColors.pillNavyBg,
+  Color _iconBg(BuildContext context, String type) => switch (type) {
+        'leave_request' => context.pillBlueBg,
+        'leave_approved' => context.pillGreenBg,
+        'leave_rejected' => context.pillRedBg,
+        _ => context.pillNavyBg,
       };
 
   Color _iconColor(String type) => switch (type) {

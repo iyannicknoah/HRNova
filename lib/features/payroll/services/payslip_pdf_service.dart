@@ -34,7 +34,7 @@ class PayslipPdfService {
                     style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey700)),
               ]),
               pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-                pw.Text('HRNova',
+                pw.Text('HRNovva',
                     style: pw.TextStyle(
                         fontSize: 12,
                         fontWeight: pw.FontWeight.bold,
@@ -207,7 +207,7 @@ class PayslipPdfService {
           // ── Footer ──────────────────────────────────────────────────────
           pw.Divider(color: PdfColors.grey300),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('Powered by HRNova',
+            pw.Text('Powered by HRNovva',
                 style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
             pw.Text('Generated ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
                 style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),

@@ -2,11 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/providers/branches_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class EmployeeFormPanel extends ConsumerStatefulWidget {
   const EmployeeFormPanel({
@@ -174,9 +178,9 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
             child: Row(children: [
               Expanded(child: Text(
                 isEdit ? 'Edit Employee' : 'Add New Employee',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               )),
-              IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close, size: 22), color: AppColors.textSecondary),
+              IconButton(onPressed: widget.onClose, icon: const AppIcon(AppIcons.close, size: 22), color: AppColors.textSecondary),
             ]),
           ),
 
@@ -250,15 +254,15 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                         ? Image.memory(_photoBytes!, fit: BoxFit.cover)
                         : widget.initial?.profilePhotoUrl != null
                             ? Image.network(widget.initial!.profilePhotoUrl!, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.person_outline, size: 32, color: AppColors.textSecondary))
-                            : const Icon(Icons.person_outline, size: 32, color: AppColors.textSecondary),
+                                errorBuilder: (_, __, ___) => const AppIcon(AppIcons.personOutline, size: 32, color: AppColors.textSecondary))
+                            : const AppIcon(AppIcons.personOutline, size: 32, color: AppColors.textSecondary),
                   ),
                   const SizedBox(width: 16),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue), foregroundColor: AppColors.primaryBlue),
                       onPressed: _pickPhoto,
-                      icon: const Icon(Icons.upload_outlined, size: 16),
+                      icon: const AppIcon(AppIcons.uploadOutlined, size: 16),
                       label: const Text('Upload Photo'),
                     ),
                     const SizedBox(height: 4),
@@ -301,9 +305,9 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(8)),
                     child: const Row(children: [
-                      Icon(Icons.info_outline, size: 16, color: AppColors.primaryBlue),
+                      AppIcon(AppIcons.infoOutline, size: 16, color: AppColors.primaryBlue),
                       SizedBox(width: 8),
                       Expanded(child: Text(
                         'A temporary password will be auto-generated and sent to the employee email.',
@@ -322,22 +326,16 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.cardBorder))),
             child: Row(children: [
-              Expanded(child: OutlinedButton(
+              Expanded(child: HRNovaButton(
+                label: 'Cancel',
+                outlined: true,
                 onPressed: widget.onClose,
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-                child: const Text('Cancel'),
               )),
               const SizedBox(width: 12),
-              Expanded(flex: 2, child: ElevatedButton(
+              Expanded(flex: 2, child: HRNovaButton(
+                label: isEdit ? 'Save Changes' : 'Add Employee',
+                isLoading: _saving,
                 onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                ),
-                child: _saving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(isEdit ? 'Save Changes' : 'Add Employee', style: const TextStyle(fontWeight: FontWeight.w600)),
               )),
             ]),
           ),
@@ -360,7 +358,7 @@ class _SecTitle extends StatelessWidget {
   final String t;
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(t, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primaryBlue)),
+    Text(t, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
     const SizedBox(height: 6),
     const Divider(color: AppColors.cardBorder, height: 1),
   ]);
@@ -385,7 +383,7 @@ class _PField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
     const SizedBox(height: 5),
     TextFormField(
       controller: ctrl, keyboardType: keyboardType,
@@ -394,9 +392,9 @@ class _PField extends StatelessWidget {
         hintText: hint,
         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
         filled: true, fillColor: AppColors.lightBlue50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryBlue)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
       validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
@@ -412,7 +410,7 @@ class _DatePField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
     const SizedBox(height: 5),
     TextFormField(
       controller: ctrl, readOnly: true,
@@ -428,11 +426,11 @@ class _DatePField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: 'Select date',
         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-        suffixIcon: const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textSecondary),
+        suffixIcon: const AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: AppColors.textSecondary),
         filled: true, fillColor: AppColors.lightBlue50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryBlue)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
       validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
@@ -449,17 +447,17 @@ class _DropPField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
     const SizedBox(height: 5),
     Container(
-      decoration: BoxDecoration(color: AppColors.lightBlue50, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(color: AppColors.lightBlue50, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.cardBorder)),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: items.any((i) => i.value == value) ? value : null,
           items: items, onChanged: onChanged, isExpanded: true,
           style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-          icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.textSecondary),
+          icon: const AppIcon(AppIcons.keyboardArrowDown, size: 18, color: AppColors.textSecondary),
         ),
       ),
     ),

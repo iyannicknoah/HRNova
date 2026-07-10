@@ -64,3 +64,6 @@ backend/hrnova-*.json
 HRNova_MVP_Prompts.docx
 HRNova_MVP_Prompts.txt
 
+# Claude Code local tooling state (dev server config, worktrees, lock files)
+/.claude/
+

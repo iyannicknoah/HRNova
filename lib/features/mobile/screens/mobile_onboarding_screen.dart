@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class MobileOnboardingScreen extends StatelessWidget {
   const MobileOnboardingScreen({super.key});
@@ -21,7 +23,7 @@ class MobileOnboardingScreen extends StatelessWidget {
               _buildRoleHeader(context),
               const SizedBox(height: 20),
               _RoleCard(
-                icon: Icons.badge_rounded,
+                icon: AppIcons.badgeRounded,
                 title: 'Employee',
                 subtitle: 'Payslips, leave requests\nand attendance tracking',
                 gradient: const LinearGradient(
@@ -33,7 +35,7 @@ class MobileOnboardingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _RoleCard(
-                icon: Icons.qr_code_scanner_rounded,
+                icon: AppIcons.qrCodeScannerRounded,
                 title: 'Guard / Reception',
                 subtitle: 'Scan employee QR codes\nto record attendance',
                 gradient: const LinearGradient(
@@ -46,7 +48,7 @@ class MobileOnboardingScreen extends StatelessWidget {
               ),
               const Spacer(flex: 3),
               Text(
-                'v1.0.0 · HRNova Rwanda',
+                'v1.0.0 · HRNovva Rwanda',
                 style: TextStyle(color: context.appSubtext, fontSize: 13),
               ),
               const SizedBox(height: 20),
@@ -78,15 +80,15 @@ class MobileOnboardingScreen extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.people_rounded, color: Colors.white, size: 44),
+          child: const AppIcon(AppIcons.peopleRounded, color: Colors.white, size: 44),
         ),
         const SizedBox(height: 20),
         Text(
-          'HRNova',
+          'HRNovva',
           style: TextStyle(
             color: context.appText,
             fontSize: 36,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             letterSpacing: 0.4,
           ),
         ),
@@ -103,11 +105,11 @@ class MobileOnboardingScreen extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'How are you using HRNova?',
+          'How are you using HRNovva?',
           style: TextStyle(
             color: context.appText,
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
         ),
@@ -132,7 +134,7 @@ class _RoleCard extends StatelessWidget {
     this.iconShadowColor,
   });
 
-  final IconData icon;
+  final IconRef icon;
   final String title;
   final String subtitle;
   final Gradient gradient;
@@ -148,18 +150,7 @@ class _RoleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: context.appBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(context.isDark ? 0.22 : 0.07),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+          decoration: context.cardDeco(),
           child: Row(
             children: [
               Container(
@@ -176,7 +167,7 @@ class _RoleCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(icon, color: Colors.white, size: 28),
+                child: AppIcon(icon, color: Colors.white, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -188,7 +179,7 @@ class _RoleCard extends StatelessWidget {
                       style: TextStyle(
                         color: context.appText,
                         fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -204,8 +195,8 @@ class _RoleCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
+              AppIcon(
+                AppIcons.arrowForwardIosRounded,
                 color: AppColors.primaryBlue,
                 size: 16,
               ),

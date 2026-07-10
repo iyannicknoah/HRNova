@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/settings/providers/settings_provider.dart';
 
@@ -35,6 +37,8 @@ import '../../features/super_admin/screens/super_admin_screen.dart';
 import '../../features/branches/screens/branches_screen.dart';
 import '../../features/departments/screens/departments_screen.dart';
 import '../../shared/widgets/hrnova_sidebar.dart';
+import '../../core/theme/app_icons.dart';
+import '../../shared/widgets/app_icon.dart';
 
 bool _isPublicRoute(String path) {
   return path.startsWith('/apply') ||
@@ -348,8 +352,9 @@ class _SidebarShell extends ConsumerWidget {
           HRNovaSidebar(
             userName: claims?['displayName'] as String? ?? 'HR Admin',
             userRole: claims?['role'] as String? ?? 'hr_admin',
-            companyName: claims?['companyName'] as String? ?? 'HRNova',
+            companyName: claims?['companyName'] as String? ?? 'HRNovva',
           ),
+          VerticalDivider(width: 1, thickness: 1, color: context.alternate),
           Expanded(child: child),
         ],
       ),
@@ -365,12 +370,12 @@ class _RouterErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: AppColors.darkBackground,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded,
+            const AppIcon(AppIcons.errorOutlineRounded,
                 color: Color(0xFFE5534B), size: 48),
             const SizedBox(height: 16),
             const Text(
@@ -378,7 +383,7 @@ class _RouterErrorScreen extends StatelessWidget {
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             if (error != null) ...[

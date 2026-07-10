@@ -1,10 +1,14 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,17 +30,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Widget _glow(double size, Color color, int alpha) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withAlpha(alpha), Colors.transparent],
-          ),
-        ),
-      );
-
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
     await ref.read(authNotifierProvider.notifier).signIn(
@@ -52,226 +45,185 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Show splash loading while Firebase auth initialises
     if (authState.isLoading) {
-      return const Scaffold(
-        backgroundColor: AppColors.darkNavy,
-        body: LoadingWidget(message: 'Starting HRNova…'),
+      return Scaffold(
+        backgroundColor: context.appBg,
+        body: const LoadingWidget(message: 'Starting HRNovva…'),
       );
     }
 
     final isLoading = signInState.isLoading;
     final errorMsg = signInState.hasError ? signInState.error.toString() : null;
 
-    return Scaffold(
-      backgroundColor: AppColors.darkNavy,
-      body: Stack(
-        children: [
-          // Top-right: main blue glow
-          Positioned(
-            top: -180,
-            right: -150,
-            child: _glow(620, AppColors.primaryBlue, 22),
-          ),
-          // Bottom-left: teal glow
-          Positioned(
-            bottom: -130,
-            left: -100,
-            child: _glow(460, AppColors.accentTeal, 18),
-          ),
-          // Top-left: soft indigo accent
-          Positioned(
-            top: 60,
-            left: -80,
-            child: _glow(340, const Color(0xFF667EEA), 14),
-          ),
-          // Bottom-right: faint secondary blue
-          Positioned(
-            bottom: 40,
-            right: -60,
-            child: _glow(260, AppColors.primaryBlue, 10),
-          ),
-
-          // Main content
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: context.appBg,
+        body: SafeArea(
+          child: Align(
+            alignment: const Alignment(0, -1),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Login card
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(50),
-                              blurRadius: 40,
-                              offset: const Offset(0, 8),
+                    // Wordmark row
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 40, 0, 20),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'HR',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: context.appText,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: 'Nova',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryBlue,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ],
                             ),
-                            BoxShadow(
-                              color: AppColors.primaryBlue.withAlpha(20),
-                              blurRadius: 60,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(36),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: SingleChildScrollView(
                           child: Form(
                             key: _formKey,
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Logo
-                                Center(
-                                  child: RichText(
-                                    text: const TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: 'HR',
-                                          style: TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.w900,
-                                            color: AppColors.darkNavy,
-                                            letterSpacing: -1.0,
-                                          ),
+                                Column(
+                                  children: [
+                                    Text(
+                                      'Welcome back',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                        color: context.appText,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Sign in to your account',
+                                      style: TextStyle(
+                                        color: context.appSubtext,
+                                      ),
+                                    ),
+                                  ].divide(const SizedBox(height: 5)),
+                                ),
+                                Column(
+                                  children: [
+                                    HRNovaTextField(
+                                      label: 'Email address',
+                                      hint: 'you@company.rw',
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      prefixIcon: AppIcons.emailOutlined,
+                                      textInputAction: TextInputAction.next,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) {
+                                          return 'Please enter your email address';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    HRNovaTextField(
+                                      label: 'Password',
+                                      hint: '••••••••',
+                                      controller: _passwordController,
+                                      obscureText: !_showPassword,
+                                      prefixIcon: AppIcons.lockOutlineRounded,
+                                      textInputAction: TextInputAction.done,
+                                      onFieldSubmitted: (_) => _signIn(),
+                                      suffixIcon: IconButton(
+                                        icon: AppIcon(
+                                          _showPassword
+                                              ? AppIcons.visibilityOffOutlined
+                                              : AppIcons.visibilityOutlined,
+                                          color: context.appSubtext,
+                                          size: 20,
                                         ),
-                                        TextSpan(
-                                          text: 'Nova',
-                                          style: TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.w900,
-                                            color: AppColors.primaryBlue,
-                                            letterSpacing: -1.0,
-                                          ),
+                                        onPressed: () => setState(
+                                            () => _showPassword = !_showPassword),
+                                      ),
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Please enter your password';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    if (errorMsg != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.errorRed.withAlpha(12),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                              color: AppColors.errorRed.withAlpha(40)),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Center(
-                                  child: Text(
-                                    'Your HR Team, Supercharged',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textSecondary,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 28),
-
-                                // Divider
-                                Container(
-                                  height: 0.5,
-                                  color: AppColors.cardBorder,
-                                ),
-                                const SizedBox(height: 28),
-
-                                // Email
-                                HRNovaTextField(
-                                  label: 'Email address',
-                                  hint: 'you@company.rw',
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  prefixIcon: Icons.email_outlined,
-                                  textInputAction: TextInputAction.next,
-                                  validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
-                                      return 'Please enter your email address';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Password
-                                HRNovaTextField(
-                                  label: 'Password',
-                                  hint: '••••••••',
-                                  controller: _passwordController,
-                                  obscureText: !_showPassword,
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  textInputAction: TextInputAction.done,
-                                  onFieldSubmitted: (_) => _signIn(),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _showPassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: AppColors.textSecondary,
-                                      size: 20,
-                                    ),
-                                    onPressed: () => setState(
-                                        () => _showPassword = !_showPassword),
-                                  ),
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) {
-                                      return 'Please enter your password';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 24),
-
-                                // Error message
-                                if (errorMsg != null) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.errorRed.withAlpha(12),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                          color: AppColors.errorRed.withAlpha(40)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.info_outline_rounded,
-                                            color: AppColors.errorRed, size: 16),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            errorMsg,
-                                            style: const TextStyle(
-                                              color: AppColors.errorRed,
-                                              fontSize: 15,
-                                              height: 1.4,
+                                        child: Row(
+                                          children: [
+                                            const AppIcon(AppIcons.infoOutlineRounded,
+                                                color: AppColors.errorRed, size: 16),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                errorMsg,
+                                                style: const TextStyle(
+                                                  color: AppColors.errorRed,
+                                                  fontSize: 14,
+                                                  height: 1.4,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
+                                    HRNovaButton(
+                                      label: 'Sign In',
+                                      onPressed: isLoading ? null : _signIn,
+                                      isLoading: isLoading,
+                                      isFullWidth: true,
                                     ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                ],
-
-                                // Sign In button
-                                HRNovaButton(
-                                  label: 'Sign In',
-                                  onPressed: isLoading ? null : _signIn,
-                                  isLoading: isLoading,
-                                  isFullWidth: true,
+                                  ].divide(const SizedBox(height: 15)),
                                 ),
-                              ],
+                              ].divide(const SizedBox(height: 30)),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Powered by ICYEREKEZO DIGITAL Innovation',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.white38,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 0.3,
+                    Opacity(
+                      opacity: 0.7,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 20, 0, 40),
+                        child: Text(
+                          'Powered by ICYEREKEZO DIGITAL Innovation',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: context.appSubtext,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -279,7 +231,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

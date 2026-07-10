@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
@@ -13,6 +16,8 @@ import '../../settings/providers/settings_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../reports/providers/reports_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -26,7 +31,7 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: context.appBg,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.section, vertical: AppSpacing.section),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -55,7 +60,7 @@ class DashboardScreen extends ConsumerWidget {
 class _DashHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
+    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNovva';
     final companyStatus = ref.watch(companyStatusProvider).value ?? 'active';
     final today = DateFormat('EEEE, d MMMM yyyy').format(DateTime.now());
 
@@ -70,7 +75,7 @@ class _DashHeader extends ConsumerWidget {
               style: TextStyle(
                 color: context.appText,
                 fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
               ),
             ),
@@ -90,11 +95,11 @@ class _DashHeader extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 16),
+              const AppIcon(AppIcons.businessRounded, color: AppColors.primaryBlue, size: 16),
               const SizedBox(width: 6),
               Text(
                 companyName,
-                style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600),
+                style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -103,21 +108,26 @@ class _DashHeader extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: companyStatus == 'active' ? AppColors.pillGreenBg : AppColors.pillAmberBg,
+            color: companyStatus == 'active' ? context.pillGreenBg : context.pillAmberBg,
             borderRadius: BorderRadius.circular(100),
           ),
           child: Row(
             children: [
-              Icon(Icons.circle,
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: companyStatus == 'active' ? AppColors.successGreen : AppColors.warningAmber,
-                  size: 7),
+                ),
+              ),
               const SizedBox(width: 6),
               Text(
                 companyStatus == 'active' ? 'Active' : companyStatus,
                 style: TextStyle(
                   color: companyStatus == 'active' ? AppColors.successGreen : AppColors.warningAmber,
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -145,11 +155,11 @@ class _KpiRow extends ConsumerWidget {
     final absent  = (totalEmployees - present - late - onLeave).clamp(0, totalEmployees);
 
     final kpis = [
-      _KpiData('Total Employees', '$totalEmployees', Icons.people_rounded, AppColors.primaryBlue, AppColors.pillBlueBg, null),
-      _KpiData('Present Today', '${present + late}', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg, null),
-      _KpiData('On Leave', '$onLeave', Icons.beach_access_rounded, AppColors.warningAmber, AppColors.pillAmberBg, null),
-      _KpiData('Absent Today', '$absent', Icons.cancel_rounded, AppColors.errorRed, AppColors.pillRedBg, null),
-      _KpiData('Late Arrivals', '$late', Icons.schedule_rounded, const Color(0xFF9B59B6), const Color(0xFFF0E8FF), null),
+      _KpiData('Total Employees', '$totalEmployees', null),
+      _KpiData('Present Today', '${present + late}', null),
+      _KpiData('On Leave', '$onLeave', null),
+      _KpiData('Absent Today', '$absent', null),
+      _KpiData('Late Arrivals', '$late', null),
     ];
 
     return Row(
@@ -166,10 +176,8 @@ class _KpiRow extends ConsumerWidget {
 }
 
 class _KpiData {
-  const _KpiData(this.label, this.value, this.icon, this.color, this.bg, this.badge);
+  const _KpiData(this.label, this.value, this.badge);
   final String label, value;
-  final IconData icon;
-  final Color color, bg;
   final String? badge;
 }
 
@@ -181,31 +189,25 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: context.cardDeco(16),
+      decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(color: data.bg, borderRadius: BorderRadius.circular(12)),
-                child: Icon(data.icon, color: data.color, size: 20),
-              ),
+              Text(data.label, style: TextStyle(color: context.appSubtext, fontSize: 14)),
               if (data.badge != null) ...[
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: AppColors.pillGreenBg, borderRadius: BorderRadius.circular(100)),
-                  child: Text(data.badge!, style: const TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w600)),
+                  decoration: BoxDecoration(color: context.pillGreenBg, borderRadius: BorderRadius.circular(100)),
+                  child: Text(data.badge!, style: const TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w500)),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 14),
-          Text(data.value, style: TextStyle(color: context.appText, fontSize: 30, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          Text(data.label, style: TextStyle(color: context.appSubtext, fontSize: 14)),
+          const SizedBox(height: 8),
+          Text(data.value, style: TextStyle(color: context.appText, fontSize: 30, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -245,7 +247,7 @@ class _AttendanceTable extends ConsumerWidget {
     final loading = employeesAsync.isLoading;
 
     return Container(
-      decoration: context.cardDeco(16),
+      decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -253,7 +255,7 @@ class _AttendanceTable extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
             child: Row(
               children: [
-                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+                Text("Today's Attendance", style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
                 const Spacer(),
                 TextButton(
                   onPressed: () => context.push('/attendance'),
@@ -268,9 +270,9 @@ class _AttendanceTable extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
               children: [
-                Expanded(flex: 3, child: Text('Employee', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text('Clock In', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text('Status', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text('Employee', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Clock In', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Status', style: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: 0.5))),
               ],
             ),
           ),
@@ -309,19 +311,19 @@ class _AttendanceRow extends StatelessWidget {
     final isAbsent = status == 'Absent';
     final isLeave = status == 'On Leave';
     final pillBg = isAbsent
-        ? AppColors.pillRedBg
+        ? context.pillRedBg
         : isLate
-            ? AppColors.pillAmberBg
+            ? context.pillAmberBg
             : isLeave
-                ? AppColors.pillNavyBg
-                : AppColors.pillGreenBg;
+                ? context.pillNavyBg
+                : context.pillGreenBg;
     final pillText = isAbsent
-        ? AppColors.pillRedText
+        ? context.pillRedText
         : isLate
-            ? AppColors.pillAmberText
+            ? context.pillAmberText
             : isLeave
-                ? AppColors.pillNavyText
-                : AppColors.pillGreenText;
+                ? context.pillNavyText
+                : context.pillGreenText;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
@@ -338,10 +340,10 @@ class _AttendanceRow extends StatelessWidget {
                     gradient: LinearGradient(colors: AppColors.gradientForName(name), begin: Alignment.topLeft, end: Alignment.bottomRight),
                     shape: BoxShape.circle,
                   ),
-                  child: Center(child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700))),
+                  child: Center(child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))),
                 ),
                 const SizedBox(width: 10),
-                Expanded(child: Text(name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w400), overflow: TextOverflow.ellipsis)),
               ],
             ),
           ),
@@ -353,7 +355,7 @@ class _AttendanceRow extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: pillBg, borderRadius: BorderRadius.circular(100)),
-                child: Text(status, style: TextStyle(color: pillText, fontSize: 14, fontWeight: FontWeight.w500)),
+                child: Text(status, style: TextStyle(color: pillText, fontSize: 14, fontWeight: FontWeight.w400)),
               ),
             ),
           ),
@@ -382,18 +384,18 @@ class _QuickActionsPanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+        Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
         const SizedBox(height: 14),
-        _ActionCard('Add Employee', Icons.person_add_rounded, AppColors.primaryBlue,
+        _ActionCard('Add Employee', AppIcons.personAddRounded, AppColors.primaryBlue,
             onTap: () => context.push('/employees/new')),
         const SizedBox(height: 10),
-        _ActionCard('Approve Leave Requests', Icons.event_available_rounded, AppColors.warningAmber,
+        _ActionCard('Approve Leave Requests', AppIcons.eventAvailableRounded, AppColors.warningAmber,
             onTap: () => context.push('/leave')),
         const SizedBox(height: 10),
-        _ActionCard('Process Payroll', Icons.payments_rounded, AppColors.successGreen,
+        _ActionCard('Process Payroll', AppIcons.paymentsRounded, AppColors.successGreen,
             onTap: () => context.push('/payroll')),
         const SizedBox(height: 10),
-        _ActionCard('Generate Report', Icons.bar_chart_rounded, const Color(0xFF9B59B6),
+        _ActionCard('Generate Report', AppIcons.barChartRounded, const Color(0xFF9B59B6),
             onTap: () => context.push('/reports')),
         // ── Burnout risk card ──────────────────────────────────────────────────
         if (burnoutCount > 0) ...[
@@ -406,7 +408,7 @@ class _QuickActionsPanel extends ConsumerWidget {
               border: Border.all(color: AppColors.warningAmber.withAlpha(60)),
             ),
             child: Row(children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmber, size: 20),
+              const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -429,9 +431,9 @@ class _QuickActionsPanel extends ConsumerWidget {
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.auto_awesome_rounded, color: AppColors.warningAmber, size: 15),
+                const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.warningAmber, size: 15),
                 const SizedBox(width: 6),
-                const Text('AI Anomaly Alert', style: TextStyle(color: AppColors.warningAmber, fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('AI Anomaly Alert', style: TextStyle(color: AppColors.warningAmber, fontSize: 14, fontWeight: FontWeight.w500)),
               ]),
               const SizedBox(height: 6),
               Text(
@@ -445,7 +447,7 @@ class _QuickActionsPanel extends ConsumerWidget {
               GestureDetector(
                 onTap: () => context.push('/reports'),
                 child: Text('View full report →',
-                    style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                    style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w500)),
               ),
             ]),
           ),
@@ -468,10 +470,10 @@ class _QuickActionsPanel extends ConsumerWidget {
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(color: AppColors.primaryBlue.withAlpha(30), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 20),
+                child: const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.primaryBlue, size: 20),
               ),
               const SizedBox(height: 12),
-              const Text('Nova AI Assistant', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+              const Text('Nova AI Assistant', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
               const Text('Get insights on attendance patterns and workforce analytics.', style: TextStyle(color: Color(0xFF8899BB), fontSize: 14, height: 1.4)),
               const SizedBox(height: 14),
@@ -480,7 +482,7 @@ class _QuickActionsPanel extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                   decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(100)),
-                  child: const Text('Ask Nova', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: const Text('Ask Nova', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
                 ),
               ),
             ],
@@ -494,7 +496,7 @@ class _QuickActionsPanel extends ConsumerWidget {
 class _ActionCard extends StatelessWidget {
   const _ActionCard(this.label, this.icon, this.color, {this.onTap});
   final String label;
-  final IconData icon;
+  final IconRef icon;
   final Color color;
   final VoidCallback? onTap;
 
@@ -515,11 +517,11 @@ class _ActionCard extends StatelessWidget {
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color, size: 18),
+                child: AppIcon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500))),
-              Icon(Icons.arrow_forward_ios_rounded, color: context.appSubtext, size: 13),
+              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w400))),
+              AppIcon(AppIcons.arrowForwardIosRounded, color: context.appSubtext, size: 13),
             ],
           ),
         ),
@@ -557,11 +559,11 @@ class _DeptStats extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: context.cardDeco(16),
+      decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+          Text('Employees by Department', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
           const SizedBox(height: 20),
           if (top.isEmpty)
             Text('No department data yet', style: TextStyle(color: context.appSubtext, fontSize: 15))
@@ -595,7 +597,7 @@ class _DeptBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
+            Text(name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w400)),
             const Spacer(),
             Text('$count employee${count == 1 ? '' : 's'}', style: TextStyle(color: context.appSubtext, fontSize: 14)),
           ],
@@ -634,7 +636,7 @@ class _ManagerDashboard extends ConsumerWidget {
     return Scaffold(
       backgroundColor: context.appBg,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.section, vertical: AppSpacing.section),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -669,7 +671,7 @@ class _ManagerDashboard extends ConsumerWidget {
 class _ManagerHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
+    final companyName = ref.watch(companySettingsProvider).value?.companyName ?? 'HRNovva';
     final today = DateFormat('EEEE, d MMMM yyyy').format(DateTime.now());
 
     return Row(
@@ -683,7 +685,7 @@ class _ManagerHeader extends ConsumerWidget {
               style: TextStyle(
                 color: context.appText,
                 fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
               ),
             ),
@@ -696,9 +698,9 @@ class _ManagerHeader extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(100)),
           child: Row(children: [
-            const Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 16),
+            const AppIcon(AppIcons.businessRounded, color: AppColors.primaryBlue, size: 16),
             const SizedBox(width: 6),
-            Text(companyName, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+            Text(companyName, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
           ]),
         ),
       ],
@@ -722,10 +724,10 @@ class _ManagerKpiRow extends ConsumerWidget {
     final absent  = (totalActive - present - late - onLeave).clamp(0, totalActive);
 
     final kpis = [
-      _KpiData('Present', '${present + late}', Icons.check_circle_rounded, AppColors.successGreen, AppColors.pillGreenBg, null),
-      _KpiData('Late', '$late', Icons.schedule_rounded, AppColors.warningAmber, AppColors.pillAmberBg, null),
-      _KpiData('Absent', '$absent', Icons.cancel_rounded, AppColors.errorRed, AppColors.pillRedBg, null),
-      _KpiData('On Leave', '$onLeave', Icons.beach_access_rounded, AppColors.primaryBlue, AppColors.pillBlueBg, null),
+      _KpiData('Present', '${present + late}', null),
+      _KpiData('Late', '$late', null),
+      _KpiData('Absent', '$absent', null),
+      _KpiData('On Leave', '$onLeave', null),
     ];
 
     return Row(
@@ -748,20 +750,20 @@ class _ManagerPendingLeavePanel extends ConsumerWidget {
     final pending = pendingAsync.value ?? [];
 
     return Container(
-      decoration: context.cardDeco(16),
+      decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
             child: Row(children: [
-              Text('Pending Leave', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+              Text('Pending Leave', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
               const SizedBox(width: 10),
               if (pending.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(color: AppColors.warningAmber.withAlpha(30), borderRadius: BorderRadius.circular(100)),
-                  child: Text('${pending.length}', style: const TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text('${pending.length}', style: const TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w500)),
                 ),
               const Spacer(),
               TextButton(
@@ -810,9 +812,10 @@ class _PendingLeaveRowState extends ConsumerState<_PendingLeaveRow> {
   }
 
   Future<void> _reject() async {
-    final reason = await showDialog<String>(
+    final reason = await AppDialogShell.show<String>(
       context: context,
-      builder: (_) => _RejectReasonDialog(employeeName: widget.req.employeeName),
+      alignment: Alignment.center,
+      child: _RejectReasonDialog(employeeName: widget.req.employeeName),
     );
     if (reason == null || !mounted) return;
     setState(() => _loading = true);
@@ -840,14 +843,14 @@ class _PendingLeaveRowState extends ConsumerState<_PendingLeaveRow> {
                 gradient: LinearGradient(colors: AppColors.gradientForName(req.employeeName), begin: Alignment.topLeft, end: Alignment.bottomRight),
                 shape: BoxShape.circle,
               ),
-              child: Center(child: Text(req.employeeName.isNotEmpty ? req.employeeName[0] : '?', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700))),
+              child: Center(child: Text(req.employeeName.isNotEmpty ? req.employeeName[0] : '?', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(req.employeeName, style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                  Text(req.employeeName, style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
                   Text(
                     '${req.leaveType.replaceAll('_', ' ')} · ${_fmt(req.startDate)} – ${_fmt(req.endDate)} (${req.totalDays}d)',
                     style: TextStyle(color: context.appSubtext, fontSize: 12),
@@ -867,7 +870,7 @@ class _PendingLeaveRowState extends ConsumerState<_PendingLeaveRow> {
                   child: Container(
                     height: 30,
                     decoration: BoxDecoration(color: AppColors.successGreen.withAlpha(20), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.successGreen.withAlpha(60))),
-                    child: const Center(child: Text('Approve', style: TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w600))),
+                    child: const Center(child: Text('Approve', style: TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w500))),
                   ),
                 ),
               ),
@@ -878,7 +881,7 @@ class _PendingLeaveRowState extends ConsumerState<_PendingLeaveRow> {
                   child: Container(
                     height: 30,
                     decoration: BoxDecoration(color: AppColors.errorRed.withAlpha(20), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.errorRed.withAlpha(60))),
-                    child: const Center(child: Text('Reject', style: TextStyle(color: AppColors.errorRed, fontSize: 13, fontWeight: FontWeight.w600))),
+                    child: const Center(child: Text('Reject', style: TextStyle(color: AppColors.errorRed, fontSize: 13, fontWeight: FontWeight.w500))),
                   ),
                 ),
               ),
@@ -905,33 +908,52 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: const Color(0xFF0D1628),
-      title: Text('Reject ${widget.employeeName}\'s Leave', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-      content: TextField(
-        controller: _ctrl,
-        autofocus: true,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: 'Reason for rejection',
-          hintStyle: const TextStyle(color: Color(0xFF6B7A99)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1A2E4A))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryBlue)),
-          filled: true, fillColor: const Color(0xFF070E1C),
-        ),
-        maxLines: 3,
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reject ${widget.employeeName}\'s Leave',
+            style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 15),
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            style: TextStyle(color: context.appText),
+            decoration: InputDecoration(
+              hintText: 'Reason for rejection',
+              hintStyle: TextStyle(color: context.appSubtext),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.alternate)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue)),
+              filled: true, fillColor: context.appField,
+            ),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              HRNovaButton.text(
+                label: 'Cancel',
+                onPressed: () => Navigator.pop(context),
+                textColor: context.appSubtext,
+              ),
+              HRNovaButton.text(
+                label: 'Reject',
+                onPressed: () {
+                  final r = _ctrl.text.trim();
+                  if (r.isEmpty) return;
+                  Navigator.pop(context, r);
+                },
+                textColor: AppColors.errorRed,
+              ),
+            ],
+          ),
+        ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7A99)))),
-        TextButton(
-          onPressed: () {
-            final r = _ctrl.text.trim();
-            if (r.isEmpty) return;
-            Navigator.pop(context, r);
-          },
-          child: const Text('Reject', style: TextStyle(color: AppColors.errorRed)),
-        ),
-      ],
     );
   }
 }
@@ -956,7 +978,7 @@ class _ManagerPerformanceCard extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: context.cardDeco(16),
+      decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -964,14 +986,14 @@ class _ManagerPerformanceCard extends ConsumerWidget {
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(color: const Color(0xFF9B59B6).withAlpha(25), borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.trending_up_rounded, color: Color(0xFF9B59B6), size: 20),
+              child: const AppIcon(AppIcons.trendingUpRounded, color: Color(0xFF9B59B6), size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Performance', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text('Performance', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(DateFormat('MMMM yyyy').format(now), style: TextStyle(color: context.appSubtext, fontSize: 13)),
                 ],
               ),
@@ -986,7 +1008,7 @@ class _ManagerPerformanceCard extends ConsumerWidget {
                 children: [
                   Text(
                     avgScore > 0 ? avgScore.toStringAsFixed(1) : '—',
-                    style: TextStyle(color: context.appText, fontSize: 32, fontWeight: FontWeight.w700),
+                    style: TextStyle(color: context.appText, fontSize: 32, fontWeight: FontWeight.w600),
                   ),
                   Text('Avg Score / 5.0', style: TextStyle(color: context.appSubtext, fontSize: 13)),
                 ],
@@ -994,7 +1016,7 @@ class _ManagerPerformanceCard extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('$scored / $total', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w600)),
+                  Text('$scored / $total', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w500)),
                   Text('Employees scored', style: TextStyle(color: context.appSubtext, fontSize: 13)),
                 ],
               ),
@@ -1019,7 +1041,7 @@ class _ManagerPerformanceCard extends ConsumerWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () => context.push('/performance'),
-              icon: const Icon(Icons.star_rounded, size: 18),
+              icon: const AppIcon(AppIcons.starRounded, size: 18),
               label: const Text('Score Employees'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF9B59B6),

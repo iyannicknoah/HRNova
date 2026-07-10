@@ -1,7 +1,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'HRNova';
+  static const String appName = 'HRNovva';
   static const String appTagline = 'Your HR Team, Supercharged';
   static const String backendBaseUrl = 'http://localhost:3000';
 

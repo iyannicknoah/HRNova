@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../attendance/models/attendance_model.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -30,6 +32,8 @@ import '../../performance/models/performance_model.dart';
 import '../../performance/providers/performance_provider.dart';
 import '../../performance/services/performance_pdf_service.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class EmployeeProfileScreen extends ConsumerStatefulWidget {
   const EmployeeProfileScreen({super.key, required this.employeeId});
@@ -72,7 +76,7 @@ class _EmployeeProfileScreenState extends ConsumerState<EmployeeProfileScreen>
           if (employee == null) {
             return Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.person_off_outlined, size: 64, color: AppColors.textSecondary),
+                const AppIcon(AppIcons.personOffOutlined, size: 64, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
                 const Text('Employee not found', style: TextStyle(fontSize: 17, color: AppColors.textSecondary)),
                 const SizedBox(height: 16),
@@ -148,7 +152,7 @@ class _LargeAvatar extends StatelessWidget {
       width: 80, height: 80,
       decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: colors)),
       alignment: Alignment.center,
-      child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)),
+      child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -160,7 +164,7 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg)),
+    child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: fg)),
   );
 }
 
@@ -181,7 +185,7 @@ class _TabBar extends StatelessWidget {
         isScrollable: true,
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
@@ -242,7 +246,7 @@ class _ProfileTab extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.arrow_back_ios_new, size: 16,
+                      child: AppIcon(AppIcons.arrowBackIosNew, size: 16,
                           color: Colors.white.withAlpha(220)),
                     ),
                   ),
@@ -258,9 +262,9 @@ class _ProfileTab extends ConsumerWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
-                    icon: const Icon(Icons.edit_rounded, size: 16),
+                    icon: const AppIcon(AppIcons.editRounded, size: 16),
                     label: const Text('Edit Employee',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                   ),
                 ],
               ),
@@ -285,7 +289,7 @@ class _ProfileTab extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(employee.fullName,
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
                           const SizedBox(height: 2),
                           Text(employee.jobTitle.isEmpty ? employee.department : employee.jobTitle,
                               style: TextStyle(fontSize: 15, color: context.appSubtext)),
@@ -297,17 +301,17 @@ class _ProfileTab extends ConsumerWidget {
                 Transform.translate(
                   offset: const Offset(0, -16),
                   child: Wrap(spacing: 8, runSpacing: 6, children: [
-                    _StatChip(Icons.business_rounded, employee.department, AppColors.pillBlueBg, AppColors.pillBlueText),
+                    _StatChip(AppIcons.businessRounded, employee.department, context.pillBlueBg, context.pillBlueText),
                     _StatChip(
-                      Icons.circle,
+                      null,
                       employee.isActive ? 'Active' : 'Inactive',
-                      employee.isActive ? AppColors.pillGreenBg : AppColors.pillRedBg,
-                      employee.isActive ? AppColors.pillGreenText : AppColors.pillRedText,
+                      employee.isActive ? context.pillGreenBg : context.pillRedBg,
+                      employee.isActive ? context.pillGreenText : context.pillRedText,
                     ),
-                    _StatChip(Icons.calendar_today_rounded, 'Since ${_shortDate(employee.startDate)}',
-                        AppColors.pillNavyBg, AppColors.pillNavyText),
+                    _StatChip(AppIcons.calendarTodayRounded, 'Since ${_shortDate(employee.startDate)}',
+                        context.pillNavyBg, context.pillNavyText),
                     if (isBurnoutRisk)
-                      _StatChip(Icons.warning_amber_rounded, 'Burnout Risk',
+                      _StatChip(AppIcons.warningAmberRounded, 'Burnout Risk',
                           const Color(0xFFFFF3CD), const Color(0xFF7D4A00)),
                   ]),
                 ),
@@ -319,14 +323,14 @@ class _ProfileTab extends ConsumerWidget {
         // ── Quick stats ───────────────────────────────────────────────────────
         Row(children: [
           if (!hideSalary) ...[
-            Expanded(child: _QuickStat(Icons.account_balance_wallet_rounded, 'Salary',
+            Expanded(child: _QuickStat(AppIcons.accountBalanceWalletRounded, 'Salary',
                 _fmtRwf(employee.grossSalary), AppColors.primaryBlue)),
             const SizedBox(width: 12),
           ],
-          Expanded(child: _QuickStat(Icons.badge_rounded, 'Contract',
+          Expanded(child: _QuickStat(AppIcons.badgeRounded, 'Contract',
               _ctLabel(employee.contractType), AppColors.successGreen)),
           const SizedBox(width: 12),
-          Expanded(child: _QuickStat(Icons.beach_access_rounded, 'Annual Leave',
+          Expanded(child: _QuickStat(AppIcons.beachAccessRounded, 'Annual Leave',
               '$annualBalance days', const Color(0xFF9C27B0))),
         ]),
         const SizedBox(height: 20),
@@ -337,7 +341,7 @@ class _ProfileTab extends ConsumerWidget {
             child: Column(children: [
               _Section(
                 title: 'Personal Information',
-                icon: Icons.person_outline_rounded,
+                icon: AppIcons.personOutlineRounded,
                 children: [
                   _Field('Full Name', employee.fullName),
                   _Field('National ID', employee.nationalId.isEmpty ? '—' : employee.nationalId),
@@ -350,7 +354,7 @@ class _ProfileTab extends ConsumerWidget {
               const SizedBox(height: 14),
               _Section(
                 title: 'Employment',
-                icon: Icons.work_outline_rounded,
+                icon: AppIcons.workOutlineRounded,
                 children: [
                   _Field('Department', employee.department),
                   _Field('Job Title', employee.jobTitle.isEmpty ? '—' : employee.jobTitle),
@@ -369,7 +373,7 @@ class _ProfileTab extends ConsumerWidget {
               if (!hideSalary)
                 _Section(
                   title: 'Salary & Compensation',
-                  icon: Icons.payments_outlined,
+                  icon: AppIcons.paymentsOutlined,
                   children: [
                     _Field('Salary Type', _stLabel(employee.salaryType)),
                     if (employee.salaryType == 'fixed_monthly') _Field('Monthly Salary', _fmtRwf(employee.salaryAmount)),
@@ -383,7 +387,7 @@ class _ProfileTab extends ConsumerWidget {
               const SizedBox(height: 14),
               _Section(
                 title: 'Leave Balances',
-                icon: Icons.beach_access_rounded,
+                icon: AppIcons.beachAccessRounded,
                 children: [
                   _LeaveBalanceRow('Annual', (annualEntitlement - annualUsed).clamp(0, annualEntitlement), annualEntitlement, AppColors.primaryBlue),
                   _LeaveBalanceRow('Sick', (AppConstants.sickLeaveDays - usedOf(AppConstants.leaveTypeSick)).clamp(0, AppConstants.sickLeaveDays), AppConstants.sickLeaveDays, AppColors.successGreen),
@@ -395,7 +399,7 @@ class _ProfileTab extends ConsumerWidget {
                 const SizedBox(height: 14),
                 _Section(
                   title: 'Notes',
-                  icon: Icons.notes_rounded,
+                  icon: AppIcons.notesRounded,
                   children: [
                     Text(employee.notes!, style: TextStyle(fontSize: 15, color: context.appText, height: 1.5)),
                   ],
@@ -405,7 +409,7 @@ class _ProfileTab extends ConsumerWidget {
                 const SizedBox(height: 14),
                 _Section(
                   title: 'Login Credentials',
-                  icon: Icons.key_rounded,
+                  icon: AppIcons.keyRounded,
                   children: [
                     _CredRow(
                       label: 'Email',
@@ -425,7 +429,7 @@ class _ProfileTab extends ConsumerWidget {
                         border: Border.all(color: AppColors.warningAmber.withAlpha(50)),
                       ),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Icon(Icons.info_outline_rounded, size: 13, color: AppColors.warningAmber),
+                        const AppIcon(AppIcons.infoOutlineRounded, size: 13, color: AppColors.warningAmber),
                         const SizedBox(width: 8),
                         const Expanded(child: Text(
                           'This is the initial password. May be outdated if the employee already changed it.',
@@ -466,7 +470,7 @@ class _ProfileTab extends ConsumerWidget {
 
 class _StatChip extends StatelessWidget {
   const _StatChip(this.icon, this.label, this.bg, this.fg);
-  final IconData icon;
+  final IconRef? icon;
   final String label;
   final Color bg, fg;
 
@@ -475,16 +479,22 @@ class _StatChip extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 11, color: fg),
+      icon != null
+          ? AppIcon(icon!, size: 11, color: fg)
+          : Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: fg),
+            ),
       const SizedBox(width: 5),
-      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg)),
+      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: fg)),
     ]),
   );
 }
 
 class _QuickStat extends StatelessWidget {
   const _QuickStat(this.icon, this.label, this.value, this.color);
-  final IconData icon;
+  final IconRef icon;
   final String label, value;
   final Color color;
 
@@ -499,13 +509,13 @@ class _QuickStat extends StatelessWidget {
       Container(
         width: 36, height: 36,
         decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, size: 17, color: color),
+        child: AppIcon(icon, size: 17, color: color),
       ),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(fontSize: 13, color: context.appSubtext)),
         const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText),
+        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText),
             overflow: TextOverflow.ellipsis),
       ])),
     ]),
@@ -515,7 +525,7 @@ class _QuickStat extends StatelessWidget {
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.icon, required this.children});
   final String title;
-  final IconData icon;
+  final IconRef icon;
   final List<Widget> children;
 
   @override
@@ -534,10 +544,10 @@ class _Section extends StatelessWidget {
               color: AppColors.primaryBlue.withAlpha(15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 14, color: AppColors.primaryBlue),
+            child: AppIcon(icon, size: 14, color: AppColors.primaryBlue),
           ),
           const SizedBox(width: 10),
-          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.appText)),
+          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
         ]),
       ),
       Divider(height: 1, color: context.appBorder),
@@ -564,7 +574,7 @@ class _Field extends StatelessWidget {
       ),
       Expanded(
         child: Text(value ?? '—',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
       ),
     ]),
   );
@@ -585,7 +595,7 @@ class _LeaveBalanceRow extends StatelessWidget {
         Row(children: [
           Text(label, style: TextStyle(fontSize: 14, color: context.appSubtext)),
           const Spacer(),
-          Text('$balance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+          Text('$balance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
           Text(' / $total d', style: TextStyle(fontSize: 13, color: context.appSubtext)),
         ]),
         const SizedBox(height: 4),
@@ -636,16 +646,16 @@ class _CredRowState extends State<_CredRow> {
       ),
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.label, style: TextStyle(fontSize: 12, color: context.appSubtext, fontWeight: FontWeight.w500)),
+          Text(widget.label, style: TextStyle(fontSize: 12, color: context.appSubtext, fontWeight: FontWeight.w400)),
           const SizedBox(height: 2),
-          Text(widget.value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText, fontFamily: 'monospace')),
+          Text(widget.value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText, fontFamily: 'monospace')),
         ])),
         GestureDetector(
           onTap: _copy,
           child: Padding(
             padding: const EdgeInsets.all(4),
-            child: Icon(
-              _copied ? Icons.check_rounded : Icons.copy_rounded,
+            child: AppIcon(
+              _copied ? AppIcons.checkRounded : AppIcons.copyRounded,
               size: 15,
               color: _copied ? AppColors.successGreen : context.appSubtext,
             ),
@@ -687,7 +697,7 @@ class _BranchTransferSection extends StatelessWidget {
       const SizedBox(height: 14),
       _Section(
         title: 'Branch Assignment',
-        icon: Icons.business_rounded,
+        icon: AppIcons.businessRounded,
         children: [
           _Field('Current Branch', currentBranch?.name ?? '—'),
           const SizedBox(height: 12),
@@ -696,9 +706,10 @@ class _BranchTransferSection extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: branches.length < 2
                   ? null
-                  : () => showDialog(
+                  : () => AppDialogShell.show(
                         context: context,
-                        builder: (_) => _TransferBranchDialog(
+                        alignment: Alignment.center,
+                        child: _TransferBranchDialog(
                           employee: employee,
                           branches: branches,
                           currentBranchId: employee.branchId,
@@ -710,8 +721,8 @@ class _BranchTransferSection extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              icon: const Icon(Icons.swap_horiz_rounded, size: 16),
-              label: const Text('Transfer to Another Branch', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              icon: const AppIcon(AppIcons.swapHorizRounded, size: 16),
+              label: const Text('Transfer to Another Branch', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             ),
           ),
         ],
@@ -779,29 +790,26 @@ class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
     final availableBranches =
         widget.branches.where((b) => b.id != widget.currentBranchId && b.isActive).toList();
 
-    return Dialog(
-      backgroundColor: context.appCard,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460),
+      child: Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
                 width: 40, height: 40,
                 decoration: BoxDecoration(
-                    color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.swap_horiz_rounded, color: AppColors.primaryBlue, size: 20),
+                    color: context.pillBlueBg, borderRadius: BorderRadius.circular(12)),
+                child: const AppIcon(AppIcons.swapHorizRounded, color: AppColors.primaryBlue, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text('Transfer Employee',
-                    style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w700)),
+                    style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close_rounded, color: context.appSubtext),
+                icon: AppIcon(AppIcons.closeRounded, color: context.appSubtext),
               ),
             ]),
             const SizedBox(height: 8),
@@ -809,7 +817,7 @@ class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
                 style: TextStyle(color: context.appSubtext, fontSize: 15)),
             const SizedBox(height: 20),
             Text('Select destination branch',
-                style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+                style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
             const SizedBox(height: 10),
             if (availableBranches.isEmpty)
               Text('No other active branches available.',
@@ -831,7 +839,7 @@ class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
                       ),
                     ),
                     child: Row(children: [
-                      Icon(Icons.business_rounded,
+                      AppIcon(AppIcons.businessRounded,
                           size: 16,
                           color: selected ? AppColors.primaryBlue : context.appSubtext),
                       const SizedBox(width: 10),
@@ -840,7 +848,7 @@ class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
                           Text(b.name,
                               style: TextStyle(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w500,
                                   color: selected ? AppColors.primaryBlue : context.appText)),
                           if (b.location.isNotEmpty)
                             Text(b.location,
@@ -848,7 +856,7 @@ class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
                         ]),
                       ),
                       if (selected)
-                        const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primaryBlue),
+                        const AppIcon(AppIcons.checkCircleRounded, size: 18, color: AppColors.primaryBlue),
                     ]),
                   ),
                 );
@@ -856,38 +864,20 @@ class _TransferBranchDialogState extends ConsumerState<_TransferBranchDialog> {
             const SizedBox(height: 20),
             Row(children: [
               Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: context.appBorder),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                  ),
-                  child: Text('Cancel', style: TextStyle(color: context.appText)),
-                ),
+                child: HRNovaButton(label: 'Cancel', outlined: true, onPressed: () => Navigator.pop(context)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FilledButton(
+                child: HRNovaButton(
+                  label: 'Confirm Transfer',
+                  isLoading: _loading,
                   onPressed: (_loading || _selectedBranchId == null || availableBranches.isEmpty)
                       ? null
                       : _confirm,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 16, height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Confirm Transfer',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                 ),
               ),
             ]),
           ]),
-        ),
       ),
     );
   }
@@ -938,7 +928,7 @@ class _QRTabState extends ConsumerState<_QRTab> {
           pageFormat: PdfPageFormat.a5,
           build: (ctx) => pw.Center(
             child: pw.Column(mainAxisSize: pw.MainAxisSize.min, children: [
-              pw.Text('HRNova', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold)),
+              pw.Text('HRNovva', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 12),
               pw.BarcodeWidget(barcode: pw.Barcode.qrCode(), data: qrData, width: 200, height: 200),
               pw.SizedBox(height: 16),
@@ -961,7 +951,7 @@ class _QRTabState extends ConsumerState<_QRTab> {
       builder: (ctx) => AlertDialog(
         backgroundColor: ctx.appCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Regenerate QR Code?', style: TextStyle(fontWeight: FontWeight.w700, color: ctx.appText)),
+        title: Text('Regenerate QR Code?', style: TextStyle(fontWeight: FontWeight.w600, color: ctx.appText)),
         content: const Text('The old QR code will stop working immediately. All printed badges will need to be reprinted.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -1013,9 +1003,9 @@ class _QRTabState extends ConsumerState<_QRTab> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                    Icon(Icons.business_center, size: 16, color: Colors.white),
+                    AppIcon(AppIcons.businessCenter, size: 16, color: Colors.white),
                     SizedBox(width: 8),
-                    Text('HRNova', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
+                    Text('HRNovva', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
                   ]),
                 ),
                 const SizedBox(height: 20),
@@ -1027,7 +1017,7 @@ class _QRTabState extends ConsumerState<_QRTab> {
                   dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: AppColors.darkNavy),
                 ),
                 const SizedBox(height: 16),
-                Text(e.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                Text(e.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
                 Text('${e.department} · ${e.jobTitle.isEmpty ? "Employee" : e.jobTitle}',
                   style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
@@ -1041,14 +1031,14 @@ class _QRTabState extends ConsumerState<_QRTab> {
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue), foregroundColor: AppColors.primaryBlue),
               onPressed: _downloadPng,
-              icon: const Icon(Icons.download_outlined, size: 18),
+              icon: const AppIcon(AppIcons.downloadOutlined, size: 18),
               label: const Text('Download PNG'),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue), foregroundColor: AppColors.primaryBlue),
               onPressed: _printBadge,
-              icon: const Icon(Icons.print_outlined, size: 18),
+              icon: const AppIcon(AppIcons.printOutlined, size: 18),
               label: const Text('Print Badge'),
             ),
             const SizedBox(width: 12),
@@ -1057,7 +1047,7 @@ class _QRTabState extends ConsumerState<_QRTab> {
               onPressed: _regenerating ? null : _regenerate,
               icon: _regenerating
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.refresh, size: 18),
+                  : const AppIcon(AppIcons.refresh, size: 18),
               label: const Text('Regenerate'),
             ),
           ]),
@@ -1142,29 +1132,29 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Month nav + summary chips
         Row(children: [
-          _monthNavBtn(Icons.chevron_left_rounded, _prevMonth, context),
+          _monthNavBtn(AppIcons.chevronLeftRounded, _prevMonth, context),
           const SizedBox(width: 12),
           Text(DateFormat('MMMM yyyy').format(_month),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 17,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
           const SizedBox(width: 12),
-          _monthNavBtn(Icons.chevron_right_rounded, _nextMonth, context),
+          _monthNavBtn(AppIcons.chevronRightRounded, _nextMonth, context),
           const Spacer(),
-          _chip('$present Present', AppColors.successGreen, AppColors.pillGreenBg),
+          _chip('$present Present', AppColors.successGreen, context.pillGreenBg),
           const SizedBox(width: 8),
-          _chip('$late Late', AppColors.warningAmber, AppColors.pillAmberBg),
+          _chip('$late Late', AppColors.warningAmber, context.pillAmberBg),
           const SizedBox(width: 8),
-          _chip('$absent Absent', AppColors.errorRed, AppColors.pillRedBg),
+          _chip('$absent Absent', AppColors.errorRed, context.pillRedBg),
           const SizedBox(width: 8),
-          _chip('$leave Leave', AppColors.primaryBlue, AppColors.pillBlueBg),
+          _chip('$leave Leave', AppColors.primaryBlue, context.pillBlueBg),
         ]),
         const SizedBox(height: 20),
         // Calendar grid
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: context.cardDeco(14),
+          decoration: context.cardDeco(),
           child: recordsAsync.isLoading
               ? const Center(
                   child: Padding(
@@ -1179,7 +1169,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                                     style: TextStyle(
                                         color: context.appSubtext,
                                         fontSize: 13,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.w500,
                                         letterSpacing: 0.3)),
                               ),
                             ))
@@ -1267,7 +1257,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 14,
-                      fontWeight: FontWeight.w500))),
+                      fontWeight: FontWeight.w400))),
           Expanded(
               flex: 10,
               child: Text(
@@ -1293,7 +1283,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     return rows;
   }
 
-  Widget _monthNavBtn(IconData icon, VoidCallback onTap, BuildContext context) =>
+  Widget _monthNavBtn(IconRef icon, VoidCallback onTap, BuildContext context) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
@@ -1302,7 +1292,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
           decoration: BoxDecoration(
               color: context.appCard,
               borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: context.appText, size: 16),
+          child: AppIcon(icon, color: context.appText, size: 16),
         ),
       );
 
@@ -1313,7 +1303,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
             color: bg, borderRadius: BorderRadius.circular(100)),
         child: Text(label,
             style: TextStyle(
-                color: fg, fontSize: 14, fontWeight: FontWeight.w600)),
+                color: fg, fontSize: 14, fontWeight: FontWeight.w500)),
       );
 
   Widget _legendItem(String label, Color color) =>
@@ -1333,7 +1323,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       style: TextStyle(
           color: ctx.appSubtext,
           fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           letterSpacing: 0.5));
 }
 
@@ -1388,7 +1378,7 @@ class _CalendarGrid extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: isWeekend || status == null
                               ? FontWeight.w400
-                              : FontWeight.w700)),
+                              : FontWeight.w600)),
                 ),
               );
             }),
@@ -1414,11 +1404,11 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      'on_time'  => ('On Time',  AppColors.pillGreenBg, AppColors.pillGreenText),
-      'late'     => ('Late',     AppColors.pillAmberBg, AppColors.pillAmberText),
-      'absent'   => ('Absent',   AppColors.pillRedBg,   AppColors.pillRedText),
-      'on_leave' => ('On Leave', AppColors.pillBlueBg,  AppColors.pillBlueText),
-      _          => ('—',        AppColors.pillNavyBg,  AppColors.pillNavyText),
+      'on_time'  => ('On Time',  context.pillGreenBg, context.pillGreenText),
+      'late'     => ('Late',     context.pillAmberBg, context.pillAmberText),
+      'absent'   => ('Absent',   context.pillRedBg,   context.pillRedText),
+      'on_leave' => ('On Leave', context.pillBlueBg,  context.pillBlueText),
+      _          => ('—',        context.pillNavyBg,  context.pillNavyText),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1426,7 +1416,7 @@ class _StatusChip extends StatelessWidget {
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
       child: Text(label,
           style:
-              TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
+              TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w500)),
     );
   }
 }
@@ -1439,10 +1429,10 @@ class _LeaveProfileTab extends ConsumerWidget {
   final EmployeeModel employee;
 
   static const _balances = [
-    ('annual',    'Annual Leave',    AppColors.primaryBlue,   Icons.flight_takeoff_rounded,  AppConstants.annualLeaveDaysPerYear),
-    ('sick',      'Sick Leave',      AppColors.successGreen,  Icons.local_hospital_rounded,  10),
-    ('maternity', 'Maternity Leave', Color(0xFF9C27B0),       Icons.child_care_rounded,      AppConstants.maternityLeaveDays),
-    ('paternity', 'Paternity Leave', Color(0xFF00897B),       Icons.family_restroom_rounded, AppConstants.paternityLeaveDays),
+    ('annual',    'Annual Leave',    AppColors.primaryBlue,   AppIcons.flightTakeoffRounded,  AppConstants.annualLeaveDaysPerYear),
+    ('sick',      'Sick Leave',      AppColors.successGreen,  AppIcons.localHospitalRounded,  10),
+    ('maternity', 'Maternity Leave', Color(0xFF9C27B0),       AppIcons.childCareRounded,      AppConstants.maternityLeaveDays),
+    ('paternity', 'Paternity Leave', Color(0xFF00897B),       AppIcons.familyRestroomRounded, AppConstants.paternityLeaveDays),
   ];
 
   @override
@@ -1481,15 +1471,15 @@ class _LeaveProfileTab extends ConsumerWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Leave Balances',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.appText)),
               TextButton.icon(
                 onPressed: () => _showAdjustDialog(context),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primaryBlue,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
-                icon: const Icon(Icons.tune_rounded, size: 14),
-                label: const Text('Adjust', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                icon: const AppIcon(AppIcons.tuneRounded, size: 14),
+                label: const Text('Adjust', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
             ]),
             const SizedBox(height: 10),
@@ -1500,7 +1490,7 @@ class _LeaveProfileTab extends ConsumerWidget {
               final pct = total > 0 ? (remaining / total).clamp(0.0, 1.0) : 0.0;
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
-                decoration: context.cardDeco(14),
+                decoration: context.cardDeco(),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                   child: Column(children: [
@@ -1511,16 +1501,16 @@ class _LeaveProfileTab extends ConsumerWidget {
                           color: t.$3.withAlpha(18),
                           borderRadius: BorderRadius.circular(9),
                         ),
-                        child: Icon(t.$4, size: 16, color: t.$3),
+                        child: AppIcon(t.$4, size: 16, color: t.$3),
                       ),
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(t.$2, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
+                        Text(t.$2, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
                         Text('$used used · $total total',
                             style: TextStyle(fontSize: 13, color: context.appSubtext)),
                       ])),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text('$remaining', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: t.$3, height: 1)),
+                        Text('$remaining', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: t.$3, height: 1)),
                         Text('days left', style: TextStyle(fontSize: 12, color: context.appSubtext)),
                       ]),
                     ]),
@@ -1539,7 +1529,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text('${(pct * 100).round()}%',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.$3)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: t.$3)),
                     ]),
                   ]),
                 ),
@@ -1553,16 +1543,16 @@ class _LeaveProfileTab extends ConsumerWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Text('Leave History',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.appText)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.pillBlueBg,
+                  color: context.pillBlueBg,
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Text('${requests.length} request${requests.length != 1 ? "s" : ""}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primaryBlue)),
               ),
             ]),
             const SizedBox(height: 12),
@@ -1591,7 +1581,7 @@ class _LeaveProfileTab extends ConsumerWidget {
                       ),
                       child: Center(
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.inbox_outlined, size: 40, color: context.appSubtext),
+                          AppIcon(AppIcons.inboxOutlined, size: 40, color: context.appSubtext),
                           const SizedBox(height: 8),
                           Text('No leave requests yet', style: TextStyle(fontSize: 15, color: context.appSubtext)),
                         ]),
@@ -1616,12 +1606,13 @@ class _LeaveProfileTab extends ConsumerWidget {
   }
 
   Widget _hTxt(String t, BuildContext ctx) => Text(t,
-      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ctx.appSubtext, letterSpacing: 0.5));
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ctx.appSubtext, letterSpacing: 0.5));
 
   void _showAdjustDialog(BuildContext context) {
-    showDialog(
+    AppDialogShell.show(
       context: context,
-      builder: (_) => _AdjustLeaveDialog(employeeId: employee.id),
+      alignment: Alignment.center,
+      child: _AdjustLeaveDialog(employeeId: employee.id),
     );
   }
 }
@@ -1641,9 +1632,9 @@ class _LeaveHistoryRow extends StatelessWidget {
       _           => AppColors.textSecondary,
     };
     final (bg, fg) = switch (req.status) {
-      'approved' => (AppColors.pillGreenBg, AppColors.pillGreenText),
-      'rejected' => (AppColors.pillRedBg,   AppColors.pillRedText),
-      _          => (AppColors.pillAmberBg, AppColors.pillAmberText),
+      'approved' => (context.pillGreenBg, context.pillGreenText),
+      'rejected' => (context.pillRedBg,   context.pillRedText),
+      _          => (context.pillAmberBg, context.pillAmberText),
     };
     final srcLabel = switch (req.source) {
       'whatsapp_portal' => 'WhatsApp',
@@ -1671,7 +1662,7 @@ class _LeaveHistoryRow extends StatelessWidget {
               Expanded(
                 child: Text(
                     '${req.leaveType[0].toUpperCase()}${req.leaveType.substring(1)}',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
               ),
             ]),
           ),
@@ -1691,7 +1682,7 @@ class _LeaveHistoryRow extends StatelessWidget {
               final cal = req.endDate.difference(req.startDate).inDays + 1;
               return '${cal}d';
             }(),
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
           ),
           // Source
           Expanded(
@@ -1708,7 +1699,7 @@ class _LeaveHistoryRow extends StatelessWidget {
                 decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
                 child: Text(
                     '${req.status[0].toUpperCase()}${req.status.substring(1)}',
-                    style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w500)),
               ),
               if (req.status == 'rejected' && req.rejectedReason != null) ...[
                 const SizedBox(width: 4),
@@ -1716,7 +1707,7 @@ class _LeaveHistoryRow extends StatelessWidget {
                   message: req.rejectedReason!,
                   child: GestureDetector(
                     onTap: () => _showReason(context, req.rejectedReason!),
-                    child: const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.errorRed),
+                    child: const AppIcon(AppIcons.infoOutlineRounded, size: 14, color: AppColors.errorRed),
                   ),
                 ),
               ],
@@ -1728,14 +1719,29 @@ class _LeaveHistoryRow extends StatelessWidget {
   }
 
   void _showReason(BuildContext context, String reason) {
-    showDialog(
+    AppDialogShell.show(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Rejection Reason'),
-        content: Text(reason),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-        ],
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Rejection Reason',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
+            const SizedBox(height: 15),
+            Text(reason, style: TextStyle(color: context.appText)),
+            const SizedBox(height: 15),
+            Align(
+              alignment: Alignment.centerRight,
+              child: HRNovaButton.text(
+                label: 'Close',
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1795,41 +1801,50 @@ class _AdjustLeaveDialogState
       ('maternity', 'Maternity Leave'),
       ('paternity', 'Paternity Leave'),
     ];
-    return AlertDialog(
-      title: const Text('Adjust Leave Balance'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        DropdownButtonFormField<String>(
-          value: _selectedType,
-          decoration: const InputDecoration(labelText: 'Leave Type'),
-          items: types
-              .map((t) => DropdownMenuItem(
-                  value: t.$1, child: Text(t.$2)))
-              .toList(),
-          onChanged: (v) =>
-              setState(() => _selectedType = v ?? 'annual'),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _valCtrl,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-              labelText: 'New Balance (days)'),
-        ),
-      ]),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox(
-                  width: 16, height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : const Text('Save'),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Adjust Leave Balance',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
+          const SizedBox(height: 15),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedType,
+            decoration: const InputDecoration(labelText: 'Leave Type'),
+            items: types
+                .map((t) => DropdownMenuItem(
+                    value: t.$1, child: Text(t.$2)))
+                .toList(),
+            onChanged: (v) =>
+                setState(() => _selectedType = v ?? 'annual'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _valCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'New Balance (days)'),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              HRNovaButton.text(
+                label: 'Cancel',
+                onPressed: () => Navigator.pop(context),
+              ),
+              HRNovaButton(
+                label: 'Save',
+                isFullWidth: false,
+                isLoading: _saving,
+                onPressed: _saving ? null : _save,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1854,9 +1869,9 @@ class _PayrollProfileTab extends ConsumerWidget {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Container(
                 width: 64, height: 64,
-                decoration: const BoxDecoration(
-                    color: AppColors.pillBlueBg, shape: BoxShape.circle),
-                child: const Icon(Icons.account_balance_wallet_rounded,
+                decoration: BoxDecoration(
+                    color: context.pillBlueBg, shape: BoxShape.circle),
+                child: const AppIcon(AppIcons.accountBalanceWalletRounded,
                     size: 30, color: AppColors.primaryBlue),
               ),
               const SizedBox(height: 14),
@@ -1864,7 +1879,7 @@ class _PayrollProfileTab extends ConsumerWidget {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 17,
-                      fontWeight: FontWeight.w600)),
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
               Text('Payslips will appear once payroll is run',
                   style: TextStyle(color: context.appSubtext, fontSize: 15)),
@@ -1943,7 +1958,7 @@ class _LatestPayslipCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-                color: isApproved ? AppColors.pillGreenBg : AppColors.pillAmberBg,
+                color: isApproved ? context.pillGreenBg : context.pillAmberBg,
                 borderRadius: BorderRadius.circular(100)),
             child: Text(
               isApproved ? 'Approved' : 'Draft',
@@ -1952,13 +1967,13 @@ class _LatestPayslipCard extends ConsumerWidget {
                       ? AppColors.successGreen
                       : AppColors.warningAmber,
                   fontSize: 13,
-                  fontWeight: FontWeight.w600),
+                  fontWeight: FontWeight.w500),
             ),
           ),
           const Spacer(),
           OutlinedButton.icon(
             onPressed: () => _downloadPdf(context, ref),
-            icon: const Icon(Icons.picture_as_pdf_rounded, size: 14),
+            icon: const AppIcon(AppIcons.pictureAsPdfRounded, size: 14),
             label: const Text('Download PDF'),
             style: OutlinedButton.styleFrom(
                 padding:
@@ -1981,27 +1996,27 @@ class _LatestPayslipCard extends ConsumerWidget {
                 style: TextStyle(
                     color: context.appSubtext,
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: 0.5)),
             const SizedBox(height: 4),
             Text(_rwf(ps.netSalary),
                 style: const TextStyle(
                     color: AppColors.successGreen,
                     fontSize: 22,
-                    fontWeight: FontWeight.w800)),
+                    fontWeight: FontWeight.w700)),
           ]),
           const Spacer(),
           if (ps.absentDays > 0)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                  color: AppColors.pillRedBg,
+                  color: context.pillRedBg,
                   borderRadius: BorderRadius.circular(8)),
               child: Text('${ps.absentDays} absent day${ps.absentDays == 1 ? '' : 's'}',
                   style: const TextStyle(
                       color: AppColors.errorRed,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600)),
+                      fontWeight: FontWeight.w500)),
             ),
         ]),
       ]),
@@ -2042,7 +2057,7 @@ class _PayslipHistoryRow extends ConsumerWidget {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 15,
-                      fontWeight: FontWeight.w600)),
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
               Text('${ps.workingDays} working days · ${ps.presentDays} present',
                   style: TextStyle(
@@ -2054,14 +2069,14 @@ class _PayslipHistoryRow extends ConsumerWidget {
                 style: const TextStyle(
                     color: AppColors.successGreen,
                     fontSize: 15,
-                    fontWeight: FontWeight.w700)),
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                   color: isApproved
-                      ? AppColors.pillGreenBg
-                      : AppColors.pillAmberBg,
+                      ? context.pillGreenBg
+                      : context.pillAmberBg,
                   borderRadius: BorderRadius.circular(100)),
               child: Text(
                 isApproved ? 'Approved' : 'Draft',
@@ -2070,7 +2085,7 @@ class _PayslipHistoryRow extends ConsumerWidget {
                     color: isApproved
                         ? AppColors.successGreen
                         : AppColors.warningAmber,
-                    fontWeight: FontWeight.w600),
+                    fontWeight: FontWeight.w500),
               ),
             ),
           ]),
@@ -2080,7 +2095,7 @@ class _PayslipHistoryRow extends ConsumerWidget {
             onTap: () => _downloadPdf(context, ref),
             child: Padding(
               padding: const EdgeInsets.all(6),
-              child: Icon(Icons.picture_as_pdf_rounded,
+              child: AppIcon(AppIcons.pictureAsPdfRounded,
                   size: 18, color: context.appSubtext),
             ),
           ),
@@ -2126,7 +2141,7 @@ class _LineItem extends StatelessWidget {
             style: TextStyle(
                 color: context.appText,
                 fontSize: 15,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
+                fontWeight: bold ? FontWeight.w600 : FontWeight.w400)),
       ]),
     );
   }
@@ -2141,7 +2156,7 @@ class _SectionLabel extends StatelessWidget {
       style: TextStyle(
           color: context.appText,
           fontSize: 15,
-          fontWeight: FontWeight.w700));
+          fontWeight: FontWeight.w600));
 }
 
 
@@ -2157,7 +2172,7 @@ class _LoansTab extends ConsumerStatefulWidget {
 
 class _LoansTabState extends ConsumerState<_LoansTab> {
   void _showAddLoan() {
-    showDialog(context: context, builder: (_) => _AddLoanDialog(employeeId: widget.employee.id));
+    AppDialogShell.show(context: context, alignment: Alignment.center, child: _AddLoanDialog(employeeId: widget.employee.id));
   }
 
   @override
@@ -2169,7 +2184,7 @@ class _LoansTabState extends ConsumerState<_LoansTab> {
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
           child: Row(children: [
-            Text('Loans & Deductions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.appText)),
+            Text('Loans & Deductions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: context.appText)),
             const Spacer(),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -2178,7 +2193,7 @@ class _LoansTabState extends ConsumerState<_LoansTab> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
               ),
               onPressed: _showAddLoan,
-              icon: const Icon(Icons.add, size: 18),
+              icon: const AppIcon(AppIcons.add, size: 18),
               label: const Text('Add Loan'),
             ),
           ]),
@@ -2186,7 +2201,7 @@ class _LoansTabState extends ConsumerState<_LoansTab> {
         Expanded(
           child: loans.isEmpty
               ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.account_balance_outlined, size: 56, color: context.appSubtext),
+                  AppIcon(AppIcons.accountBalanceOutlined, size: 56, color: context.appSubtext),
                   const SizedBox(height: 12),
                   Text('No loans recorded', style: TextStyle(fontSize: 16, color: context.appSubtext)),
                 ]))
@@ -2220,15 +2235,15 @@ class _LoanCard extends StatelessWidget {
       decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 40, height: 40, decoration: const BoxDecoration(color: AppColors.pillBlueBg, shape: BoxShape.circle),
-            child: const Icon(Icons.account_balance_outlined, size: 20, color: AppColors.primaryBlue)),
+          Container(width: 40, height: 40, decoration: BoxDecoration(color: context.pillBlueBg, shape: BoxShape.circle),
+            child: const AppIcon(AppIcons.accountBalanceOutlined, size: 20, color: AppColors.primaryBlue)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(description, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: context.appText)),
+            Text(description, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: context.appText)),
             Text('RWF ${_fmt(monthly)}/month deduction', style: TextStyle(fontSize: 14, color: context.appSubtext)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('RWF ${_fmt(remaining)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: context.appText)),
+            Text('RWF ${_fmt(remaining)}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: context.appText)),
             Text('remaining', style: TextStyle(fontSize: 13, color: context.appSubtext)),
           ]),
         ]),
@@ -2238,7 +2253,7 @@ class _LoanCard extends StatelessWidget {
             child: LinearProgressIndicator(value: progress, backgroundColor: context.appBorder,
               valueColor: const AlwaysStoppedAnimation(AppColors.successGreen), minHeight: 6))),
           const SizedBox(width: 10),
-          Text('${(progress * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appSubtext)),
+          Text('${(progress * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appSubtext)),
         ]),
         const SizedBox(height: 4),
         Text('Paid RWF ${_fmt(paid)} of RWF ${_fmt(total)}', style: TextStyle(fontSize: 13, color: context.appSubtext)),
@@ -2297,30 +2312,33 @@ class _AddLoanDialogState extends ConsumerState<_AddLoanDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: context.appCard,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text('Add Loan / Deduction', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: context.appText)),
-      content: SizedBox(
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
         width: 400,
-        child: Form(key: _formKey, child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: Form(key: _formKey, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Add Loan / Deduction', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
+          const SizedBox(height: 15),
           _DlgField('Description', _descCtrl, hint: 'e.g. Salary advance, laptop loan…', required: true),
           const SizedBox(height: 12),
           _DlgField('Total Amount (RWF)', _totalCtrl, keyboard: TextInputType.number, required: true),
           const SizedBox(height: 12),
           _DlgField('Monthly Deduction (RWF)', _monthlyCtrl, keyboard: TextInputType.number, required: true),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              HRNovaButton.text(label: 'Cancel', onPressed: () => Navigator.pop(context)),
+              HRNovaButton(
+                label: 'Add Loan',
+                isFullWidth: false,
+                isLoading: _saving,
+                onPressed: _saving ? null : _save,
+              ),
+            ],
+          ),
         ])),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white),
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Add Loan'),
-        ),
-      ],
     );
   }
 }
@@ -2332,15 +2350,15 @@ class _DlgField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
+    Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
     const SizedBox(height: 5),
     TextFormField(controller: ctrl, keyboardType: keyboard, style: TextStyle(fontSize: 15, color: context.appText),
       decoration: InputDecoration(
         hintText: hint, hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
         filled: true, fillColor: context.appField,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: context.appBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: context.appBorder)),
-        focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8)), borderSide: BorderSide(color: AppColors.primaryBlue)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+        focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
       validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
@@ -2373,6 +2391,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                 employeeName: widget.employee.fullName,
                 jobTitle: widget.employee.jobTitle,
                 department: widget.employee.department,
+                year: _selectedYear,
               );
       if (mounted) setState(() { _annualNarrative = narrative; _showPdfBtn = true; });
     } catch (e) {
@@ -2419,9 +2438,9 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
-                    color: AppColors.pillBlueBg, shape: BoxShape.circle),
-                child: const Icon(Icons.trending_up_rounded,
+                decoration: BoxDecoration(
+                    color: context.pillBlueBg, shape: BoxShape.circle),
+                child: const AppIcon(AppIcons.trendingUpRounded,
                     size: 30, color: AppColors.primaryBlue),
               ),
               const SizedBox(height: 14),
@@ -2429,7 +2448,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 17,
-                      fontWeight: FontWeight.w600)),
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
               Text('Scores will appear once a manager evaluates this employee',
                   style: TextStyle(color: context.appSubtext, fontSize: 15)),
@@ -2448,10 +2467,10 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                   ? AppColors.errorRed
                   : AppColors.warningAmber;
           final trendIcon = diff > 0
-              ? Icons.trending_up_rounded
+              ? AppIcons.trendingUpRounded
               : diff < 0
-                  ? Icons.trending_down_rounded
-                  : Icons.trending_flat_rounded;
+                  ? AppIcons.trendingDownRounded
+                  : AppIcons.trendingFlatRounded;
           final trendLabel = diff > 0
               ? '+${diff.toStringAsFixed(1)} from last month'
               : diff < 0
@@ -2466,13 +2485,13 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
               border: Border.all(color: trendColor.withAlpha(60)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(trendIcon, color: trendColor, size: 14),
+              AppIcon(trendIcon, color: trendColor, size: 14),
               const SizedBox(width: 6),
               Text(trendLabel,
                   style: TextStyle(
                       color: trendColor,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600)),
+                      fontWeight: FontWeight.w500)),
             ]),
           );
         }
@@ -2485,14 +2504,14 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 17,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w600)),
               const Spacer(),
               trendWidget,
               const SizedBox(width: 12),
               if (_showPdfBtn)
                 OutlinedButton.icon(
                   onPressed: () => _downloadPdf(sorted),
-                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                  icon: const AppIcon(AppIcons.pictureAsPdfRounded, size: 16),
                   label: const Text('Download PDF'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryBlue,
@@ -2512,7 +2531,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: AppColors.primaryBlue))
-                      : const Icon(Icons.auto_awesome_rounded, size: 16),
+                      : const AppIcon(AppIcons.autoAwesomeRounded, size: 16),
                   label: Text(_generatingAnnual
                       ? 'Generating...'
                       : 'Generate Annual Report'),
@@ -2537,7 +2556,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                         style: TextStyle(
                             color: context.appText,
                             fontSize: 15,
-                            fontWeight: FontWeight.w600)),
+                            fontWeight: FontWeight.w500)),
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 180,
@@ -2558,14 +2577,14 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        const Icon(Icons.auto_awesome_rounded,
+                        const AppIcon(AppIcons.autoAwesomeRounded,
                             color: AppColors.primaryBlue, size: 14),
                         const SizedBox(width: 8),
                         Text('Annual Performance Narrative',
                             style: TextStyle(
                                 color: context.appText,
                                 fontSize: 15,
-                                fontWeight: FontWeight.w700)),
+                                fontWeight: FontWeight.w600)),
                       ]),
                       const SizedBox(height: 10),
                       Text(_annualNarrative!,
@@ -2581,7 +2600,7 @@ class _PerformanceTabState extends ConsumerState<_PerformanceTab> {
                 style: TextStyle(
                     color: context.appText,
                     fontSize: 15,
-                    fontWeight: FontWeight.w700)),
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             ...records.map((r) => _MonthlyReviewCard(record: r)),
           ]),
@@ -2748,14 +2767,14 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.pillBlueBg,
+                  color: context.pillBlueBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(monthLabel,
                     style: const TextStyle(
                         color: AppColors.primaryBlue,
                         fontSize: 14,
-                        fontWeight: FontWeight.w700)),
+                        fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 12),
               _PerformanceStars(r.overallScore),
@@ -2771,13 +2790,13 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                     style: TextStyle(
                         color: _scoreColor,
                         fontSize: 13,
-                        fontWeight: FontWeight.w600)),
+                        fontWeight: FontWeight.w500)),
               ),
               const SizedBox(width: 10),
-              Icon(
+              AppIcon(
                 _expanded
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
+                    ? AppIcons.keyboardArrowUpRounded
+                    : AppIcons.keyboardArrowDownRounded,
                 color: context.appSubtext,
                 size: 18,
               ),
@@ -2807,7 +2826,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                         style: TextStyle(
                             color: context.appText,
                             fontSize: 14,
-                            fontWeight: FontWeight.w700)),
+                            fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     ...r.scores.entries.map((e) {
                       final score = e.value;
@@ -2847,7 +2866,7 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                                 style: TextStyle(
                                     color: barColor,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w700)),
+                                    fontWeight: FontWeight.w600)),
                           ),
                           Text('/5',
                               style: TextStyle(
@@ -2860,14 +2879,14 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                   ],
                   if (r.aiReview != null && r.aiReview!.isNotEmpty) ...[
                     Row(children: [
-                      const Icon(Icons.auto_awesome_rounded,
+                      const AppIcon(AppIcons.autoAwesomeRounded,
                           color: AppColors.primaryBlue, size: 12),
                       const SizedBox(width: 6),
                       Text('AI Review',
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 14,
-                              fontWeight: FontWeight.w700)),
+                              fontWeight: FontWeight.w600)),
                     ]),
                     const SizedBox(height: 6),
                     Text(r.aiReview!,
@@ -2880,14 +2899,14 @@ class _MonthlyReviewCardState extends State<_MonthlyReviewCard> {
                   if (r.managerNotes != null &&
                       r.managerNotes!.isNotEmpty) ...[
                     Row(children: [
-                      Icon(Icons.notes_rounded,
+                      AppIcon(AppIcons.notesRounded,
                           color: context.appSubtext, size: 12),
                       const SizedBox(width: 6),
                       Text('Manager Notes',
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 14,
-                              fontWeight: FontWeight.w700)),
+                              fontWeight: FontWeight.w600)),
                     ]),
                     const SizedBox(height: 6),
                     Text(r.managerNotes!,
@@ -2919,12 +2938,12 @@ class _PerformanceStars extends StatelessWidget {
       ...List.generate(5, (i) {
         final filled = (i + 1) <= score.floor();
         final half = !filled && (i + 0.5) < score;
-        return Icon(
+        return AppIcon(
           filled
-              ? Icons.star_rounded
+              ? AppIcons.starRounded
               : half
-                  ? Icons.star_half_rounded
-                  : Icons.star_outline_rounded,
+                  ? AppIcons.starHalfRounded
+                  : AppIcons.starOutlineRounded,
           color: (filled || half) ? color : color.withAlpha(50),
           size: 13,
         );
@@ -2932,7 +2951,7 @@ class _PerformanceStars extends StatelessWidget {
       const SizedBox(width: 5),
       Text(score.toStringAsFixed(1),
           style: TextStyle(
-              color: color, fontSize: 14, fontWeight: FontWeight.w700)),
+              color: color, fontSize: 14, fontWeight: FontWeight.w600)),
     ]);
   }
 }

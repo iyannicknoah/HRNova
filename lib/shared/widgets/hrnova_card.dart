@@ -10,7 +10,7 @@ class HRNovaCard extends StatelessWidget {
     this.onTap,
     this.color,
     this.borderColor,
-    this.radius = 20,
+    this.radius = 18,
     this.elevation = 0,
   });
 
@@ -21,6 +21,8 @@ class HRNovaCard extends StatelessWidget {
   final Color? color;
   final Color? borderColor;
   final double radius;
+  // Kept for the rare screen that still wants a shadow; the default (0)
+  // renders the flat bordered card used throughout the studied design.
   final double elevation;
 
   @override
@@ -33,7 +35,7 @@ class HRNovaCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: border, width: 0.5),
+        border: Border.all(color: border, width: 1),
         boxShadow: elevation > 0
             ? [
                 BoxShadow(

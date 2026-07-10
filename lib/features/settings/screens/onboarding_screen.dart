@@ -1,9 +1,11 @@
-﻿import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../providers/settings_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -158,10 +160,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   ];
 
   // ── Shared colours ────────────────────────────────────────────────────────
-  static const _bg     = Color(0xFF070E1C);
-  static const _card   = Color(0xFF0D1E35);
-  static const _field  = Color(0xFF060C18);
-  static const _border = Color(0xFF1A3050);
+  static const _bg     = AppColors.darkBackground;
+  static const _card   = AppColors.darkBackground;
+  static const _field  = AppColors.darkCard;
+  static const _border = Color(0xFF2A3236);
   static const _sub    = Color(0xFF8899BB);
   static const _blue   = AppColors.primaryBlue;
 
@@ -198,23 +200,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Container(
         width: 40, height: 40,
         decoration: BoxDecoration(color: _blue.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.grid_view_rounded, color: _blue, size: 22),
+        child: const AppIcon(AppIcons.gridViewRounded, color: _blue, size: 22),
       ),
       const SizedBox(width: 10),
-      const Text('HRNova', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+      const Text('HRNovva', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: -0.5)),
     ],
   );
 
   Widget _formCard() => Container(
     width: double.infinity,
-    decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border)),
+    decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _border)),
     padding: const EdgeInsets.all(32),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Step ${_step + 1} of $_total', style: const TextStyle(color: _blue, fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+        Text('Step ${_step + 1} of $_total', style: const TextStyle(color: _blue, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.5)),
         const SizedBox(height: 6),
-        Text(_stepTitles[_step], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text(_stepTitles[_step], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Text(_stepSubs[_step], style: const TextStyle(color: _sub, fontSize: 15)),
         const SizedBox(height: 24),
@@ -228,31 +230,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _navButtons() => Row(
     children: [
       if (_step > 0) ...[
-        OutlinedButton(
+        HRNovaButton(
+          label: 'Back',
+          outlined: true,
+          isFullWidth: false,
+          textColor: Colors.white,
+          height: 52,
           onPressed: _saving ? null : _back,
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: _border),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-          ),
-          child: const Text('Back'),
         ),
         const SizedBox(width: 12),
       ],
       Expanded(
-        child: FilledButton(
+        child: HRNovaButton(
+          label: _step == _total - 1 ? 'Complete Setup' : 'Continue',
+          backgroundColor: _blue,
+          isLoading: _saving,
+          height: 52,
           onPressed: _saving ? null : _next,
-          style: FilledButton.styleFrom(
-            backgroundColor: _blue,
-            disabledBackgroundColor: _blue.withAlpha(100),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-          ),
-          child: _saving
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Text(_step == _total - 1 ? 'Complete Setup' : 'Continue',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         ),
       ),
     ],
@@ -278,7 +272,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 20),
       _textField('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
       const SizedBox(height: 20),
-      const Text('Working Days', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
+      const Text('Working Days', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
       const SizedBox(height: 10),
       Wrap(
         spacing: 8, runSpacing: 8,
@@ -294,7 +288,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: sel ? _blue : _border, width: sel ? 1.5 : 1),
               ),
-              child: Text(d, style: TextStyle(color: sel ? _blue : _sub, fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+              child: Text(d, style: TextStyle(color: sel ? _blue : _sub, fontSize: 15, fontWeight: sel ? FontWeight.w500 : FontWeight.w400)),
             ),
           );
         }).toList(),
@@ -318,12 +312,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Icon(Icons.info_outline_rounded, color: _blue, size: 18),
+            AppIcon(AppIcons.infoOutlineRounded, color: _blue, size: 18),
             SizedBox(width: 12),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w600)),
+                Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
                 SizedBox(height: 4),
                 Text('Maternity: 84 days  •  Paternity: 4 days\nThese are mandatory and cannot be configured.',
                     style: TextStyle(color: _sub, fontSize: 14, height: 1.5)),
@@ -345,7 +339,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Overtime Multiplier', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('Overtime Multiplier', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
             const SizedBox(height: 6),
             Container(
               height: 50,
@@ -360,7 +354,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   )).toList(),
                   onChanged: (v) => setState(() => _overtime = v!),
                   dropdownColor: _card,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _sub),
+                  icon: const AppIcon(AppIcons.keyboardArrowDownRounded, color: _sub),
                   isExpanded: true,
                 ),
               ),
@@ -399,15 +393,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        FilledButton.icon(
+        HRNovaButton(
+          label: 'Add',
+          icon: AppIcons.addRounded,
+          isFullWidth: false,
+          backgroundColor: _blue,
+          height: 50,
           onPressed: _addDept,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Add'),
-          style: FilledButton.styleFrom(
-            backgroundColor: _blue,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-          ),
         ),
       ]),
       if (_depts.isEmpty)
@@ -425,11 +417,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(d, style: const TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
+                Text(d, style: const TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w400)),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(() => _depts.remove(d)),
-                  child: const Icon(Icons.close_rounded, size: 14, color: _blue),
+                  child: const AppIcon(AppIcons.closeRounded, size: 14, color: _blue),
                 ),
               ],
             ),
@@ -443,7 +435,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildNotifications() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
       const SizedBox(height: 14),
       _textField('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
       const SizedBox(height: 14),
@@ -465,7 +457,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: _blue.withAlpha(15), borderRadius: BorderRadius.circular(10), border: Border.all(color: _blue.withAlpha(60))),
         child: const Row(children: [
-          Icon(Icons.info_outline_rounded, color: _blue, size: 14),
+          AppIcon(AppIcons.infoOutlineRounded, color: _blue, size: 14),
           SizedBox(width: 8),
           Expanded(child: Text('Director receives weekly and monthly HR reports automatically.', style: TextStyle(color: _blue, fontSize: 13))),
         ]),
@@ -473,16 +465,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 24),
       const Divider(color: _border, height: 1),
       const SizedBox(height: 20),
-      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
       const SizedBox(height: 6),
       Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: _blue.withAlpha(15), borderRadius: BorderRadius.circular(10), border: Border.all(color: _blue.withAlpha(60))),
         child: Row(
           children: [
-            const Icon(Icons.email_outlined, color: _blue, size: 16),
+            const AppIcon(AppIcons.emailOutlined, color: _blue, size: 16),
             const SizedBox(width: 8),
-            const Text('Email only', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w600)),
+            const Text('Email only', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
             const Spacer(),
             Text('WhatsApp coming in Phase 2', style: TextStyle(color: _sub, fontSize: 13)),
           ],
@@ -500,7 +492,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
           const SizedBox(height: 6),
           TextField(
             controller: ctrl, keyboardType: type,
@@ -524,7 +516,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
           const SizedBox(height: 6),
           GestureDetector(
             onTap: onTap,
@@ -533,7 +525,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               decoration: BoxDecoration(color: _field, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
               child: Row(
                 children: [
-                  const Icon(Icons.access_time_rounded, color: _sub, size: 18),
+                  const AppIcon(AppIcons.accessTimeRounded, color: _sub, size: 18),
                   const SizedBox(width: 10),
                   Text(_fmtTime(t), style: const TextStyle(color: Colors.white, fontSize: 15)),
                 ],
@@ -572,8 +564,8 @@ class _StepIndicators extends StatelessWidget {
           ),
           child: Center(
             child: done
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
-                : Text('${idx + 1}', style: TextStyle(color: active ? _blue : const Color(0xFF445566), fontSize: 15, fontWeight: FontWeight.w600)),
+                ? const AppIcon(AppIcons.checkRounded, color: Colors.white, size: 16)
+                : Text('${idx + 1}', style: TextStyle(color: active ? _blue : const Color(0xFF445566), fontSize: 15, fontWeight: FontWeight.w500)),
           ),
         );
       }),

@@ -1,17 +1,20 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/branches/providers/branches_provider.dart';
 import 'employee_avatar.dart';
 import 'notification_bell.dart';
+import '../../core/theme/app_icons.dart';
+import '../../shared/widgets/app_icon.dart';
 
 class _NavItem {
   const _NavItem({required this.label, required this.icon, required this.route, this.roles});
   final String label;
-  final IconData icon;
+  final IconRef icon;
   final String route;
   final List<String>? roles;
 }
@@ -20,28 +23,28 @@ class _NavItem {
 const _managerRoutes = {'/dashboard', '/employees', '/attendance', '/leave', '/performance'};
 
 const _navItems = [
-  _NavItem(label: 'Dashboard', icon: Icons.dashboard_rounded, route: '/dashboard'),
-  _NavItem(label: 'Employees', icon: Icons.people_rounded, route: '/employees'),
-  _NavItem(label: 'Attendance', icon: Icons.fingerprint_rounded, route: '/attendance'),
-  _NavItem(label: 'Leave', icon: Icons.beach_access_rounded, route: '/leave'),
-  _NavItem(label: 'Payroll', icon: Icons.account_balance_wallet_rounded, route: '/payroll'),
-  _NavItem(label: 'Performance', icon: Icons.trending_up_rounded, route: '/performance'),
-  _NavItem(label: 'Reports', icon: Icons.bar_chart_rounded, route: '/reports'),
-  _NavItem(label: 'Nova AI', icon: Icons.auto_awesome_rounded, route: '/nova-ai'),
-  _NavItem(label: 'Recruitment', icon: Icons.work_rounded, route: '/recruitment'),
+  _NavItem(label: 'Dashboard', icon: AppIcons.dashboardRounded, route: '/dashboard'),
+  _NavItem(label: 'Employees', icon: AppIcons.peopleRounded, route: '/employees'),
+  _NavItem(label: 'Attendance', icon: AppIcons.fingerprintRounded, route: '/attendance'),
+  _NavItem(label: 'Leave', icon: AppIcons.beachAccessRounded, route: '/leave'),
+  _NavItem(label: 'Payroll', icon: AppIcons.accountBalanceWalletRounded, route: '/payroll'),
+  _NavItem(label: 'Performance', icon: AppIcons.trendingUpRounded, route: '/performance'),
+  _NavItem(label: 'Reports', icon: AppIcons.barChartRounded, route: '/reports'),
+  _NavItem(label: 'Nova AI', icon: AppIcons.autoAwesomeRounded, route: '/nova-ai'),
+  _NavItem(label: 'Recruitment', icon: AppIcons.workRounded, route: '/recruitment'),
   _NavItem(
     label: 'Branches',
-    icon: Icons.business_rounded,
+    icon: AppIcons.businessRounded,
     route: '/branches',
     roles: [AppConstants.roleGroupHrAdmin, AppConstants.roleHrAdmin, AppConstants.roleSuperAdmin],
   ),
   _NavItem(
     label: 'Departments',
-    icon: Icons.category_rounded,
+    icon: AppIcons.categoryRounded,
     route: '/departments',
     roles: [AppConstants.roleGroupHrAdmin, AppConstants.roleHrAdmin, AppConstants.roleSuperAdmin],
   ),
-  _NavItem(label: 'Settings', icon: Icons.settings_rounded, route: '/settings'),
+  _NavItem(label: 'Settings', icon: AppIcons.settingsRounded, route: '/settings'),
 ];
 
 class HRNovaSidebar extends ConsumerWidget {
@@ -50,7 +53,7 @@ class HRNovaSidebar extends ConsumerWidget {
     this.userName = 'HR Admin',
     this.userRole = 'hr_admin',
     this.userPhotoUrl,
-    this.companyName = 'HRNova',
+    this.companyName = 'HRNovva',
   });
 
   final String userName;
@@ -66,7 +69,7 @@ class HRNovaSidebar extends ConsumerWidget {
 
     return Container(
       width: 220,
-      color: AppColors.darkNavy,
+      color: context.appCard,
       child: Column(
         children: [
           // Logo area
@@ -77,17 +80,25 @@ class HRNovaSidebar extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    RichText(
-                      text: const TextSpan(
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                        children: [
-                          TextSpan(text: 'HR', style: TextStyle(color: AppColors.white)),
-                          TextSpan(text: 'Nova', style: TextStyle(color: AppColors.primaryBlue)),
-                        ],
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.asset(
+                        context.isDark
+                            ? 'assets/icon/icon_dark.png'
+                            : 'assets/icon/icon_light.png',
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'HRNovva',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.3,
+                        color: context.appText,
                       ),
                     ),
                     const Spacer(),
@@ -97,10 +108,10 @@ class HRNovaSidebar extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   companyName,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appSubtext,
                     fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -109,20 +120,7 @@ class HRNovaSidebar extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // Blue separator line
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primaryBlue.withAlpha(0),
-                  AppColors.primaryBlue,
-                  AppColors.primaryBlue.withAlpha(0),
-                ],
-              ),
-            ),
-          ),
+          Divider(height: 1, thickness: 1, color: context.alternate),
           const SizedBox(height: 16),
           // Nav items
           Expanded(
@@ -158,9 +156,9 @@ class HRNovaSidebar extends ConsumerWidget {
             margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.white.withAlpha(8),
+              color: context.appTint,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.white.withAlpha(15), width: 0.5),
+              border: Border.all(color: context.alternate, width: 1),
             ),
             child: Row(
               children: [
@@ -180,7 +178,7 @@ class HRNovaSidebar extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: AppColors.successGreen,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.darkNavy, width: 1.5),
+                          border: Border.all(color: context.appCard, width: 1.5),
                         ),
                       ),
                     ),
@@ -193,18 +191,18 @@ class HRNovaSidebar extends ConsumerWidget {
                     children: [
                       Text(
                         userName,
-                        style: const TextStyle(
-                          color: AppColors.white,
+                        style: TextStyle(
+                          color: context.appText,
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         _roleLabel(userRole),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appSubtext,
                           fontSize: 13,
                         ),
                         maxLines: 1,
@@ -220,10 +218,10 @@ class HRNovaSidebar extends ConsumerWidget {
                     child: Container(
                       width: 32, height: 32,
                       decoration: BoxDecoration(
-                        color: AppColors.white.withAlpha(10),
+                        color: context.appBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.logout_rounded, size: 16, color: AppColors.textSecondary),
+                      child: AppIcon(AppIcons.logoutRounded, size: 16, color: context.appSubtext),
                     ),
                   ),
                 ),
@@ -262,22 +260,22 @@ class _ThemeToggleRow extends ConsumerWidget {
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
-          hoverColor: AppColors.white.withAlpha(10),
+          hoverColor: context.appTint,
           onTap: () => ref.read(themeNotifierProvider.notifier).toggle(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(children: [
-              Icon(
-                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              AppIcon(
+                isDark ? AppIcons.lightModeRounded : AppIcons.darkModeRounded,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: context.appSubtext,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   isDark ? 'Light Mode' : 'Dark Mode',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
+                  style: TextStyle(
+                      color: context.appSubtext,
                       fontSize: 15,
                       fontWeight: FontWeight.w400),
                 ),
@@ -285,9 +283,9 @@ class _ThemeToggleRow extends ConsumerWidget {
               Container(
                 width: 36, height: 20,
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.primaryBlue : AppColors.white.withAlpha(20),
+                  color: isDark ? AppColors.primaryBlue : context.appTint,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.white.withAlpha(30), width: 0.5),
+                  border: Border.all(color: context.alternate, width: 1),
                 ),
                 child: AnimatedAlign(
                   duration: const Duration(milliseconds: 200),
@@ -316,6 +314,9 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Nudged a little closer to full-strength text color so inactive
+    // items read less faded than the plain subtext tone.
+    final inactiveColor = Color.alphaBlend(context.appText.withAlpha(40), context.appSubtext);
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
@@ -324,31 +325,31 @@ class _SidebarItem extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: () => context.go(item.route),
-          hoverColor: AppColors.white.withAlpha(10),
+          hoverColor: context.appTint,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isActive ? AppColors.primaryBlue.withAlpha(30) : Colors.transparent,
+              color: isActive ? AppColors.primaryBlue.withAlpha(20) : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: isActive
-                  ? Border.all(color: AppColors.primaryBlue.withAlpha(60), width: 0.5)
+                  ? Border.all(color: AppColors.primaryBlue.withAlpha(60), width: 1)
                   : null,
             ),
             child: Row(
               children: [
-                Icon(
+                AppIcon(
                   item.icon,
                   size: 18,
-                  color: isActive ? AppColors.primaryBlue : AppColors.textSecondary,
+                  color: isActive ? AppColors.primaryBlue : inactiveColor,
                 ),
                 const SizedBox(width: 10),
                 Text(
                   item.label,
                   style: TextStyle(
-                    color: isActive ? AppColors.white : AppColors.textSecondary,
+                    color: isActive ? AppColors.primaryBlue : inactiveColor,
                     fontSize: 15,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                   ),
                 ),
               ],

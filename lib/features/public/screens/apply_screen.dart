@@ -8,6 +8,9 @@ import '../../../core/platform/file_upload_any_helper.dart';
 import '../../../core/platform/file_upload_helper.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/hrnova_button.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class ApplyScreen extends StatefulWidget {
   const ApplyScreen({
@@ -230,13 +233,13 @@ class _ApplyScreenState extends State<ApplyScreen> {
                     colors: [AppColors.primaryBlue, Color(0xFF2979E0)]),
                 borderRadius: BorderRadius.circular(7),
               ),
-              child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 16),
+              child: const AppIcon(AppIcons.boltRounded, color: Colors.white, size: 16),
             ),
             const SizedBox(width: 8),
-            const Text('HRNova',
+            const Text('HRNovva',
                 style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: 16)),
           ],
         ),
@@ -316,7 +319,7 @@ class _JobSidebar extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
@@ -330,12 +333,12 @@ class _JobSidebar extends StatelessWidget {
           Text(job!['title'] as String? ?? '',
               style: const TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.business_rounded,
+              const AppIcon(AppIcons.businessRounded,
                   size: 13, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Expanded(
@@ -348,7 +351,7 @@ class _JobSidebar extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(Icons.work_history_outlined,
+                const AppIcon(AppIcons.workHistoryOutlined,
                     size: 13, color: AppColors.textSecondary),
                 const SizedBox(width: 4),
                 Text('$minExp+ years experience',
@@ -362,7 +365,7 @@ class _JobSidebar extends StatelessWidget {
             const Text('About the Role',
                 style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 6),
             Text(job!['description'] as String,
@@ -376,7 +379,7 @@ class _JobSidebar extends StatelessWidget {
             const Text('Required Skills',
                 style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Wrap(
@@ -385,7 +388,7 @@ class _JobSidebar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.primaryBlue.withAlpha(12),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
                     ),
                     child: Text(s,
@@ -446,7 +449,7 @@ class _ApplicationForm extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Form(
@@ -457,7 +460,7 @@ class _ApplicationForm extends StatelessWidget {
             const Text('Your Application',
                 style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 4),
             const Text('All fields marked * are required.',
@@ -568,25 +571,11 @@ class _ApplicationForm extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: (submitting || uploadingCv) ? null : onSubmit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: submitting
-                    ? const SizedBox(
-                        width: 20, height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Submit Application',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700)),
-              ),
+            HRNovaButton(
+              label: 'Submit Application',
+              isLoading: submitting,
+              onPressed: (submitting || uploadingCv) ? null : onSubmit,
+              height: 52,
             ),
           ],
         ),
@@ -629,7 +618,7 @@ class _Label extends StatelessWidget {
       child: Text(text,
           style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: AppColors.textSecondary)),
     );
   }
@@ -684,7 +673,7 @@ class _CvUploadBox extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_circle_rounded,
+            const AppIcon(AppIcons.checkCircleRounded,
                 color: AppColors.successGreen, size: 18),
             const SizedBox(width: 8),
             Expanded(
@@ -724,14 +713,14 @@ class _CvUploadBox extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.upload_file_rounded,
+                const AppIcon(AppIcons.uploadFileRounded,
                     color: AppColors.primaryBlue, size: 22),
                 const SizedBox(width: 10),
                 Text(hint,
                     style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.primaryBlue,
-                        fontWeight: FontWeight.w600)),
+                        fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -757,13 +746,13 @@ class _LoadError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline_rounded,
+          const AppIcon(AppIcons.errorOutlineRounded,
               size: 48, color: AppColors.errorRed),
           const SizedBox(height: 16),
           const Text('Job not found',
               style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 8),
           Text('This job may have been closed or the link has expired.',

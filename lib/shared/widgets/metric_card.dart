@@ -1,14 +1,15 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 import 'hrnova_card.dart';
+import '../../core/theme/app_icons.dart';
+import 'app_icon.dart';
 
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
     required this.label,
     required this.value,
-    required this.icon,
-    this.iconColor,
     this.trend,
     this.trendPositive,
     this.onTap,
@@ -17,8 +18,6 @@ class MetricCard extends StatelessWidget {
 
   final String label;
   final String value;
-  final IconData icon;
-  final Color? iconColor;
   final String? trend;
   final bool? trendPositive;
   final VoidCallback? onTap;
@@ -26,11 +25,9 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = iconColor ?? AppColors.primaryBlue;
-
     return HRNovaCard(
       padding: const EdgeInsets.all(20),
-      elevation: 2,
+      radius: 18,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,31 +35,31 @@ class MetricCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: context.appSubtext,
+                  letterSpacing: 0.0,
                 ),
-                child: Icon(icon, color: color, size: 22),
               ),
               if (trend != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: (trendPositive ?? true)
-                        ? AppColors.successGreen.withAlpha(20)
-                        : AppColors.errorRed.withAlpha(20),
+                        ? context.pillGreenBg
+                        : context.pillRedBg,
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      AppIcon(
                         (trendPositive ?? true)
-                            ? Icons.arrow_upward_rounded
-                            : Icons.arrow_downward_rounded,
+                            ? AppIcons.arrowUpwardRounded
+                            : AppIcons.arrowDownwardRounded,
                         size: 12,
                         color: (trendPositive ?? true)
                             ? AppColors.successGreen
@@ -73,7 +70,7 @@ class MetricCard extends StatelessWidget {
                         trend!,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: (trendPositive ?? true)
                               ? AppColors.successGreen
                               : AppColors.errorRed,
@@ -84,34 +81,23 @@ class MetricCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              height: 1,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.5,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: context.appText,
+              letterSpacing: 0.0,
             ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: context.appSubtext,
               ),
             ),
           ],

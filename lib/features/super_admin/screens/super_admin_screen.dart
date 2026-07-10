@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../models/branch_model.dart';
 import '../models/company_model.dart';
 import '../providers/super_admin_provider.dart';
 import '../services/super_admin_service.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
@@ -27,29 +30,24 @@ class _P {
     final d = Theme.of(ctx).brightness == Brightness.dark;
     return d
         ? const _P(
-            bg: Color(0xFF070E1C), card: Color(0xFF0D1E35),
-            border: Color(0xFF1A3050), text: Colors.white,
-            subText: AppColors.textSecondary, fieldBg: Color(0xFF060C18),
+            bg: AppColors.darkBackground, card: AppColors.darkBackground,
+            border: Color(0xFF2A3236), text: Colors.white,
+            subText: AppColors.textSecondary, fieldBg: AppColors.darkCard,
             dark: true)
         : const _P(
-            bg: Color(0xFFF0F4FF), card: Colors.white,
-            border: Color(0xFFE8EEF8), text: Color(0xFF0A1628),
-            subText: AppColors.textSecondary, fieldBg: Color(0xFFF8FAFF),
+            bg: Colors.white, card: Colors.white,
+            border: AppColors.cardBorder, text: Color(0xFF0A1628),
+            subText: AppColors.textSecondary, fieldBg: AppColors.lightBlue50,
             dark: false);
   }
 
-  BoxDecoration get card16 => _cardDeco(16);
+  BoxDecoration get card16 => _cardDeco(18);
   BoxDecoration cardR(double r) => _cardDeco(r);
 
   BoxDecoration _cardDeco(double r) => BoxDecoration(
     color: card,
     borderRadius: BorderRadius.circular(r),
-    boxShadow: [
-      BoxShadow(
-        color: dark ? Colors.black.withAlpha(60) : Colors.black.withAlpha(14),
-        blurRadius: dark ? 16 : 12,
-        offset: const Offset(0, 3)),
-    ],
+    border: Border.all(color: border, width: 1),
   );
 }
 
@@ -134,14 +132,14 @@ class _SuccessDialogState extends State<_SuccessDialog> {
                 width: 58, height: 58,
                 decoration: const BoxDecoration(
                   color: AppColors.primaryBlue, shape: BoxShape.circle),
-                child: const Icon(Icons.check_rounded,
+                child: const AppIcon(AppIcons.checkRounded,
                   color: Colors.white, size: 32)),
             ])),
           const SizedBox(height: 20),
           Text(widget.message,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: p.text, fontSize: 18, fontWeight: FontWeight.w700)),
+              color: p.text, fontSize: 18, fontWeight: FontWeight.w600)),
         ]),
       ),
     );
@@ -158,7 +156,7 @@ class _Btn extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final Color? color;
-  final IconData? icon;
+  final IconRef? icon;
   final bool outline;
   final bool fullWidth;
   const _Btn({
@@ -189,12 +187,12 @@ class _Btn extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, color: outline ? c : Colors.white, size: 17),
+                AppIcon(icon!, color: outline ? c : Colors.white, size: 17),
                 const SizedBox(width: 7),
               ],
               Text(label, style: TextStyle(
                 color: outline ? c : Colors.white,
-                fontSize: 15, fontWeight: FontWeight.w700)),
+                fontSize: 15, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -205,36 +203,22 @@ class _Btn extends StatelessWidget {
 
 class _KpiCard extends StatelessWidget {
   final String value, label;
-  final IconData icon;
-  final Color color;
-  const _KpiCard({required this.value, required this.label,
-    required this.icon, required this.color});
+  const _KpiCard({required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
     return Container(
       padding: const EdgeInsets.all(22),
-      decoration: p.cardR(20),
+      decoration: p.cardR(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14, fontWeight: FontWeight.w500)),
-            Container(
-              width: 46, height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withAlpha(20)),
-              child: Icon(icon, color: color, size: 22)),
-          ]),
+        Text(label, style: TextStyle(
+          color: p.subText,
+          fontSize: 14, fontWeight: FontWeight.w400)),
         const SizedBox(height: 14),
         Text(value, style: TextStyle(
           color: p.text, fontSize: 22,
-          fontWeight: FontWeight.w800, letterSpacing: -0.5, height: 1.1)),
+          fontWeight: FontWeight.w700, letterSpacing: -0.5, height: 1.1)),
       ]),
     );
   }
@@ -254,7 +238,7 @@ class _TypeBadge extends StatelessWidget {
     child: Text(isMulti ? 'Multi-Branch' : 'Single',
       style: TextStyle(
         color: isMulti ? AppColors.primaryBlue : AppColors.textSecondary,
-        fontSize: 13, fontWeight: FontWeight.w700)));
+        fontSize: 13, fontWeight: FontWeight.w600)));
 }
 
 class _StatusDot extends StatelessWidget {
@@ -271,7 +255,7 @@ class _StatusDot extends StatelessWidget {
     Text(active ? 'Active' : 'Suspended',
       style: TextStyle(
         color: active ? AppColors.successGreen : AppColors.errorRed,
-        fontSize: 14, fontWeight: FontWeight.w700)),
+        fontSize: 14, fontWeight: FontWeight.w600)),
   ]);
 }
 
@@ -295,7 +279,7 @@ class _PayBadge extends StatelessWidget {
           decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(
-          color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+          color: color, fontSize: 13, fontWeight: FontWeight.w600)),
       ]));
   }
 }
@@ -307,7 +291,7 @@ class _TH extends StatelessWidget {
   Widget build(BuildContext context) => Text(t.toUpperCase(),
     style: const TextStyle(
       color: AppColors.textSecondary,
-      fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5));
+      fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5));
 }
 
 class _IRow extends StatelessWidget {
@@ -322,10 +306,10 @@ class _IRow extends StatelessWidget {
         SizedBox(width: 148,
           child: Text(label, style: const TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 15, fontWeight: FontWeight.w600))),
+            fontSize: 15, fontWeight: FontWeight.w500))),
         Expanded(child: Text(value, style: TextStyle(
           color: p.text,
-          fontSize: 15, fontWeight: FontWeight.w600))),
+          fontSize: 15, fontWeight: FontWeight.w500))),
       ]));
   }
 }
@@ -340,7 +324,7 @@ class _SDivider extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 18),
       child: Row(children: [
         Text(label, style: TextStyle(
-          color: p.text, fontSize: 15, fontWeight: FontWeight.w700)),
+          color: p.text, fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(width: 12),
         Expanded(child: Divider(color: p.border, height: 1)),
       ]));
@@ -367,7 +351,7 @@ class _FilterChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(100)),
           child: Text(label, style: TextStyle(
             color: active ? Colors.white : p.subText,
-            fontSize: 14, fontWeight: FontWeight.w700)))));
+            fontSize: 14, fontWeight: FontWeight.w600)))));
   }
 }
 
@@ -389,7 +373,7 @@ class _CoAvatar extends StatelessWidget {
       child: Center(child: Text(letter,
         style: TextStyle(
           color: Colors.white,
-          fontSize: size * 0.42, fontWeight: FontWeight.w800))));
+          fontSize: size * 0.42, fontWeight: FontWeight.w700))));
   }
 }
 
@@ -419,7 +403,7 @@ class _Sidebar extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               RichText(text: const TextSpan(
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3),
                 children: [
                   TextSpan(text: 'HR',   style: TextStyle(color: Colors.white)),
                   TextSpan(text: 'Nova', style: TextStyle(color: AppColors.primaryBlue)),
@@ -427,7 +411,7 @@ class _Sidebar extends StatelessWidget {
             ]),
             const SizedBox(height: 4),
             const Text('Super Admin Panel', style: TextStyle(
-              color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+              color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w400)),
           ]),
         ),
         const SizedBox(height: 12),
@@ -449,11 +433,11 @@ class _Sidebar extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             children: [
-              _SItem(icon: Icons.home_rounded,         label: 'Dashboard',
+              _SItem(icon: AppIcons.homeRounded,         label: 'Dashboard',
                 active: view == _View.dashboard && !panelOpen, onTap: onDashboard),
-              _SItem(icon: Icons.business_rounded,     label: 'Companies',
+              _SItem(icon: AppIcons.businessRounded,     label: 'Companies',
                 active: view == _View.companies || panelOpen,  onTap: onCompanies),
-              _SItem(icon: Icons.receipt_long_rounded, label: 'Billing',
+              _SItem(icon: AppIcons.receiptLongRounded, label: 'Billing',
                 active: view == _View.billing && !panelOpen,   onTap: onBilling),
             ],
           ),
@@ -477,12 +461,12 @@ class _Sidebar extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 18),
+              child: const AppIcon(AppIcons.adminPanelSettingsRounded, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Super Admin', style: TextStyle(
-                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(userEmail, style: const TextStyle(
                 color: AppColors.textSecondary, fontSize: 13),
@@ -498,7 +482,7 @@ class _Sidebar extends StatelessWidget {
                     color: Colors.white.withAlpha(10),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.logout_rounded, size: 16, color: AppColors.textSecondary),
+                  child: const AppIcon(AppIcons.logoutRounded, size: 16, color: AppColors.textSecondary),
                 ),
               ),
             ),
@@ -511,7 +495,7 @@ class _Sidebar extends StatelessWidget {
 }
 
 class _SItem extends StatelessWidget {
-  final IconData icon;
+  final IconRef icon;
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -540,14 +524,14 @@ class _SItem extends StatelessWidget {
                   : null,
             ),
             child: Row(children: [
-              Icon(icon,
+              AppIcon(icon,
                 size: 18,
                 color: active ? AppColors.primaryBlue : AppColors.textSecondary),
               const SizedBox(width: 10),
               Text(label, style: TextStyle(
                 color: active ? Colors.white : AppColors.textSecondary,
                 fontSize: 15,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
+                fontWeight: active ? FontWeight.w500 : FontWeight.w400)),
             ]),
           ),
         ),
@@ -580,7 +564,7 @@ class _TopBar extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(children: [
         Text(title, style: TextStyle(
-          color: p.text, fontSize: 20, fontWeight: FontWeight.w700,
+          color: p.text, fontSize: 20, fontWeight: FontWeight.w600,
           letterSpacing: -0.3)),
         const SizedBox(width: 10),
         Container(
@@ -590,7 +574,7 @@ class _TopBar extends ConsumerWidget {
             borderRadius: BorderRadius.circular(100)),
           child: const Text('Super Admin', style: TextStyle(
             color: AppColors.primaryBlue,
-            fontSize: 13, fontWeight: FontWeight.w700))),
+            fontSize: 13, fontWeight: FontWeight.w600))),
         const Spacer(),
         if (showSearch) ...[
           SizedBox(
@@ -603,7 +587,7 @@ class _TopBar extends ConsumerWidget {
                 hintText: 'Search companies…',
                 hintStyle: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 15),
-                prefixIcon: const Icon(Icons.search_rounded,
+                prefixIcon: const AppIcon(AppIcons.searchRounded,
                   color: AppColors.textSecondary, size: 18),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 border: OutlineInputBorder(
@@ -627,8 +611,8 @@ class _TopBar extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: p.cardR(100),
-              child: Icon(
-                p.dark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              child: AppIcon(
+                p.dark ? AppIcons.lightModeRounded : AppIcons.darkModeRounded,
                 color: p.dark ? AppColors.warningAmber : AppColors.textSecondary,
                 size: 20)))),
       ]),
@@ -802,32 +786,28 @@ class _DashView extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
             child: Row(children: [
               Text('Overview', style: TextStyle(
-                color: p.subText, fontSize: 15, fontWeight: FontWeight.w500)),
+                color: p.subText, fontSize: 15, fontWeight: FontWeight.w400)),
               const Spacer(),
-              _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: onAdd),
+              _Btn(label: 'Add Company', icon: AppIcons.addRounded, onTap: onAdd),
             ])),
 
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
             child: Row(children: [
-              Expanded(child: _KpiCard(value: '$total',      label: 'Total Companies',
-                icon: Icons.business_rounded,     color: AppColors.primaryBlue)),
+              Expanded(child: _KpiCard(value: '$total',      label: 'Total Companies')),
               const SizedBox(width: 14),
-              Expanded(child: _KpiCard(value: '$active',     label: 'Active',
-                icon: Icons.check_circle_rounded, color: AppColors.successGreen)),
+              Expanded(child: _KpiCard(value: '$active',     label: 'Active')),
               const SizedBox(width: 14),
-              Expanded(child: _KpiCard(value: '$suspended',  label: 'Suspended',
-                icon: Icons.block_rounded,        color: AppColors.errorRed)),
+              Expanded(child: _KpiCard(value: '$suspended',  label: 'Suspended')),
               const SizedBox(width: 14),
-              Expanded(child: _KpiCard(value: _fmt(revenue), label: 'Monthly Revenue',
-                icon: Icons.payments_rounded,     color: AppColors.warningAmber)),
+              Expanded(child: _KpiCard(value: _fmt(revenue), label: 'Monthly Revenue')),
             ])),
 
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
             child: Row(children: [
               Text('Recent Companies', style: TextStyle(
-                color: p.text, fontSize: 16, fontWeight: FontWeight.w700)),
+                color: p.text, fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -836,7 +816,7 @@ class _DashView extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(100)),
                 child: Text('${companies.length}', style: const TextStyle(
                   color: AppColors.primaryBlue,
-                  fontSize: 15, fontWeight: FontWeight.w700))),
+                  fontSize: 15, fontWeight: FontWeight.w600))),
               const Spacer(),
               MouseRegion(
                 cursor: SystemMouseCursors.click,
@@ -844,7 +824,7 @@ class _DashView extends ConsumerWidget {
                   onTap: onViewAll,
                   child: const Text('View all →',
                     style: TextStyle(color: AppColors.primaryBlue,
-                      fontSize: 15, fontWeight: FontWeight.w700)))),
+                      fontSize: 15, fontWeight: FontWeight.w600)))),
             ])),
 
           Expanded(
@@ -938,7 +918,7 @@ class _CompaniesViewState extends ConsumerState<_CompaniesView> {
                     value: _sort,
                     dropdownColor: p.card,
                     style: TextStyle(color: p.text, fontSize: 15),
-                    icon: const Icon(Icons.unfold_more_rounded,
+                    icon: const AppIcon(AppIcons.unfoldMoreRounded,
                       color: AppColors.textSecondary, size: 16),
                     items: const [
                       DropdownMenuItem(value: 'newest',     child: Text('Newest')),
@@ -948,7 +928,7 @@ class _CompaniesViewState extends ConsumerState<_CompaniesView> {
                     ],
                     onChanged: (v) => setState(() => _sort = v!)))),
               const Spacer(),
-              _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: widget.onAdd),
+              _Btn(label: 'Add Company', icon: AppIcons.addRounded, onTap: widget.onAdd),
             ])),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
@@ -1004,13 +984,13 @@ class _CoTable extends StatelessWidget {
       Expanded(
         child: rows.isEmpty
           ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.business_outlined,
+              AppIcon(AppIcons.businessOutlined,
                 color: p.text.withAlpha(50), size: 44),
               const SizedBox(height: 12),
               Text('No companies found',
                 style: TextStyle(color: p.text.withAlpha(100), fontSize: 15)),
               const SizedBox(height: 16),
-              _Btn(label: 'Add Company', icon: Icons.add_rounded, onTap: onAdd),
+              _Btn(label: 'Add Company', icon: AppIcons.addRounded, onTap: onAdd),
             ]))
           : ListView.separated(
               itemCount: rows.length,
@@ -1057,7 +1037,7 @@ class _CoRowState extends State<_CoRow> {
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(co.name, style: TextStyle(
-                  color: p.text, fontSize: 16, fontWeight: FontWeight.w600),
+                  color: p.text, fontSize: 16, fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis),
                 Text(co.hrAdminEmail, style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 13),
@@ -1074,7 +1054,7 @@ class _CoRowState extends State<_CoRow> {
             Expanded(flex: 2, child: _StatusDot(co.isActive)),
             Expanded(flex: 2, child: Text(_fmt(co.monthlyPrice),
               style: TextStyle(
-                color: p.text, fontSize: 16, fontWeight: FontWeight.w600))),
+                color: p.text, fontSize: 16, fontWeight: FontWeight.w500))),
             Expanded(flex: 2, child: Text(
               widget.isDash ? co.createdAtFormatted : '${co.employeeCount}',
               style: const TextStyle(
@@ -1088,7 +1068,7 @@ class _CoRowState extends State<_CoRow> {
                   decoration: BoxDecoration(
                     color: AppColors.primaryBlue.withAlpha(18),
                     borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.remove_red_eye_rounded,
+                  child: const AppIcon(AppIcons.removeRedEyeRounded,
                     color: AppColors.primaryBlue, size: 18)))),
           ]))));
   }
@@ -1150,7 +1130,7 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
           color: p.card,
           child: Row(children: [
             Text('Company Details', style: TextStyle(
-              color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+              color: p.text, fontSize: 17, fontWeight: FontWeight.w600)),
             const Spacer(),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -1160,7 +1140,7 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: p.bg, borderRadius: BorderRadius.circular(100)),
-                  child: Icon(Icons.close_rounded, color: p.subText, size: 18)))),
+                  child: AppIcon(AppIcons.closeRounded, color: p.subText, size: 18)))),
           ])),
         Divider(height: 1, color: p.border.withAlpha(80)),
 
@@ -1181,7 +1161,7 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(co.name, style: TextStyle(
-                      color: p.text, fontSize: 20, fontWeight: FontWeight.w700),
+                      color: p.text, fontSize: 20, fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Row(children: [
@@ -1228,7 +1208,7 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
                             decoration: BoxDecoration(
                               color: AppColors.primaryBlue.withAlpha(18),
                               borderRadius: BorderRadius.circular(10)),
-                            child: const Icon(Icons.location_on_rounded,
+                            child: const AppIcon(AppIcons.locationOnRounded,
                               color: AppColors.primaryBlue, size: 18)),
                           const SizedBox(width: 12),
                           Expanded(child: Column(
@@ -1236,7 +1216,7 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
                             children: [
                             Text(branch.name, style: TextStyle(
                               color: p.text, fontSize: 16,
-                              fontWeight: FontWeight.w600)),
+                              fontWeight: FontWeight.w500)),
                             Text(branch.location, style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 13)),
                           ])),
@@ -1249,18 +1229,19 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
                                 borderRadius: BorderRadius.circular(100)),
                               child: Text(branch.code, style: const TextStyle(
                                 color: AppColors.primaryBlue,
-                                fontSize: 15, fontWeight: FontWeight.w600))),
+                                fontSize: 15, fontWeight: FontWeight.w500))),
                           const SizedBox(width: 8),
-                          const Icon(Icons.chevron_right_rounded,
+                          const AppIcon(AppIcons.chevronRightRounded,
                             color: AppColors.textSecondary, size: 18),
                         ])))))),
                 const SizedBox(height: 4),
                 _Btn(
-                  label: 'Add Branch', icon: Icons.add_rounded,
+                  label: 'Add Branch', icon: AppIcons.addRounded,
                   outline: true, fullWidth: true,
-                  onTap: () => showDialog<void>(
+                  onTap: () => AppDialogShell.show<void>(
                     context: context,
-                    builder: (ctx) => _AddBranchDialog(companyId: co.id))),
+                    alignment: Alignment.center,
+                    child: _AddBranchDialog(companyId: co.id))),
                 const SizedBox(height: 8),
               ],
 
@@ -1290,29 +1271,30 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
                           decoration: BoxDecoration(
                             color: AppColors.successGreen.withAlpha(18),
                             borderRadius: BorderRadius.circular(10)),
-                          child: const Icon(Icons.check_rounded,
+                          child: const AppIcon(AppIcons.checkRounded,
                             color: AppColors.successGreen, size: 17)),
                         const SizedBox(width: 12),
                         Expanded(child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(pay.date, style: TextStyle(
-                            color: p.text, fontSize: 16, fontWeight: FontWeight.w600)),
+                            color: p.text, fontSize: 16, fontWeight: FontWeight.w500)),
                           Text('${pay.methodLabel} · ${pay.reference}',
                             style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 12)),
                         ])),
                         Text(_fmt(pay.amount), style: const TextStyle(
                           color: AppColors.successGreen,
-                          fontSize: 17, fontWeight: FontWeight.w700)),
+                          fontSize: 17, fontWeight: FontWeight.w600)),
                       ])))).toList(),
               ),
               const SizedBox(height: 6),
               _Btn(
-                label: 'Record Payment', icon: Icons.add_rounded,
+                label: 'Record Payment', icon: AppIcons.addRounded,
                 outline: true, fullWidth: true,
-                onTap: () => showDialog<void>(
+                onTap: () => AppDialogShell.show<void>(
                   context: context,
-                  builder: (ctx) => _AddPaymentDialog(co: co))),
+                  alignment: Alignment.center,
+                  child: _AddPaymentDialog(co: co))),
               const SizedBox(height: 8),
             ]))),
 
@@ -1331,9 +1313,10 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
             Expanded(child: _Btn(
               label: 'Edit Company',
               fullWidth: true,
-              onTap: () => showDialog<void>(
+              onTap: () => AppDialogShell.show<void>(
                 context: context,
-                builder: (ctx) => _EditCoDialog(co: co)))),
+                alignment: Alignment.center,
+                child: _EditCoDialog(co: co)))),
           ])),
       ]),
     );
@@ -1376,16 +1359,16 @@ class _BranchDetailPanel extends StatelessWidget {
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: p.bg, borderRadius: BorderRadius.circular(100)),
-                  child: Icon(Icons.arrow_back_rounded,
+                  child: AppIcon(AppIcons.arrowBackRounded,
                     color: p.subText, size: 18)))),
             const SizedBox(width: 10),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Branch Details', style: TextStyle(
-                color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w600)),
               Text(coName, style: const TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 15, fontWeight: FontWeight.w600)),
+                fontSize: 15, fontWeight: FontWeight.w500)),
             ])),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -1395,7 +1378,7 @@ class _BranchDetailPanel extends StatelessWidget {
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: p.bg, borderRadius: BorderRadius.circular(100)),
-                  child: Icon(Icons.close_rounded,
+                  child: AppIcon(AppIcons.closeRounded,
                     color: p.subText, size: 18)))),
           ])),
         Divider(height: 1, color: p.border.withAlpha(80)),
@@ -1423,12 +1406,12 @@ class _BranchDetailPanel extends StatelessWidget {
                     child: Center(child: Text(letter,
                       style: const TextStyle(
                         color: Colors.white, fontSize: 22,
-                        fontWeight: FontWeight.w800)))),
+                        fontWeight: FontWeight.w700)))),
                   const SizedBox(width: 14),
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(b.name, style: TextStyle(
-                      color: p.text, fontSize: 20, fontWeight: FontWeight.w700)),
+                      color: p.text, fontSize: 20, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Row(children: [
                       if (b.code.isNotEmpty) ...[
@@ -1440,7 +1423,7 @@ class _BranchDetailPanel extends StatelessWidget {
                             borderRadius: BorderRadius.circular(100)),
                           child: Text(b.code, style: const TextStyle(
                             color: AppColors.primaryBlue,
-                            fontSize: 15, fontWeight: FontWeight.w600))),
+                            fontSize: 15, fontWeight: FontWeight.w500))),
                         const SizedBox(width: 8),
                       ],
                       _StatusDot(b.isActive),
@@ -1503,9 +1486,9 @@ class _AttendanceStat extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: Text(label, style: const TextStyle(
           color: AppColors.textSecondary,
-          fontSize: 16, fontWeight: FontWeight.w600))),
+          fontSize: 16, fontWeight: FontWeight.w500))),
         Text(value, style: TextStyle(
-          color: color, fontSize: 18, fontWeight: FontWeight.w700)),
+          color: color, fontSize: 18, fontWeight: FontWeight.w600)),
       ]));
   }
 }
@@ -1526,9 +1509,10 @@ class _BillingViewState extends ConsumerState<_BillingView> {
 
   Future<void> _onStatusChange(CompanyModel co, _PayStatus newStatus) async {
     if (newStatus == _PayStatus.paid) {
-      final confirmed = await showDialog<bool>(
+      final confirmed = await AppDialogShell.show<bool>(
         context: context,
-        builder: (ctx) => _AddPaymentDialog(co: co),
+        alignment: Alignment.center,
+        child: _AddPaymentDialog(co: co),
       );
       if (confirmed != true) return;
     }
@@ -1563,20 +1547,16 @@ class _BillingViewState extends ConsumerState<_BillingView> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Expanded(child: _KpiCard(value: _fmt(revenue),
-                label: 'Monthly Revenue',
-                icon: Icons.trending_up_rounded, color: AppColors.successGreen)),
+                label: 'Monthly Revenue')),
               const SizedBox(width: 14),
               Expanded(child: _KpiCard(value: '$paid',
-                label: 'Paid This Month',
-                icon: Icons.check_circle_rounded, color: AppColors.primaryBlue)),
+                label: 'Paid This Month')),
               const SizedBox(width: 14),
               Expanded(child: _KpiCard(value: '$pending',
-                label: 'Pending',
-                icon: Icons.schedule_rounded, color: AppColors.warningAmber)),
+                label: 'Pending')),
               const SizedBox(width: 14),
               Expanded(child: _KpiCard(value: '$notPaid',
-                label: 'Not Paid',
-                icon: Icons.cancel_rounded, color: AppColors.errorRed)),
+                label: 'Not Paid')),
             ]),
             const SizedBox(height: 24),
 
@@ -1587,19 +1567,19 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                 color: AppColors.primaryBlue.withAlpha(12),
                 borderRadius: BorderRadius.circular(14)),
               child: Row(children: [
-                const Icon(Icons.info_outline_rounded,
+                const AppIcon(AppIcons.infoOutlineRounded,
                   color: AppColors.primaryBlue, size: 18),
                 const SizedBox(width: 10),
                 const Expanded(child: Text(
                   'Payments are received via bank transfer. '
                   'Select "Paid" on a company to record a payment.',
                   style: TextStyle(color: AppColors.primaryBlue,
-                    fontSize: 16, fontWeight: FontWeight.w600))),
+                    fontSize: 16, fontWeight: FontWeight.w500))),
               ])),
 
             Row(children: [
               Text('Payment Status — $period', style: TextStyle(
-                color: p.text, fontSize: 16, fontWeight: FontWeight.w700)),
+                color: p.text, fontSize: 16, fontWeight: FontWeight.w600)),
               const Spacer(),
               const Text('Tap status badge to update',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
@@ -1638,7 +1618,7 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                             crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(co.name, style: TextStyle(
                               color: p.text, fontSize: 16,
-                              fontWeight: FontWeight.w600),
+                              fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis),
                             Text(co.hrAdminEmail, style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 13)),
@@ -1650,7 +1630,7 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                         Expanded(flex: 2, child: Text(_fmt(co.monthlyPrice),
                           style: TextStyle(
                             color: p.text, fontSize: 16,
-                            fontWeight: FontWeight.w600))),
+                            fontWeight: FontWeight.w500))),
                         Expanded(flex: 2, child: _StatusDot(co.isActive)),
                         Expanded(flex: 2, child: _PayStatusPicker(
                           status: ps,
@@ -1715,7 +1695,7 @@ class _PayStatusPicker extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         _PayBadge(status),
         const SizedBox(width: 4),
-        const Icon(Icons.keyboard_arrow_down_rounded,
+        const AppIcon(AppIcons.keyboardArrowDownRounded,
           color: AppColors.textSecondary, size: 14),
       ]));
   }
@@ -1729,7 +1709,7 @@ class _PayStatusPicker extends StatelessWidget {
           decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 8),
         Text(label, style: TextStyle(
-          color: color, fontSize: 16, fontWeight: FontWeight.w600)),
+          color: color, fontSize: 16, fontWeight: FontWeight.w500)),
       ]));
 }
 
@@ -1831,7 +1811,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
     final p = _P.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(
-        color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w600)),
+        color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w500)),
       const SizedBox(height: 6),
       TextField(
         controller: ctrl,
@@ -1845,8 +1825,8 @@ class _AddCoPanelState extends State<_AddCoPanel> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           suffixIcon: isPassword
             ? IconButton(
-                icon: Icon(
-                  _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                icon: AppIcon(
+                  _obscure ? AppIcons.visibilityOffRounded : AppIcons.visibilityRounded,
                   color: AppColors.textSecondary, size: 18),
                 onPressed: () => setState(() => _obscure = !_obscure))
             : null,
@@ -1880,16 +1860,16 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                   colors: [AppColors.primaryBlue, Color(0xFF6B8EFF)],
                   begin: Alignment.topLeft, end: Alignment.bottomRight),
                 borderRadius: BorderRadius.circular(14)),
-              child: const Icon(Icons.business_rounded,
+              child: const AppIcon(AppIcons.businessRounded,
                 color: Colors.white, size: 22)),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
               const Text('Add New Company',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
               Text('Fill in the company details below',
                 style: TextStyle(
-                  color: p.subText, fontSize: 16, fontWeight: FontWeight.w500)),
+                  color: p.subText, fontSize: 16, fontWeight: FontWeight.w400)),
             ])),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -1899,7 +1879,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                   width: 36, height: 36,
                   decoration: BoxDecoration(
                     color: p.card, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.close_rounded,
+                  child: AppIcon(AppIcons.closeRounded,
                     color: p.subText, size: 18)))),
           ])),
         Divider(height: 1, color: p.border),
@@ -1917,7 +1897,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
 
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Company Type', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w600)),
+                color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
@@ -1933,7 +1913,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
 
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Industry', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w600)),
+                color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
               Container(
                 height: 50,
@@ -1946,7 +1926,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
                     isExpanded: true,
                     dropdownColor: p.card,
                     style: TextStyle(color: p.text, fontSize: 15),
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                    icon: const AppIcon(AppIcons.keyboardArrowDownRounded,
                       color: AppColors.textSecondary, size: 20),
                     items: _industries.map((i) => DropdownMenuItem(
                       value: i, child: Text(i))).toList(),
@@ -1966,7 +1946,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text('First Branch (optional)', style: TextStyle(
-                  color: p.text, fontSize: 15, fontWeight: FontWeight.w700))),
+                  color: p.text, fontSize: 15, fontWeight: FontWeight.w600))),
               _field('Branch Name', _bName, hint: 'e.g. Kigali HQ'),
               _field('Branch Location', _bLoc, hint: 'District or address'),
               _field('Branch Code', _bCode, hint: 'e.g. KIG-01'),
@@ -1983,7 +1963,7 @@ class _AddCoPanelState extends State<_AddCoPanel> {
             const SizedBox(width: 12),
             Expanded(child: _Btn(
               label: _loading ? 'Creating…' : 'Add Company',
-              icon: _loading ? null : Icons.add_rounded,
+              icon: _loading ? null : AppIcons.addRounded,
               fullWidth: true,
               onTap: _loading ? null : _submit)),
           ])),
@@ -2013,7 +1993,7 @@ class _TypeToggle extends StatelessWidget {
             borderRadius: BorderRadius.circular(9)),
           child: Center(child: Text(label, style: TextStyle(
             color: sel ? AppColors.primaryBlue : p.subText,
-            fontSize: 16, fontWeight: FontWeight.w600)))))));
+            fontSize: 16, fontWeight: FontWeight.w500)))))));
   }
 }
 
@@ -2075,21 +2055,18 @@ class _EditCoDialogState extends State<_EditCoDialog> {
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: p.card,
-      child: SizedBox(
+    return SizedBox(
         width: 480,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
             child: Row(children: [
               Text('Edit Company', style: TextStyle(
-                color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w600)),
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close_rounded, color: p.subText, size: 20)),
+                icon: AppIcon(AppIcons.closeRounded, color: p.subText, size: 20)),
             ])),
           Divider(height: 1, color: p.border),
           ConstrainedBox(
@@ -2108,7 +2085,7 @@ class _EditCoDialogState extends State<_EditCoDialog> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text('Company Type',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: p.subText)),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: p.subText)),
                 ),
                 const SizedBox(height: 8),
                 StatefulBuilder(builder: (ctx, setLocal) {
@@ -2132,7 +2109,7 @@ class _EditCoDialogState extends State<_EditCoDialog> {
                       border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 16),
+                      const AppIcon(AppIcons.infoOutlineRounded, color: AppColors.primaryBlue, size: 16),
                       const SizedBox(width: 8),
                       Expanded(child: Text(
                         'Switching to Multi-Branch enables branch management for this company.',
@@ -2155,7 +2132,6 @@ class _EditCoDialogState extends State<_EditCoDialog> {
                 onTap: _loading ? null : _save)),
             ])),
         ]),
-      ),
     );
   }
 
@@ -2178,7 +2154,7 @@ class _EditCoDialogState extends State<_EditCoDialog> {
             child: Text(label,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: selected ? Colors.white : p.subText,
                 )),
           ),
@@ -2193,7 +2169,7 @@ class _EditCoDialogState extends State<_EditCoDialog> {
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(
-          color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
+          color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,
@@ -2275,10 +2251,7 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
       ('mobile_money',  'Mobile Money'),
       ('cash',          'Cash'),
     ];
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: p.card,
-      child: SizedBox(
+    return SizedBox(
         width: 420,
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -2289,14 +2262,14 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
                 decoration: BoxDecoration(
                   color: AppColors.successGreen.withAlpha(20),
                   shape: BoxShape.circle),
-                child: const Icon(Icons.payments_rounded,
+                child: const AppIcon(AppIcons.paymentsRounded,
                   color: AppColors.successGreen, size: 20)),
               const SizedBox(width: 12),
               Expanded(child: Text('Record Payment', style: TextStyle(
-                color: p.text, fontSize: 17, fontWeight: FontWeight.w700))),
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w600))),
               IconButton(
                 onPressed: () => Navigator.pop(context, false),
-                icon: Icon(Icons.close_rounded, color: p.subText, size: 20)),
+                icon: AppIcon(AppIcons.closeRounded, color: p.subText, size: 20)),
             ]),
             const SizedBox(height: 8),
             Text(widget.co.name,
@@ -2308,7 +2281,7 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
             // Period
             Row(children: [
               Text('Period', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
+                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
               const Spacer(),
               Container(
                 height: 42,
@@ -2330,7 +2303,7 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
             // Method
             Row(children: [
               Text('Method', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
+                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
               const Spacer(),
               Container(
                 height: 42,
@@ -2362,7 +2335,6 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
             ]),
           ]),
         ),
-      ),
     );
   }
 
@@ -2381,7 +2353,7 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
       {TextInputType type = TextInputType.text, String hint = ''}) =>
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(
-        color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
+        color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
       const SizedBox(height: 6),
       TextField(
         controller: ctrl, keyboardType: type,
@@ -2459,21 +2431,18 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
   @override
   Widget build(BuildContext context) {
     final p = _P.of(context);
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: p.card,
-      child: SizedBox(
+    return SizedBox(
         width: 460,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
             child: Row(children: [
               Text('Add Branch', style: TextStyle(
-                color: p.text, fontSize: 17, fontWeight: FontWeight.w700)),
+                color: p.text, fontSize: 17, fontWeight: FontWeight.w600)),
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close_rounded, color: p.subText, size: 20)),
+                icon: AppIcon(AppIcons.closeRounded, color: p.subText, size: 20)),
             ])),
           Divider(height: 1, color: p.border),
           ConstrainedBox(
@@ -2488,12 +2457,12 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8, top: 4),
                   child: Text('Branch Admin (optional)', style: TextStyle(
-                    color: p.text, fontSize: 15, fontWeight: FontWeight.w700))),
+                    color: p.text, fontSize: 15, fontWeight: FontWeight.w600))),
                 _bf(p, 'Admin Email', _adminEmail, type: TextInputType.emailAddress),
                 _bf(p, 'Admin Name', _adminName),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Admin Password', style: TextStyle(
-                    color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
+                    color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _adminPwd,
@@ -2505,8 +2474,8 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                       filled: true, fillColor: p.fieldBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                        icon: AppIcon(
+                          _obscure ? AppIcons.visibilityOffRounded : AppIcons.visibilityRounded,
                           color: AppColors.textSecondary, size: 18),
                         onPressed: () => setState(() => _obscure = !_obscure)),
                       border: OutlineInputBorder(
@@ -2528,12 +2497,11 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
               const SizedBox(width: 12),
               Expanded(child: _Btn(
                 label: _loading ? 'Adding…' : 'Add Branch',
-                icon: _loading ? null : Icons.add_rounded,
+                icon: _loading ? null : AppIcons.addRounded,
                 fullWidth: true,
                 onTap: _loading ? null : _add)),
             ])),
         ]),
-      ),
     );
   }
 
@@ -2543,7 +2511,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(
-          color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w600)),
+          color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,

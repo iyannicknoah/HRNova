@@ -6,12 +6,16 @@ import 'package:intl/intl.dart';
 import '../../../core/platform/platform_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/application_model.dart';
 import '../models/job_posting_model.dart';
 import '../providers/recruitment_provider.dart';
 import 'application_detail_screen.dart' show AiScoreBadge, RecommendationBadge;
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 // jobId == null → create form
@@ -205,14 +209,14 @@ class _JobFormState extends ConsumerState<_JobForm> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded),
+                  icon: const AppIcon(AppIcons.arrowBackRounded),
                   onPressed: () => context.go('/recruitment'),
                   color: context.appText,
                 ),
                 const SizedBox(width: 4),
                 Text(widget.initialJob != null ? 'Edit Job Posting' : 'New Job Posting',
                     style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800, color: context.appText)),
+                        fontSize: 18, fontWeight: FontWeight.w700, color: context.appText)),
               ],
             ),
           ),
@@ -292,12 +296,12 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                                       decoration: BoxDecoration(
                                         color: context.appField,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: context.appBorder),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: context.alternate),
                                       ),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.calendar_today_outlined,
+                                          AppIcon(AppIcons.calendarTodayOutlined,
                                               size: 16, color: context.appSubtext),
                                           const SizedBox(width: 8),
                                           Text(
@@ -355,7 +359,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                     spacing: 8, runSpacing: 8,
                                     children: _skills.map((s) => Chip(
                                       label: Text(s, style: const TextStyle(fontSize: 12)),
-                                      deleteIcon: const Icon(Icons.close_rounded, size: 14),
+                                      deleteIcon: const AppIcon(AppIcons.closeRounded, size: 14),
                                       onDeleted: () => setState(() => _skills.remove(s)),
                                       backgroundColor: AppColors.primaryBlue.withAlpha(15),
                                       labelStyle: const TextStyle(color: AppColors.primaryBlue),
@@ -376,7 +380,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                     const SizedBox(width: 8),
                                     IconButton(
                                       onPressed: _addSkill,
-                                      icon: const Icon(Icons.add_circle_rounded,
+                                      icon: const AppIcon(AppIcons.addCircleRounded,
                                           color: AppColors.primaryBlue),
                                     ),
                                   ],
@@ -468,37 +472,26 @@ class _JobFormState extends ConsumerState<_JobForm> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            OutlinedButton(
+                            HRNovaButton(
+                              label: widget.initialJob != null ? 'Save Draft' : 'Save as Draft',
+                              outlined: true,
+                              isFullWidth: false,
+                              height: 46,
+                              backgroundColor: context.appSubtext,
                               onPressed: notifier.loading ? null : () => _save('draft'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                side: BorderSide(color: context.appBorder),
-                              ),
-                              child: Text(
-                                widget.initialJob != null ? 'Save Draft' : 'Save as Draft',
-                                style: TextStyle(color: context.appText),
-                              ),
                             ),
                             const SizedBox(width: 12),
-                            FilledButton.icon(
-                              onPressed: notifier.loading ? null : () => _save('open'),
-                              icon: notifier.loading
-                                  ? const SizedBox(
-                                      width: 16, height: 16,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white))
-                                  : Icon(widget.initialJob != null
-                                      ? Icons.save_rounded
-                                      : Icons.publish_rounded, size: 18),
-                              label: Text(notifier.loading
+                            HRNovaButton(
+                              label: notifier.loading
                                   ? (widget.initialJob != null ? 'Saving...' : 'Publishing...')
-                                  : (widget.initialJob != null ? 'Update Job' : 'Publish Job')),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.primaryBlue,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
+                                  : (widget.initialJob != null ? 'Update Job' : 'Publish Job'),
+                              icon: widget.initialJob != null
+                                  ? AppIcons.saveRounded
+                                  : AppIcons.publishRounded,
+                              isLoading: notifier.loading,
+                              isFullWidth: false,
+                              height: 46,
+                              onPressed: notifier.loading ? null : () => _save('open'),
                             ),
                           ],
                         ),
@@ -522,16 +515,16 @@ class _JobFormState extends ConsumerState<_JobForm> {
         fillColor: context.appField,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: context.appBorder)),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.alternate)),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: context.appBorder)),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.alternate)),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.tertiary, width: 1.5)),
         errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppColors.errorRed)),
       );
 }
@@ -561,13 +554,13 @@ class _SuccessView extends StatelessWidget {
                     color: AppColors.successGreen.withAlpha(20),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded,
+                  child: const AppIcon(AppIcons.checkCircleRounded,
                       color: AppColors.successGreen, size: 40),
                 ),
                 const SizedBox(height: 20),
                 Text('Job Published!',
                     style: TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w800, color: context.appText)),
+                        fontSize: 22, fontWeight: FontWeight.w700, color: context.appText)),
                 const SizedBox(height: 8),
                 Text('Your job posting is live. Share the link below to start receiving applications.',
                     textAlign: TextAlign.center,
@@ -592,7 +585,7 @@ class _SuccessView extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.copy_rounded,
+                        icon: const AppIcon(AppIcons.copyRounded,
                             size: 18, color: AppColors.primaryBlue),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: publicUrl));
@@ -617,11 +610,11 @@ class _SuccessView extends StatelessWidget {
                           "We're hiring for $jobTitle! Apply here: $publicUrl");
                       openInNewTab('https://wa.me/?text=$msg');
                     },
-                    icon: const Icon(Icons.share_rounded, size: 18),
+                    icon: const AppIcon(AppIcons.shareRounded, size: 18),
                     label: const Text('Share via WhatsApp'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       foregroundColor: const Color(0xFF25D366),
                       side: const BorderSide(color: Color(0xFF25D366)),
                     ),
@@ -632,26 +625,21 @@ class _SuccessView extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      child: HRNovaButton(
+                        label: 'Back to Recruitment',
+                        outlined: true,
+                        backgroundColor: context.appSubtext,
+                        height: 44,
                         onPressed: () => context.go('/recruitment'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text('Back to Recruitment'),
                       ),
                     ),
                     if (jobId != null) ...[
                       const SizedBox(width: 12),
                       Expanded(
-                        child: FilledButton(
+                        child: HRNovaButton(
+                          label: 'View Applications',
+                          height: 44,
                           onPressed: () => context.go('/recruitment/$jobId'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('View Applications'),
                         ),
                       ),
                     ],
@@ -716,7 +704,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded),
+                  icon: const AppIcon(AppIcons.arrowBackRounded),
                   onPressed: () => context.go('/recruitment'),
                   color: context.appText,
                 ),
@@ -726,7 +714,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                     children: [
                       Text(job?.title ?? 'Job Applications',
                           style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w800, color: context.appText)),
+                              fontSize: 17, fontWeight: FontWeight.w700, color: context.appText)),
                       if (job != null)
                         Row(
                           children: [
@@ -743,7 +731,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                 // Public link
                 if (job?.publicLink.isNotEmpty == true)
                   IconButton(
-                    icon: const Icon(Icons.link_rounded, color: AppColors.primaryBlue),
+                    icon: const AppIcon(AppIcons.linkRounded, color: AppColors.primaryBlue),
                     tooltip: 'Copy public link',
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: job!.publicLink));
@@ -755,7 +743,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                 // Edit job
                 OutlinedButton.icon(
                   onPressed: () => _showEditDialog(context, job),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  icon: const AppIcon(AppIcons.editOutlined, size: 16),
                   label: const Text('Edit Job'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -843,7 +831,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.inbox_rounded, size: 48, color: context.appSubtext),
+                              AppIcon(AppIcons.inboxRounded, size: 48, color: context.appSubtext),
                               const SizedBox(height: 12),
                               Text(
                                 _filterStatus == 'all'
@@ -851,7 +839,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                                     : 'No ${_filterStatus} applications',
                                 style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w500,
                                     color: context.appText),
                               ),
                               const SizedBox(height: 6),
@@ -893,9 +881,10 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
 
   void _showEditDialog(BuildContext context, JobPostingModel? job) {
     if (job == null) return;
-    showDialog(
+    AppDialogShell.show(
       context: context,
-      builder: (_) => _EditJobDialog(job: job),
+      alignment: Alignment.center,
+      child: _EditJobDialog(job: job),
     );
   }
 }
@@ -913,7 +902,7 @@ class _PendingRejectionsBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.mail_outline_rounded, color: AppColors.errorRed, size: 18),
+          const AppIcon(AppIcons.mailOutlineRounded, color: AppColors.errorRed, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -925,7 +914,7 @@ class _PendingRejectionsBanner extends StatelessWidget {
             onPressed: onSend,
             child: const Text('Send Rejections',
                 style: TextStyle(
-                    color: AppColors.errorRed, fontWeight: FontWeight.w700)),
+                    color: AppColors.errorRed, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -951,11 +940,7 @@ class _ApplicationCard extends ConsumerWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.appCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: context.appBorder),
-        ),
+        decoration: context.cardDeco(),
         child: Row(
           children: [
             // Avatar
@@ -972,7 +957,7 @@ class _ApplicationCard extends ConsumerWidget {
                       Text(app.applicantName,
                           style: TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: context.appText)),
                       const SizedBox(width: 8),
                       _AppStatusBadge(status: app.status),
@@ -981,13 +966,13 @@ class _ApplicationCard extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.work_history_outlined,
+                      AppIcon(AppIcons.workHistoryOutlined,
                           size: 12, color: context.appSubtext),
                       const SizedBox(width: 4),
                       Text('${app.yearsExperience} yrs exp',
                           style: TextStyle(fontSize: 12, color: context.appSubtext)),
                       const SizedBox(width: 12),
-                      Icon(Icons.calendar_today_outlined,
+                      AppIcon(AppIcons.calendarTodayOutlined,
                           size: 12, color: context.appSubtext),
                       const SizedBox(width: 4),
                       Text(DateFormat('dd MMM yyyy').format(app.appliedAt),
@@ -1000,7 +985,7 @@ class _ApplicationCard extends ConsumerWidget {
                           padding: const EdgeInsets.only(top: 2),
                           child: Row(
                             children: [
-                              const Icon(Icons.check_circle_rounded,
+                              const AppIcon(AppIcons.checkCircleRounded,
                                   size: 12, color: AppColors.successGreen),
                               const SizedBox(width: 4),
                               Expanded(
@@ -1033,7 +1018,7 @@ class _ApplicationCard extends ConsumerWidget {
             ] else ...[
               Column(
                 children: [
-                  const Icon(Icons.hourglass_empty_rounded,
+                  const AppIcon(AppIcons.hourglassEmptyRounded,
                       color: AppColors.warningAmber, size: 20),
                   Text('Screening',
                       style: TextStyle(fontSize: 11, color: context.appSubtext)),
@@ -1042,7 +1027,7 @@ class _ApplicationCard extends ConsumerWidget {
               const SizedBox(width: 8),
             ],
 
-            Icon(Icons.chevron_right_rounded, color: context.appSubtext, size: 20),
+            AppIcon(AppIcons.chevronRightRounded, color: context.appSubtext, size: 20),
           ],
         ),
       ),
@@ -1072,7 +1057,7 @@ class _InitialsAvatar extends StatelessWidget {
       child: Center(
         child: Text(initials,
             style: const TextStyle(
-                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -1085,17 +1070,17 @@ class _AppStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, text, label) = switch (status) {
-      'pending' => (AppColors.pillNavyBg, AppColors.pillNavyText, 'Pending'),
-      'shortlisted' => (AppColors.pillGreenBg, AppColors.pillGreenText, 'Shortlisted'),
-      'declined' => (AppColors.pillRedBg, AppColors.pillRedText, 'Declined'),
-      'hired' => (AppColors.pillBlueBg, AppColors.pillBlueText, 'Hired'),
-      _ => (AppColors.pillNavyBg, AppColors.pillNavyText, status),
+      'pending' => (context.pillNavyBg, context.pillNavyText, 'Pending'),
+      'shortlisted' => (context.pillGreenBg, context.pillGreenText, 'Shortlisted'),
+      'declined' => (context.pillRedBg, context.pillRedText, 'Declined'),
+      'hired' => (context.pillBlueBg, context.pillBlueText, 'Hired'),
+      _ => (context.pillNavyBg, context.pillNavyText, status),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(label,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: text)),
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: text)),
     );
   }
 }
@@ -1124,89 +1109,92 @@ class _EditJobDialogState extends ConsumerState<_EditJobDialog> {
   Widget build(BuildContext context) {
     final notifier = ref.watch(recruitmentNotifierProvider);
 
-    return AlertDialog(
-      backgroundColor: context.appCard,
-      title: Text('Edit Job',
-          style: TextStyle(fontWeight: FontWeight.w700, color: context.appText)),
-      content: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Status', style: TextStyle(fontSize: 13, color: context.appSubtext)),
-            const SizedBox(height: 8),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'draft', label: Text('Draft'), icon: Icon(Icons.edit_outlined, size: 14)),
-                ButtonSegment(value: 'open', label: Text('Open'), icon: Icon(Icons.public_rounded, size: 14)),
-                ButtonSegment(value: 'closed', label: Text('Closed'), icon: Icon(Icons.lock_outline, size: 14)),
-              ],
-              selected: {_status},
-              onSelectionChanged: (s) => setState(() => _status = s.first),
-            ),
-            const SizedBox(height: 16),
-            Text('Deadline', style: TextStyle(fontSize: 13, color: context.appSubtext)),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _deadline ?? DateTime.now().add(const Duration(days: 14)),
-                  firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (d != null) setState(() => _deadline = d);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: BoxDecoration(
-                  color: context.appField,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: context.appBorder),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today_outlined, size: 16, color: context.appSubtext),
-                    const SizedBox(width: 8),
-                    Text(
-                      _deadline != null
-                          ? DateFormat('dd MMM yyyy').format(_deadline!)
-                          : 'No deadline',
-                      style: TextStyle(fontSize: 14, color: context.appText),
-                    ),
-                  ],
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Edit Job',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.appText)),
+          const SizedBox(height: 15),
+          Text('Status', style: TextStyle(fontSize: 13, color: context.appSubtext)),
+          const SizedBox(height: 8),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'draft', label: Text('Draft'), icon: AppIcon(AppIcons.editOutlined, size: 14)),
+              ButtonSegment(value: 'open', label: Text('Open'), icon: AppIcon(AppIcons.publicRounded, size: 14)),
+              ButtonSegment(value: 'closed', label: Text('Closed'), icon: AppIcon(AppIcons.lockOutline, size: 14)),
+            ],
+            selected: {_status},
+            onSelectionChanged: (s) => setState(() => _status = s.first),
+          ),
+          const SizedBox(height: 16),
+          Text('Deadline', style: TextStyle(fontSize: 13, color: context.appSubtext)),
+          const SizedBox(height: 8),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _deadline ?? DateTime.now().add(const Duration(days: 14)),
+                firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (d != null) setState(() => _deadline = d);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: context.appField,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: context.alternate),
+              ),
+              child: Row(
+                children: [
+                  AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
+                  const SizedBox(width: 8),
+                  Text(
+                    _deadline != null
+                        ? DateFormat('dd MMM yyyy').format(_deadline!)
+                        : 'No deadline',
+                    style: TextStyle(fontSize: 14, color: context.appText),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              HRNovaButton.text(
+                label: 'Cancel',
+                onPressed: () => Navigator.pop(context),
+                textColor: context.appSubtext,
+              ),
+              const SizedBox(width: 4),
+              HRNovaButton(
+                label: 'Save',
+                isLoading: notifier.loading,
+                isFullWidth: false,
+                height: 40,
+                onPressed: notifier.loading
+                    ? null
+                    : () async {
+                        final ok = await ref
+                            .read(recruitmentNotifierProvider.notifier)
+                            .updateJob(widget.job.id, {
+                          'status': _status,
+                          'deadline': _deadline?.toIso8601String(),
+                        });
+                        if (mounted && ok) Navigator.pop(context);
+                      },
+              ),
+            ],
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: context.appSubtext)),
-        ),
-        FilledButton(
-          onPressed: notifier.loading
-              ? null
-              : () async {
-                  final ok = await ref
-                      .read(recruitmentNotifierProvider.notifier)
-                      .updateJob(widget.job.id, {
-                    'status': _status,
-                    'deadline': _deadline?.toIso8601String(),
-                  });
-                  if (mounted && ok) Navigator.pop(context);
-                },
-          style: FilledButton.styleFrom(backgroundColor: AppColors.primaryBlue),
-          child: notifier.loading
-              ? const SizedBox(
-                  width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Save'),
-        ),
-      ],
     );
   }
 }
@@ -1219,16 +1207,16 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, text, label) = switch (status) {
-      'open' => (AppColors.pillGreenBg, AppColors.pillGreenText, 'Open'),
-      'draft' => (AppColors.pillAmberBg, AppColors.pillAmberText, 'Draft'),
-      'closed' => (AppColors.pillNavyBg, AppColors.pillNavyText, 'Closed'),
-      _ => (AppColors.pillNavyBg, AppColors.pillNavyText, status),
+      'open' => (context.pillGreenBg, context.pillGreenText, 'Open'),
+      'draft' => (context.pillAmberBg, context.pillAmberText, 'Draft'),
+      'closed' => (context.pillNavyBg, context.pillNavyText, 'Closed'),
+      _ => (context.pillNavyBg, context.pillNavyText, status),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(label,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: text)),
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: text)),
     );
   }
 }
@@ -1242,17 +1230,13 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
               style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+                  fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
           const SizedBox(height: 16),
           ...children,
         ],
@@ -1273,7 +1257,7 @@ class _Field extends StatelessWidget {
       children: [
         Text(label,
             style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600, color: context.appSubtext)),
+                fontSize: 12, fontWeight: FontWeight.w500, color: context.appSubtext)),
         const SizedBox(height: 6),
         child,
       ],

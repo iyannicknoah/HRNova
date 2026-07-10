@@ -8,6 +8,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/download_helper.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
+import '../../../shared/widgets/app_table.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/models/branch_model.dart';
 import '../../branches/providers/branches_provider.dart';
@@ -17,6 +20,8 @@ import '../../leave/providers/leave_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/attendance_model.dart';
 import '../providers/attendance_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 // ── Joined display row ────────────────────────────────────────────────────────
 typedef _JR = ({
@@ -191,9 +196,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showManualEntry(context),
         backgroundColor: AppColors.primaryBlue,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        icon: const AppIcon(AppIcons.addRounded, color: Colors.white),
         label: const Text('Manual Entry',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,8 +241,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
   }
 
   void _showManualEntry(BuildContext context) {
-    showDialog(
-        context: context, builder: (_) => const _ManualEntryDialog());
+    AppDialogShell.show(
+      context: context,
+      alignment: Alignment.center,
+      maxWidth: 500,
+      child: const _ManualEntryDialog(),
+    );
   }
 }
 
@@ -292,7 +301,7 @@ class _Header extends StatelessWidget {
               style: TextStyle(
                   color: context.appText,
                   fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
           Text('Real-time employee attendance tracking',
@@ -300,16 +309,16 @@ class _Header extends StatelessWidget {
         ]),
         const Spacer(),
         _HeaderBtn(
-          icon: Icons.calendar_today_rounded,
+          icon: AppIcons.calendarTodayRounded,
           label: DateFormat('MMM d, yyyy').format(date),
           onTap: onDatePick,
         ),
         if (showBranchFilter) ...[
           const SizedBox(width: 10),
           Builder(builder: (ctx) => _HeaderBtn(
-            icon: Icons.business_rounded,
+            icon: AppIcons.businessRounded,
             label: selectedBranchName ?? 'All Branches',
-            trailing: Icons.keyboard_arrow_down_rounded,
+            trailing: AppIcons.keyboardArrowDownRounded,
             onTap: () => _showBranchMenu(ctx),
           )),
         ],
@@ -321,9 +330,9 @@ class _Header extends StatelessWidget {
 class _HeaderBtn extends StatelessWidget {
   const _HeaderBtn(
       {required this.icon, required this.label, this.trailing, this.onTap});
-  final IconData icon;
+  final IconRef icon;
   final String label;
-  final IconData? trailing;
+  final IconRef? trailing;
   final VoidCallback? onTap;
 
   @override
@@ -337,16 +346,16 @@ class _HeaderBtn extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [
-          Icon(icon, size: 15, color: context.appSubtext),
+          AppIcon(icon, size: 15, color: context.appSubtext),
           const SizedBox(width: 8),
           Text(label,
               style: TextStyle(
                   color: context.appText,
                   fontSize: 15,
-                  fontWeight: FontWeight.w500)),
+                  fontWeight: FontWeight.w400)),
           if (trailing != null) ...[
             const SizedBox(width: 4),
-            Icon(trailing, size: 15, color: context.appSubtext),
+            AppIcon(trailing!, size: 15, color: context.appSubtext),
           ],
         ]),
       ),
@@ -368,17 +377,17 @@ class _SummaryRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
       child: Row(children: [
-        Expanded(child: _SCard('Present', present, Icons.check_circle_rounded,
-            AppColors.successGreen, AppColors.pillGreenBg)),
+        Expanded(child: _SCard('Present', present, AppIcons.checkCircleRounded,
+            AppColors.successGreen, context.pillGreenBg)),
         const SizedBox(width: 12),
-        Expanded(child: _SCard('Late', late, Icons.schedule_rounded,
-            AppColors.warningAmber, AppColors.pillAmberBg)),
+        Expanded(child: _SCard('Late', late, AppIcons.scheduleRounded,
+            AppColors.warningAmber, context.pillAmberBg)),
         const SizedBox(width: 12),
-        Expanded(child: _SCard('Absent', absent, Icons.cancel_rounded,
-            AppColors.errorRed, AppColors.pillRedBg)),
+        Expanded(child: _SCard('Absent', absent, AppIcons.cancelRounded,
+            AppColors.errorRed, context.pillRedBg)),
         const SizedBox(width: 12),
-        Expanded(child: _SCard('On Leave', onLeave, Icons.beach_access_rounded,
-            AppColors.primaryBlue, AppColors.pillBlueBg)),
+        Expanded(child: _SCard('On Leave', onLeave, AppIcons.beachAccessRounded,
+            AppColors.primaryBlue, context.pillBlueBg)),
       ]),
     );
   }
@@ -388,24 +397,21 @@ class _SCard extends StatelessWidget {
   const _SCard(this.label, this.count, this.icon, this.color, this.bg);
   final String label;
   final int count;
-  final IconData icon;
+  final IconRef icon;
   final Color color, bg;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: context.cardDeco(18),
       child: Row(children: [
         Container(
           width: 42,
           height: 42,
           decoration: BoxDecoration(
               color: bg, borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: color, size: 20),
+          child: AppIcon(icon, color: color, size: 20),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -416,7 +422,7 @@ class _SCard extends StatelessWidget {
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 26,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         height: 1)),
                 const SizedBox(height: 2),
                 Text(label,
@@ -446,9 +452,9 @@ class _AttTabBar extends StatelessWidget {
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
         labelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-        unselectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+        unselectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
@@ -507,22 +513,22 @@ class _TodayTab extends StatelessWidget {
       Expanded(
         child: Container(
           margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: context.cardDeco(18),
+          clipBehavior: Clip.antiAlias,
           child: Column(children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-              decoration: BoxDecoration(
-                color: context.appTint,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: AppTableHeader(
+                columns: const [
+                  'EMPLOYEE',
+                  'CHECK IN',
+                  'CHECK OUT',
+                  'STATUS',
+                  'TYPE',
+                ],
+                flex: const [28, 10, 10, 12, 6],
               ),
-              child: _tableHeader(context),
             ),
-            Divider(color: context.appBorder, height: 1),
             Expanded(
               child: loading
                   ? const Center(child: CircularProgressIndicator())
@@ -531,7 +537,7 @@ class _TodayTab extends StatelessWidget {
                           child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                              Icon(Icons.people_outline,
+                              AppIcon(AppIcons.peopleOutline,
                                   size: 48, color: context.appSubtext),
                               const SizedBox(height: 10),
                               Text('No employees found',
@@ -553,20 +559,6 @@ class _TodayTab extends StatelessWidget {
     ]);
   }
 
-  Widget _tableHeader(BuildContext context) {
-    final s = TextStyle(
-        color: context.appSubtext,
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.5);
-    return Row(children: [
-      Expanded(flex: 28, child: Text('EMPLOYEE', style: s)),
-      Expanded(flex: 10, child: Text('CHECK IN', style: s)),
-      Expanded(flex: 10, child: Text('CHECK OUT', style: s)),
-      Expanded(flex: 12, child: Text('STATUS', style: s)),
-      Expanded(flex: 6, child: Text('TYPE', style: s)),
-    ]);
-  }
 }
 
 class _DropFilter extends StatelessWidget {
@@ -601,7 +593,7 @@ class _DropFilter extends StatelessWidget {
             isDense: true,
             dropdownColor: context.appCard,
             style: TextStyle(color: context.appText, fontSize: 14),
-            icon: Icon(Icons.keyboard_arrow_down_rounded,
+            icon: AppIcon(AppIcons.keyboardArrowDownRounded,
                 size: 14, color: context.appSubtext),
             items: items
                 .asMap()
@@ -650,7 +642,7 @@ class _AttRow extends StatelessWidget {
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 15,
-                              fontWeight: FontWeight.w600),
+                              fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 1),
                       Text(row.dept,
@@ -712,7 +704,7 @@ class _AttRow extends StatelessWidget {
                 const SizedBox(width: 4),
                 Tooltip(
                   message: 'Manual Entry',
-                  child: Icon(Icons.edit_rounded,
+                  child: AppIcon(AppIcons.editRounded,
                       size: 14, color: context.appSubtext),
                 ),
               ],
@@ -731,11 +723,11 @@ class _SBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      'on_time'  => ('On Time',  AppColors.pillGreenBg, AppColors.pillGreenText),
-      'late'     => ('Late',     AppColors.pillAmberBg, AppColors.pillAmberText),
-      'absent'   => ('Absent',   AppColors.pillRedBg,   AppColors.pillRedText),
-      'on_leave' => ('On Leave', AppColors.pillBlueBg,  AppColors.pillBlueText),
-      _          => ('—',        AppColors.pillNavyBg,  AppColors.pillNavyText),
+      'on_time'  => ('On Time',  context.pillGreenBg, context.pillGreenText),
+      'late'     => ('Late',     context.pillAmberBg, context.pillAmberText),
+      'absent'   => ('Absent',   context.pillRedBg,   context.pillRedText),
+      'on_leave' => ('On Leave', context.pillBlueBg,  context.pillBlueText),
+      _          => ('—',        context.pillNavyBg,  context.pillNavyText),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -743,7 +735,7 @@ class _SBadge extends StatelessWidget {
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
       child: Text(label,
           style:
-              TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
+              TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w500)),
     );
   }
 }
@@ -790,7 +782,7 @@ class _Av extends StatelessWidget {
           style: TextStyle(
               color: Colors.white,
               fontSize: size * 0.35,
-              fontWeight: FontWeight.w700)),
+              fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -838,16 +830,16 @@ class _HistoryTab extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(children: [
-                Icon(Icons.calendar_today_rounded,
+                AppIcon(AppIcons.calendarTodayRounded,
                     size: 14, color: context.appSubtext),
                 const SizedBox(width: 8),
                 Text(DateFormat('EEEE, MMM d, yyyy').format(date),
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 15,
-                        fontWeight: FontWeight.w500)),
+                        fontWeight: FontWeight.w400)),
                 const SizedBox(width: 6),
-                Icon(Icons.keyboard_arrow_down_rounded,
+                AppIcon(AppIcons.keyboardArrowDownRounded,
                     size: 14, color: context.appSubtext),
               ]),
             ),
@@ -860,27 +852,22 @@ class _HistoryTab extends ConsumerWidget {
       Expanded(
         child: Container(
           margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: context.cardDeco(18),
+          clipBehavior: Clip.antiAlias,
           child: Column(children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-              decoration: BoxDecoration(
-                  color: context.appTint,
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12))),
-              child: Row(children: [
-                Expanded(flex: 28, child: _hTxt('EMPLOYEE', context)),
-                Expanded(flex: 10, child: _hTxt('CHECK IN', context)),
-                Expanded(flex: 10, child: _hTxt('CHECK OUT', context)),
-                Expanded(flex: 12, child: _hTxt('STATUS', context)),
-                Expanded(flex: 6, child: _hTxt('TYPE', context)),
-              ]),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: AppTableHeader(
+                columns: const [
+                  'EMPLOYEE',
+                  'CHECK IN',
+                  'CHECK OUT',
+                  'STATUS',
+                  'TYPE',
+                ],
+                flex: const [28, 10, 10, 12, 6],
+              ),
             ),
-            Divider(height: 1, color: context.appBorder),
             Expanded(
               child: loading
                   ? const Center(child: CircularProgressIndicator())
@@ -896,13 +883,6 @@ class _HistoryTab extends ConsumerWidget {
       ),
     ]);
   }
-
-  Text _hTxt(String t, BuildContext ctx) => Text(t,
-      style: TextStyle(
-          color: ctx.appSubtext,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5));
 }
 
 // ── SUMMARY TAB ───────────────────────────────────────────────────────────────
@@ -954,7 +934,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
             ]).toList(),
           ),
           pw.SizedBox(height: 12),
-          pw.Text('Generated by HRNova · ${DateFormat('d MMM yyyy, HH:mm').format(DateTime.now())}',
+          pw.Text('Generated by HRNovva · ${DateFormat('d MMM yyyy, HH:mm').format(DateTime.now())}',
               style: pw.TextStyle(font: font, fontSize: 8, color: PdfColors.grey600)),
         ],
       ));
@@ -1011,7 +991,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
         child: Row(children: [
-          _navBtn(Icons.chevron_left_rounded,
+          _navBtn(AppIcons.chevronLeftRounded,
               () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
               context),
           const SizedBox(width: 12),
@@ -1019,9 +999,9 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
               style: TextStyle(
                   color: context.appText,
                   fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+                  fontWeight: FontWeight.w500)),
           const SizedBox(width: 12),
-          _navBtn(Icons.chevron_right_rounded,
+          _navBtn(AppIcons.chevronRightRounded,
               () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
               context),
           const Spacer(),
@@ -1045,7 +1025,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
                     height: 14,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: AppColors.primaryBlue))
-                : const Icon(Icons.download_rounded, size: 16),
+                : const AppIcon(AppIcons.downloadRounded, size: 16),
             label: Text(_exporting ? 'Generating…' : 'Export PDF'),
           ),
         ]),
@@ -1053,29 +1033,24 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
       Expanded(
         child: Container(
           margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: context.cardDeco(18),
+          clipBehavior: Clip.antiAlias,
           child: Column(children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-              decoration: BoxDecoration(
-                  color: context.appTint,
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12))),
-              child: Row(children: [
-                Expanded(flex: 24, child: _h('EMPLOYEE', context)),
-                Expanded(flex: 10, child: _h('DEPT', context)),
-                Expanded(flex: 8, child: _h('PRESENT', context)),
-                Expanded(flex: 6, child: _h('LATE', context)),
-                Expanded(flex: 6, child: _h('ABSENT', context)),
-                Expanded(flex: 6, child: _h('LEAVE', context)),
-                Expanded(flex: 8, child: _h('HOURS', context)),
-              ]),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: AppTableHeader(
+                columns: const [
+                  'EMPLOYEE',
+                  'DEPT',
+                  'PRESENT',
+                  'LATE',
+                  'ABSENT',
+                  'LEAVE',
+                  'HOURS',
+                ],
+                flex: const [24, 10, 8, 6, 6, 6, 8],
+              ),
             ),
-            Divider(height: 1, color: context.appBorder),
             Expanded(
               child: loading
                   ? const Center(child: CircularProgressIndicator())
@@ -1099,7 +1074,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
   }
 
   Widget _navBtn(
-          IconData icon, VoidCallback onTap, BuildContext context) =>
+          IconRef icon, VoidCallback onTap, BuildContext context) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
@@ -1109,16 +1084,9 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
               color: context.appCard,
               borderRadius: BorderRadius.circular(8)),
           child:
-              Icon(icon, color: context.appText, size: 18),
+              AppIcon(icon, color: context.appText, size: 18),
         ),
       );
-
-  Widget _h(String t, BuildContext ctx) => Text(t,
-      style: TextStyle(
-          color: ctx.appSubtext,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5));
 
   List<_SRow> _buildSummary(
       List<EmployeeModel> employees, List<AttendanceModel> records, String workEndTime) {
@@ -1185,7 +1153,7 @@ class _SummaryRow2 extends StatelessWidget {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 15,
-                      fontWeight: FontWeight.w500),
+                      fontWeight: FontWeight.w400),
                   overflow: TextOverflow.ellipsis),
             ),
           ]),
@@ -1205,14 +1173,14 @@ class _SummaryRow2 extends StatelessWidget {
                 style: TextStyle(
                     color: context.appText,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600))),
+                    fontWeight: FontWeight.w500))),
       ]),
     );
   }
 
   Widget _num(String v, Color color) => Text(v,
       style:
-          TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w700));
+          TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w600));
 }
 
 // ── Manual Entry Dialog ───────────────────────────────────────────────────────
@@ -1306,26 +1274,20 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
     final employeesAsync = ref.watch(activeEmployeesProvider);
     final employees = employeesAsync.value ?? [];
 
-    return Dialog(
-      backgroundColor: context.appCard,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
               Row(children: [
                 Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                      color: AppColors.pillBlueBg,
+                      color: context.pillBlueBg,
                       borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.edit_calendar_rounded,
+                  child: const AppIcon(AppIcons.editCalendarRounded,
                       color: AppColors.primaryBlue, size: 20),
                 ),
                 const SizedBox(width: 12),
@@ -1334,12 +1296,12 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 17,
-                          fontWeight: FontWeight.w700)),
+                          fontWeight: FontWeight.w600)),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon:
-                      Icon(Icons.close_rounded, color: context.appSubtext),
+                      AppIcon(AppIcons.closeRounded, color: context.appSubtext),
                 ),
               ]),
               const SizedBox(height: 22),
@@ -1361,7 +1323,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                             color: context.appSubtext, fontSize: 15)),
                     dropdownColor: context.appCard,
                     isExpanded: true,
-                    icon: Icon(Icons.keyboard_arrow_down_rounded,
+                    icon: AppIcon(AppIcons.keyboardArrowDownRounded,
                         color: context.appSubtext),
                     items: employees
                         .map((e) => DropdownMenuItem(
@@ -1382,7 +1344,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
               _dlgLabel('Date *', context),
               const SizedBox(height: 6),
               _timePicker(
-                  icon: Icons.calendar_today_rounded,
+                  icon: AppIcons.calendarTodayRounded,
                   label: DateFormat('MMM d, yyyy').format(_date),
                   onTap: _pickDate,
                   context: context),
@@ -1395,7 +1357,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                         _dlgLabel('Check-In Time *', context),
                         const SizedBox(height: 6),
                         _timePicker(
-                            icon: Icons.access_time_rounded,
+                            icon: AppIcons.accessTimeRounded,
                             label: _checkIn.format(context),
                             onTap: _pickCheckIn,
                             context: context),
@@ -1410,7 +1372,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                           _dlgLabel('Check-Out Time', context),
                           const SizedBox(height: 6),
                           _timePicker(
-                              icon: Icons.access_time_rounded,
+                              icon: AppIcons.accessTimeRounded,
                               label: _checkOut != null
                                   ? _checkOut!.format(context)
                                   : 'Pick time',
@@ -1428,10 +1390,10 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 onTap: () =>
                     setState(() => _hasCheckOut = !_hasCheckOut),
                 child: Row(children: [
-                  Icon(
+                  AppIcon(
                     _hasCheckOut
-                        ? Icons.check_box_rounded
-                        : Icons.check_box_outline_blank_rounded,
+                        ? AppIcons.checkBoxRounded
+                        : AppIcons.checkBoxOutlineBlankRounded,
                     size: 18,
                     color: _hasCheckOut
                         ? AppColors.primaryBlue
@@ -1473,52 +1435,29 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
               const SizedBox(height: 24),
               Row(children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: HRNovaButton(
+                    label: 'Cancel',
                     onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: context.appBorder),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100)),
-                    ),
-                    child: Text('Cancel',
-                        style: TextStyle(color: context.appText)),
+                    backgroundColor: context.appField,
+                    textColor: context.appText,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton(
+                  child: HRNovaButton(
+                    label: 'Save Entry',
                     onPressed: _saving ? null : _save,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100)),
-                    ),
-                    child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white))
-                        : const Text('Save Entry',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600)),
+                    isLoading: _saving,
                   ),
                 ),
               ]),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _timePicker({
-    required IconData icon,
+    required IconRef icon,
     required String label,
     Color? labelColor,
     required VoidCallback onTap,
@@ -1534,7 +1473,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(children: [
-            Icon(icon, size: 16, color: context.appSubtext),
+            AppIcon(icon, size: 16, color: context.appSubtext),
             const SizedBox(width: 10),
             Text(label,
                 style: TextStyle(
@@ -1547,5 +1486,5 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
       style: TextStyle(
           color: ctx.appSubtext,
           fontSize: 14,
-          fontWeight: FontWeight.w500));
+          fontWeight: FontWeight.w400));
 }

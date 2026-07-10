@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../providers/reports_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 // ── Standalone screen (route: /nova-ai) ──────────────────────────────────────
 class NovaAiScreen extends StatelessWidget {
@@ -28,13 +30,13 @@ class NovaAiScreen extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                  child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Nova AI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: context.appText)),
+                    Text('Nova AI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.appText)),
                     Text('Your HR assistant', style: TextStyle(fontSize: 12, color: context.appSubtext)),
                   ],
                 ),
@@ -141,12 +143,11 @@ class _EmptyState extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFF4A9EFF), Color(0xFF43E0C8)]),
               borderRadius: BorderRadius.circular(22),
-              boxShadow: [BoxShadow(color: AppColors.primaryBlue.withAlpha(50), blurRadius: 20, offset: const Offset(0, 6))],
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 34),
+            child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 34),
           ),
           const SizedBox(height: 16),
-          Text('Ask Nova anything', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
+          Text('Ask Nova anything', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
           const SizedBox(height: 6),
           Text(
             'Ask about attendance, leaves, performance, or payroll.\nNova uses your company\'s real-time data.',
@@ -181,15 +182,14 @@ class _SuggestionChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appCard,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.appBorder),
-          boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 6, offset: const Offset(0, 2))],
+          border: Border.all(color: context.alternate),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lightbulb_outline_rounded, size: 13, color: AppColors.warningAmber),
+            const AppIcon(AppIcons.lightbulbOutlineRounded, size: 13, color: AppColors.warningAmber),
             const SizedBox(width: 6),
-            Flexible(child: Text(text, style: TextStyle(fontSize: 12, color: context.appText, fontWeight: FontWeight.w500))),
+            Flexible(child: Text(text, style: TextStyle(fontSize: 12, color: context.appText, fontWeight: FontWeight.w400))),
           ],
         ),
       ),
@@ -232,7 +232,7 @@ class _Bubble extends StatelessWidget {
               gradient: const LinearGradient(colors: [Color(0xFF4A9EFF), Color(0xFF43E0C8)]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
+            child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 16),
           ),
           Flexible(
             child: Container(
@@ -249,7 +249,7 @@ class _Bubble extends StatelessWidget {
                 data: message.text,
                 styleSheet: MarkdownStyleSheet(
                   p: TextStyle(color: context.appText, fontSize: 13, height: 1.6),
-                  strong: TextStyle(color: context.appText, fontWeight: FontWeight.w700),
+                  strong: TextStyle(color: context.appText, fontWeight: FontWeight.w600),
                   listBullet: TextStyle(color: context.appText, fontSize: 13),
                 ),
               ),
@@ -295,7 +295,7 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
               gradient: const LinearGradient(colors: [Color(0xFF4A9EFF), Color(0xFF43E0C8)]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
+            child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 16),
           ),
           Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -363,16 +363,16 @@ class _InputBar extends StatelessWidget {
                 fillColor: context.appField,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: context.appBorder),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.alternate),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: context.appBorder),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.alternate),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.tertiary, width: 1.5),
                 ),
               ),
               onSubmitted: loading ? null : onSend,
@@ -382,16 +382,16 @@ class _InputBar extends StatelessWidget {
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             child: Material(
-              color: loading ? context.appBorder : AppColors.primaryBlue,
-              borderRadius: BorderRadius.circular(24),
+              color: loading ? context.alternate : context.tertiary,
+              borderRadius: BorderRadius.circular(30),
               child: InkWell(
                 onTap: loading ? null : () => onSend(controller.text),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(30),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: loading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                      : const AppIcon(AppIcons.sendRounded, color: Colors.white, size: 18),
                 ),
               ),
             ),

@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 
 enum StatusType { success, warning, error, info, neutral }
 
@@ -33,7 +33,7 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = _colors();
+    final colors = _colors(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -44,21 +44,21 @@ class StatusBadge extends StatelessWidget {
         _capitalize(text),
         style: TextStyle(
           color: colors.$2,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.0,
         ),
       ),
     );
   }
 
-  (Color, Color) _colors() {
+  (Color, Color) _colors(BuildContext context) {
     return switch (type) {
-      StatusType.success => (AppColors.pillGreenBg, AppColors.pillGreenText),
-      StatusType.warning => (AppColors.pillAmberBg, AppColors.pillAmberText),
-      StatusType.error => (AppColors.pillRedBg, AppColors.pillRedText),
-      StatusType.info => (AppColors.pillBlueBg, AppColors.pillBlueText),
-      StatusType.neutral => (AppColors.pillNavyBg, AppColors.pillNavyText),
+      StatusType.success => (context.pillGreenBg, context.pillGreenText),
+      StatusType.warning => (context.pillAmberBg, context.pillAmberText),
+      StatusType.error => (context.pillRedBg, context.pillRedText),
+      StatusType.info => (context.pillBlueBg, context.pillBlueText),
+      StatusType.neutral => (context.pillNavyBg, context.pillNavyText),
     };
   }
 

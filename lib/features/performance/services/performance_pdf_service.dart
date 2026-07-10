@@ -247,7 +247,7 @@ class PerformancePdfService {
           pw.Expanded(child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('HRNova',
+              pw.Text('HRNovva',
                   style: pw.TextStyle(
                       color: PdfColors.white,
                       fontSize: 17,
@@ -275,7 +275,7 @@ class PerformancePdfService {
         margin: const pw.EdgeInsets.only(top: 10),
         child: pw.Row(children: [
           pw.Expanded(
-            child: pw.Text('Confidential — HRNova HR System',
+            child: pw.Text('Confidential — HRNovva HR System',
                 style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
           ),
           pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}',

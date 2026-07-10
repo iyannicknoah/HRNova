@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -174,7 +177,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Settings', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                Text('Settings', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
                 const SizedBox(height: 2),
                 Text('Configure your company preferences', style: TextStyle(color: context.appSubtext, fontSize: 15)),
               ]),
@@ -183,11 +186,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: AppColors.pillAmberBg,
+                    color: context.pillAmberBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(children: [
-                    const Icon(Icons.lock_outline_rounded, color: AppColors.warningAmber, size: 18),
+                    const AppIcon(AppIcons.lockOutlineRounded, color: AppColors.warningAmber, size: 18),
                     const SizedBox(width: 10),
                     Expanded(child: Text(
                       'Settings can only be changed by the company HR Admin. Contact them to update policies.',
@@ -197,17 +200,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              _section('schedule', Icons.schedule_rounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody(canEdit)),
+              _section('schedule', AppIcons.scheduleRounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody(canEdit)),
               const SizedBox(height: 14),
-              _section('leave', Icons.beach_access_rounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody(canEdit)),
+              _section('leave', AppIcons.beachAccessRounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody(canEdit)),
               const SizedBox(height: 14),
-              _section('payroll', Icons.payments_rounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody(canEdit)),
+              _section('payroll', AppIcons.paymentsRounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody(canEdit)),
               const SizedBox(height: 14),
-              _section('departments', Icons.account_tree_rounded, 'Departments', 'Manage company departments', _deptsBody(canEdit)),
+              _section('departments', AppIcons.accountTreeRounded, 'Departments', 'Manage company departments', _deptsBody(canEdit)),
               const SizedBox(height: 14),
-              _section('notifications', Icons.notifications_rounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notifBody(canEdit)),
+              _section('notifications', AppIcons.notificationsRounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notifBody(canEdit)),
               const SizedBox(height: 14),
-              _section('performance', Icons.trending_up_rounded, 'Performance Criteria', 'Scoring criteria and weights — must total 100%', _criteriaBody(canEdit)),
+              _section('performance', AppIcons.trendingUpRounded, 'Performance Criteria', 'Scoring criteria and weights — must total 100%', _criteriaBody(canEdit)),
             ],
           ),
         ),
@@ -215,7 +218,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _section(String key, IconData icon, String title, String subtitle, Widget body) {
+  Widget _section(String key, IconRef icon, String title, String subtitle, Widget body) {
     final open = _expanded[key] ?? false;
     return Container(
       decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16)),
@@ -229,14 +232,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Row(
                 children: [
                   Container(width: 40, height: 40,
-                    decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
-                    child: Icon(icon, color: AppColors.primaryBlue, size: 20)),
+                    decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(12)),
+                    child: AppIcon(icon, color: AppColors.primaryBlue, size: 20)),
                   const SizedBox(width: 14),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500)),
                     Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 14)),
                   ])),
-                  Icon(open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: context.appSubtext),
+                  AppIcon(open ? AppIcons.keyboardArrowUpRounded : AppIcons.keyboardArrowDownRounded, color: context.appSubtext),
                 ],
               ),
             ),
@@ -263,7 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 16),
     _field('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
     const SizedBox(height: 16),
-    Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+    Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
     const SizedBox(height: 10),
     Wrap(spacing: 8, runSpacing: 8, children: _allDays.map((d) {
       final sel = _days.contains(d);
@@ -277,7 +280,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: sel ? AppColors.primaryBlue : context.appBorder, width: sel ? 1.5 : 1),
           ),
-          child: Text(d, style: TextStyle(color: sel ? AppColors.primaryBlue : context.appSubtext, fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+          child: Text(d, style: TextStyle(color: sel ? AppColors.primaryBlue : context.appSubtext, fontSize: 15, fontWeight: sel ? FontWeight.w500 : FontWeight.w400)),
         ),
       );
     }).toList()),
@@ -301,9 +304,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 14),
     Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
+      decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
       child: Row(children: const [
-        Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 16),
+        AppIcon(AppIcons.infoOutlineRounded, color: AppColors.primaryBlue, size: 16),
         SizedBox(width: 10),
         Expanded(child: Text('Maternity: 84 days  •  Paternity: 4 days — Fixed by Rwanda Law', style: TextStyle(color: AppColors.primaryBlue, fontSize: 14, height: 1.4))),
       ]),
@@ -322,7 +325,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
         const SizedBox(height: 6),
         Container(
           height: 48, padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -336,7 +339,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Text(v, style: TextStyle(color: context.appText, fontSize: 15)),
               )).toList(),
               onChanged: (v) => setState(() => _overtime = v!),
-              icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.appSubtext),
+              icon: AppIcon(AppIcons.keyboardArrowDownRounded, color: context.appSubtext),
               isExpanded: true,
             ),
           ),
@@ -379,24 +382,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       const SizedBox(width: 10),
-      FilledButton.icon(
+      HRNovaButton(
+        label: 'Add',
+        icon: AppIcons.addRounded,
+        isFullWidth: false,
+        height: 46,
         onPressed: _addDept,
-        icon: const Icon(Icons.add_rounded, size: 18),
-        label: const Text('Add'),
-        style: FilledButton.styleFrom(backgroundColor: AppColors.primaryBlue, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100))),
       ),
     ]),
     if (_depts.isNotEmpty) ...[
       const SizedBox(height: 14),
       Wrap(spacing: 8, runSpacing: 8, children: _depts.map((d) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
+        decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(d, style: const TextStyle(color: AppColors.primaryBlue, fontSize: 15, fontWeight: FontWeight.w500)),
+          Text(d, style: const TextStyle(color: AppColors.primaryBlue, fontSize: 15, fontWeight: FontWeight.w400)),
           const SizedBox(width: 6),
           GestureDetector(
             onTap: () => setState(() => _depts.remove(d)),
-            child: const Icon(Icons.close_rounded, size: 13, color: AppColors.primaryBlue),
+            child: const AppIcon(AppIcons.closeRounded, size: 13, color: AppColors.primaryBlue),
           ),
         ]),
       )).toList()),
@@ -408,7 +412,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _notifBody(bool canEdit) => AbsorbPointer(
     absorbing: !canEdit,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+    Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
     const SizedBox(height: 14),
     _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
     const SizedBox(height: 12),
@@ -428,9 +432,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 8),
     Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.primaryBlue.withAlpha(50))),
+      decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.primaryBlue.withAlpha(50))),
       child: const Row(children: [
-        Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 14),
+        AppIcon(AppIcons.infoOutlineRounded, color: AppColors.primaryBlue, size: 14),
         SizedBox(width: 8),
         Expanded(child: Text('Director receives weekly and monthly HR reports automatically.', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13))),
       ]),
@@ -453,7 +457,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ── Shared widgets ────────────────────────────────────────────────────────
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
         const SizedBox(height: 6),
         TextField(
           controller: ctrl, keyboardType: type,
@@ -474,7 +478,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _timeField(String label, TimeOfDay t, VoidCallback onTap) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: onTap,
@@ -482,7 +486,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
-              Icon(Icons.access_time_rounded, color: context.appSubtext, size: 18),
+              AppIcon(AppIcons.accessTimeRounded, color: context.appSubtext, size: 18),
               const SizedBox(width: 10),
               Text(_fmtTime(t), style: TextStyle(color: context.appText, fontSize: 15)),
             ]),
@@ -492,15 +496,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _saveBtn(VoidCallback? onTap) => Align(
     alignment: Alignment.centerRight,
-    child: FilledButton.icon(
+    child: HRNovaButton(
+      label: 'Save Changes',
+      icon: AppIcons.checkRounded,
+      isFullWidth: false,
+      height: 46,
       onPressed: onTap,
-      icon: const Icon(Icons.check_rounded, size: 16),
-      label: const Text('Save Changes'),
-      style: FilledButton.styleFrom(
-        backgroundColor: onTap != null ? AppColors.primaryBlue : AppColors.textSecondary,
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-      ),
     ),
   );
 
@@ -511,8 +512,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       absorbing: !canEdit,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600))),
-        Expanded(flex: 2, child: Text('Weight %', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600))),
+        Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500))),
+        Expanded(flex: 2, child: Text('Weight %', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500))),
         const SizedBox(width: 40),
       ]),
       const SizedBox(height: 10),
@@ -537,17 +538,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isValid ? AppColors.pillGreenBg : AppColors.pillRedBg,
+          color: isValid ? context.pillGreenBg : context.pillRedBg,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isValid ? AppColors.successGreen.withAlpha(80) : AppColors.errorRed.withAlpha(80)),
         ),
         child: Row(children: [
-          Icon(isValid ? Icons.check_circle_rounded : Icons.error_rounded,
+          AppIcon(isValid ? AppIcons.checkCircleRounded : AppIcons.errorRounded,
               color: isValid ? AppColors.successGreen : AppColors.errorRed, size: 16),
           const SizedBox(width: 8),
           Text(
             isValid ? 'Total: 100% ✓' : 'Total: ${total.toStringAsFixed(1)}% — must equal 100%',
-            style: TextStyle(color: isValid ? AppColors.successGreen : AppColors.errorRed, fontSize: 15, fontWeight: FontWeight.w600),
+            style: TextStyle(color: isValid ? AppColors.successGreen : AppColors.errorRed, fontSize: 15, fontWeight: FontWeight.w500),
           ),
         ]),
       ),
@@ -619,7 +620,7 @@ class _CriterionRowState extends State<_CriterionRow> {
         const SizedBox(width: 8),
         IconButton(
           onPressed: widget.onRemove,
-          icon: const Icon(Icons.remove_circle_outline_rounded, size: 20, color: AppColors.errorRed),
+          icon: const AppIcon(AppIcons.removeCircleOutlineRounded, size: 20, color: AppColors.errorRed),
           tooltip: 'Remove',
         ),
       ]),
@@ -682,14 +683,11 @@ class _AddCriterionRowState extends State<_AddCriterionRow> {
         ),
       )),
       const SizedBox(width: 8),
-      FilledButton(
+      HRNovaButton(
+        label: 'Add',
+        isFullWidth: false,
+        height: 44,
         onPressed: _add,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primaryBlue,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-        child: const Text('Add'),
       ),
     ]);
   }

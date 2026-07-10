@@ -19,6 +19,8 @@ import '../../settings/providers/settings_provider.dart';
 import '../providers/reports_provider.dart';
 import '../services/reports_pdf_service.dart';
 import 'nova_ai_screen.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 // ── Attendance helpers (mirror attendance_screen logic) ───────────────────────
 DateTime _endOfWorkDt(DateTime day, String workEndTime) {
@@ -145,9 +147,9 @@ class _Header extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 4),
             child: Row(
               children: [
-                const Icon(Icons.bar_chart_rounded, color: AppColors.primaryBlue, size: 22),
+                const AppIcon(AppIcons.barChartRounded, color: AppColors.primaryBlue, size: 22),
                 const SizedBox(width: 10),
-                Text('Reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.appText)),
+                Text('Reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
                 const SizedBox(width: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -157,9 +159,9 @@ class _Header extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 13),
+                      const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.primaryBlue, size: 13),
                       const SizedBox(width: 4),
-                      Text('AI-Powered', style: const TextStyle(fontSize: 11, color: AppColors.primaryBlue, fontWeight: FontWeight.w600)),
+                      Text('AI-Powered', style: const TextStyle(fontSize: 11, color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
@@ -174,8 +176,8 @@ class _Header extends StatelessWidget {
             indicatorWeight: 2,
             labelColor: AppColors.primaryBlue,
             unselectedLabelColor: context.appSubtext,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+            labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
             dividerColor: Colors.transparent,
             tabs: labels.map((l) => Tab(text: l)).toList(),
           ),
@@ -242,7 +244,7 @@ class _ReportCard extends StatelessWidget {
     }
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: context.cardDeco(12),
+      decoration: context.cardDeco(),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -250,12 +252,12 @@ class _ReportCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.description_rounded, color: AppColors.primaryBlue, size: 16),
+                const AppIcon(AppIcons.descriptionRounded, color: AppColors.primaryBlue, size: 16),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _docLabel(doc),
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: context.appText),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: context.appText),
                   ),
                 ),
                 if (timeStr.isNotEmpty)
@@ -267,8 +269,8 @@ class _ReportCard extends StatelessWidget {
               data: report,
               styleSheet: MarkdownStyleSheet(
                 p: TextStyle(fontSize: 13, color: context.appText, height: 1.65),
-                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText),
-                strong: const TextStyle(fontWeight: FontWeight.w700),
+                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText),
+                strong: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -309,8 +311,8 @@ class _GenButton extends StatelessWidget {
       onPressed: loading ? null : onTap,
       icon: loading
           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.auto_awesome_rounded, size: 17),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          : const AppIcon(AppIcons.autoAwesomeRounded, size: 17),
+      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
     );
   }
 }
@@ -320,7 +322,7 @@ class _StatTile extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  final IconData icon;
+  final IconRef icon;
   const _StatTile({required this.label, required this.value, required this.color, required this.icon});
 
   @override
@@ -334,10 +336,8 @@ class _StatTile extends StatelessWidget {
           border: Border.all(color: color.withAlpha(50)),
         ),
         child: Column(children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(height: 6),
           Text(value,
-              style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800, height: 1)),
+              style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w700, height: 1)),
           const SizedBox(height: 4),
           Text(label,
               style: TextStyle(color: context.appSubtext, fontSize: 11),
@@ -388,11 +388,11 @@ class _AiSummaryPanel extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
           child: Row(children: [
-            const Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 16),
+            const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.primaryBlue, size: 16),
             const SizedBox(width: 8),
             Text('AI Summary — $periodLabel',
                 style: const TextStyle(
-                    color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w700)),
+                    color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
             const Spacer(),
             if (timeStr.isNotEmpty)
               Text(timeStr,
@@ -424,8 +424,8 @@ class _AiSummaryPanel extends StatelessWidget {
               data: reportText,
               styleSheet: MarkdownStyleSheet(
                 p: TextStyle(fontSize: 13, color: context.appText, height: 1.65),
-                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText),
-                strong: const TextStyle(fontWeight: FontWeight.w700),
+                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText),
+                strong: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           )
@@ -440,7 +440,7 @@ class _AiSummaryPanel extends StatelessWidget {
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: onGenerate,
-                icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                icon: const AppIcon(AppIcons.autoAwesomeRounded, size: 14),
                 label: const Text('Generate AI Summary', style: TextStyle(fontSize: 13)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primaryBlue,
@@ -499,21 +499,21 @@ class _DailyLiveSection extends ConsumerWidget {
     final rateColor = rate >= 80 ? AppColors.successGreen : rate >= 60 ? AppColors.warningAmber : AppColors.errorRed;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Today\'s Overview', style: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w700, color: context.appSubtext)),
+          fontSize: 13, fontWeight: FontWeight.w600, color: context.appSubtext)),
       const SizedBox(height: 12),
       // KPI tiles on top
       Row(children: [
-        _StatTile(label: 'Attendance Rate', value: '$rate%', color: rateColor, icon: Icons.trending_up_rounded),
+        _StatTile(label: 'Attendance Rate', value: '$rate%', color: rateColor, icon: AppIcons.trendingUpRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Active Employees', value: '$totalActive', color: AppColors.primaryBlue, icon: Icons.people_rounded),
+        _StatTile(label: 'Active Employees', value: '$totalActive', color: AppColors.primaryBlue, icon: AppIcons.peopleRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Present', value: '$present', color: AppColors.successGreen, icon: Icons.check_circle_rounded),
+        _StatTile(label: 'Present', value: '$present', color: AppColors.successGreen, icon: AppIcons.checkCircleRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Late', value: '$late', color: AppColors.warningAmber, icon: Icons.schedule_rounded),
+        _StatTile(label: 'Late', value: '$late', color: AppColors.warningAmber, icon: AppIcons.scheduleRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Absent', value: '$absent', color: AppColors.errorRed, icon: Icons.cancel_rounded),
+        _StatTile(label: 'Absent', value: '$absent', color: AppColors.errorRed, icon: AppIcons.cancelRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'On Leave', value: '$onLeave', color: const Color(0xFF8B5CF6), icon: Icons.beach_access_rounded),
+        _StatTile(label: 'On Leave', value: '$onLeave', color: const Color(0xFF8B5CF6), icon: AppIcons.beachAccessRounded),
       ]),
       const SizedBox(height: 12),
       // Chart full width below
@@ -589,17 +589,17 @@ class _WeeklyLiveSection extends ConsumerWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('This Week\'s Attendance', style: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w700, color: context.appSubtext)),
+          fontSize: 13, fontWeight: FontWeight.w600, color: context.appSubtext)),
       const SizedBox(height: 12),
       // KPI tiles on top
       Row(children: [
-        _StatTile(label: 'Avg Rate', value: '$avgRate%', color: avgRateColor, icon: Icons.trending_up_rounded),
+        _StatTile(label: 'Avg Rate', value: '$avgRate%', color: avgRateColor, icon: AppIcons.trendingUpRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Employees', value: '$totalActive', color: AppColors.primaryBlue, icon: Icons.people_rounded),
+        _StatTile(label: 'Employees', value: '$totalActive', color: AppColors.primaryBlue, icon: AppIcons.peopleRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Total Present', value: '$totalPresent', color: AppColors.successGreen, icon: Icons.check_circle_rounded),
+        _StatTile(label: 'Total Present', value: '$totalPresent', color: AppColors.successGreen, icon: AppIcons.checkCircleRounded),
         const SizedBox(width: 8),
-        _StatTile(label: 'Total Late', value: '$totalLate', color: AppColors.warningAmber, icon: Icons.schedule_rounded),
+        _StatTile(label: 'Total Late', value: '$totalLate', color: AppColors.warningAmber, icon: AppIcons.scheduleRounded),
       ]),
       const SizedBox(height: 12),
       // Chart full width below
@@ -696,25 +696,25 @@ class _MonthlyLiveSection extends ConsumerWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Live Monthly Overview', style: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w700, color: context.appSubtext)),
+          fontSize: 13, fontWeight: FontWeight.w600, color: context.appSubtext)),
       const SizedBox(height: 10),
       // KPI tiles
       Row(children: [
         _StatTile(label: 'Attendance\nRate', value: '$rate%',
             color: rate >= 80 ? AppColors.successGreen : rate >= 60 ? AppColors.warningAmber : AppColors.errorRed,
-            icon: Icons.trending_up_rounded),
+            icon: AppIcons.trendingUpRounded),
         const SizedBox(width: 8),
         _StatTile(label: 'Present\nDays', value: '$present',
-            color: AppColors.successGreen, icon: Icons.check_circle_rounded),
+            color: AppColors.successGreen, icon: AppIcons.checkCircleRounded),
         const SizedBox(width: 8),
         _StatTile(label: 'Late\nDays', value: '$late',
-            color: AppColors.warningAmber, icon: Icons.schedule_rounded),
+            color: AppColors.warningAmber, icon: AppIcons.scheduleRounded),
         const SizedBox(width: 8),
         _StatTile(label: 'Absent\nDays', value: '$absent',
-            color: AppColors.errorRed, icon: Icons.cancel_rounded),
+            color: AppColors.errorRed, icon: AppIcons.cancelRounded),
         const SizedBox(width: 8),
         _StatTile(label: 'Working\nDays', value: '$workDays',
-            color: AppColors.primaryBlue, icon: Icons.calendar_month_rounded),
+            color: AppColors.primaryBlue, icon: AppIcons.calendarMonthRounded),
       ]),
       const SizedBox(height: 16),
       // Attendance charts
@@ -762,12 +762,12 @@ class _MonthlyLiveSection extends ConsumerWidget {
             border: Border.all(color: AppColors.successGreen.withAlpha(50)),
           ),
           child: Row(children: [
-            const Icon(Icons.payments_rounded, color: AppColors.successGreen, size: 16),
+            const AppIcon(AppIcons.paymentsRounded, color: AppColors.successGreen, size: 16),
             const SizedBox(width: 8),
             Text('Payroll processed: ',
                 style: TextStyle(fontSize: 13, color: context.appSubtext)),
             Text('RWF ${NumberFormat('#,###').format(totalGross.round())}',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                     color: AppColors.successGreen)),
             Text(' ($payrollCount employees)',
                 style: TextStyle(fontSize: 12, color: context.appSubtext)),
@@ -855,7 +855,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
           _DailyLiveSection(date: _date, branchId: _branchId),
           if (docs.isNotEmpty) ...[
             const SizedBox(height: 24),
-            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
             const SizedBox(height: 10),
             ...docs.take(5).map((d) => _ReportCard(doc: d)),
           ],
@@ -880,9 +880,9 @@ class _AnomalySection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmber, size: 16),
+          const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 16),
           const SizedBox(width: 6),
-          Text('AI Anomaly Alerts', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+          Text('AI Anomaly Alerts', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
         ]),
         const SizedBox(height: 10),
         ...docs.take(5).map((d) => _AnomalyCard(doc: d)),
@@ -917,9 +917,9 @@ class _AnomalyCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.auto_awesome_rounded, color: AppColors.warningAmber, size: 14),
+          const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.warningAmber, size: 14),
           const SizedBox(width: 6),
-          const Text('Anomaly Alert', style: TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w600)),
+          const Text('Anomaly Alert', style: TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w500)),
           const Spacer(),
           if (dateLabel.isNotEmpty)
             Text(dateLabel, style: TextStyle(color: context.appSubtext, fontSize: 12)),
@@ -992,7 +992,7 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                      icon: const AppIcon(AppIcons.chevronLeftRounded, size: 18),
                       onPressed: () => setState(() => _weekStart = _weekStart.subtract(const Duration(days: 7))),
                       padding: const EdgeInsets.all(6),
                       constraints: const BoxConstraints(),
@@ -1001,11 +1001,11 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         periodLabel,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                      icon: const AppIcon(AppIcons.chevronRightRounded, size: 18),
                       onPressed: _weekStart.isBefore(DateTime.now().subtract(const Duration(days: 7)))
                           ? () => setState(() => _weekStart = _weekStart.add(const Duration(days: 7)))
                           : null,
@@ -1045,7 +1045,7 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
           _WeeklyLiveSection(weekStart: _weekStart, branchId: _branchId),
           if (docs.isNotEmpty) ...[
             const SizedBox(height: 24),
-            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
             const SizedBox(height: 10),
             ...docs.take(5).map((d) => _ReportCard(doc: d)),
           ],
@@ -1101,7 +1101,7 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                      icon: const AppIcon(AppIcons.chevronLeftRounded, size: 18),
                       onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
                       padding: const EdgeInsets.all(6),
                       constraints: const BoxConstraints(),
@@ -1110,11 +1110,11 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         DateFormat('MMMM yyyy').format(_month),
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                      icon: const AppIcon(AppIcons.chevronRightRounded, size: 18),
                       onPressed: _month.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
                           ? () => setState(() => _month = DateTime(_month.year, _month.month + 1))
                           : null,
@@ -1157,7 +1157,7 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
           _MonthlyLiveSection(month: _month, branchId: _branchId),
           if (docs.isNotEmpty) ...[
             const SizedBox(height: 24),
-            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
             const SizedBox(height: 10),
             ...docs.take(5).map((d) => _ReportCard(doc: d)),
           ],
@@ -1267,7 +1267,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
               setState(() => _pdfDownloading = true);
               try {
                 await GroupReportPdfService.download(
-                  companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+                  companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
                   date: _fmt.format(_date),
                   totalEmployees: totalActive,
                   totalPresent: totalPresent,
@@ -1289,9 +1289,9 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
             icon: _pdfDownloading
                 ? const SizedBox(width: 15, height: 15,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.download_rounded, size: 17),
+                : const AppIcon(AppIcons.downloadRounded, size: 17),
             label: const Text('Download PDF',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ]),
         const SizedBox(height: 12),
@@ -1321,7 +1321,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
         else ...[
           Row(children: [
             _GroupKpiCard(
-              icon: Icons.corporate_fare_rounded,
+              icon: AppIcons.corporateFareRounded,
               label: 'Total Employees',
               value: '$totalActive',
               sub: '${branches.length} branches',
@@ -1329,7 +1329,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
             ),
             const SizedBox(width: 12),
             _GroupKpiCard(
-              icon: Icons.check_circle_outline_rounded,
+              icon: AppIcons.checkCircleOutlineRounded,
               label: isToday ? 'Present Today' : 'Present',
               value: '$totalPresent',
               sub: '${overallRate.toStringAsFixed(1)}% of workforce',
@@ -1337,7 +1337,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
             ),
             const SizedBox(width: 12),
             _GroupKpiCard(
-              icon: Icons.access_time_rounded,
+              icon: AppIcons.accessTimeRounded,
               label: 'Arrived Late',
               value: '$totalLate',
               sub: totalPresent > 0
@@ -1347,7 +1347,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
             ),
             const SizedBox(width: 12),
             _GroupKpiCard(
-              icon: Icons.beach_access_rounded,
+              icon: AppIcons.beachAccessRounded,
               label: 'On Leave',
               value: '$totalOnLeave',
               sub: '$totalAbsent absent (unexcused)',
@@ -1368,7 +1368,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
                 flex: 4,
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: context.cardDeco(12),
+                  decoration: context.cardDeco(),
                   child: _DonutChart(
                     title: 'Attendance Breakdown',
                     segments: [
@@ -1401,9 +1401,9 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
             Container(
               margin: const EdgeInsets.only(top: 16),
               padding: const EdgeInsets.all(36),
-              decoration: context.cardDeco(12),
+              decoration: context.cardDeco(),
               child: Center(child: Column(children: [
-                Icon(Icons.bar_chart_rounded, size: 44, color: context.appSubtext.withAlpha(120)),
+                AppIcon(AppIcons.barChartRounded, size: 44, color: context.appSubtext.withAlpha(120)),
                 const SizedBox(height: 12),
                 Text(
                   isToday
@@ -1445,7 +1445,7 @@ class _GroupKpiCard extends StatelessWidget {
     required this.icon, required this.label, required this.value,
     required this.sub, required this.color,
   });
-  final IconData icon;
+  final IconRef icon;
   final String label, value, sub;
   final Color color;
 
@@ -1453,7 +1453,7 @@ class _GroupKpiCard extends StatelessWidget {
   Widget build(BuildContext context) => Expanded(
     child: Container(
       padding: const EdgeInsets.all(16),
-      decoration: context.cardDeco(14),
+      decoration: context.cardDeco(),
       child: Row(children: [
         Container(
           width: 44, height: 44,
@@ -1461,13 +1461,13 @@ class _GroupKpiCard extends StatelessWidget {
             color: color.withAlpha(22),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: color, size: 22),
+          child: AppIcon(icon, color: color, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w400)),
           const SizedBox(height: 2),
-          Text(value, style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w800, height: 1.1)),
+          Text(value, style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w700, height: 1.1)),
           const SizedBox(height: 2),
           Text(sub, style: TextStyle(color: context.appSubtext, fontSize: 12), overflow: TextOverflow.ellipsis),
         ])),
@@ -1486,10 +1486,10 @@ class _GroupBarChart extends StatelessWidget {
     final visible = stats.take(8).toList();
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: context.cardDeco(12),
+      decoration: context.cardDeco(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Branch Attendance Rate',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
         const SizedBox(height: 16),
         SizedBox(
           height: 200,
@@ -1559,7 +1559,7 @@ class _GroupBarChart extends StatelessWidget {
                     final s = visible[group.x];
                     return BarTooltipItem(
                       '${s.branchName}\n${s.present}/${s.total} · ${rod.toY.toStringAsFixed(1)}%',
-                      TextStyle(color: context.appText, fontSize: 12, fontWeight: FontWeight.w600),
+                      TextStyle(color: context.appText, fontSize: 12, fontWeight: FontWeight.w500),
                     );
                   },
                 ),
@@ -1583,13 +1583,13 @@ class _GroupBranchTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: context.cardDeco(12),
+      decoration: context.cardDeco(),
       child: Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: context.appTint,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
           ),
           child: Row(children: [
             _TH('Branch',     flex: 4),
@@ -1615,18 +1615,18 @@ class _GroupBranchTable extends StatelessWidget {
                 Container(width: 8, height: 8, decoration: BoxDecoration(color: rc, shape: BoxShape.circle)),
                 const SizedBox(width: 8),
                 Expanded(child: Text(s.branchName,
-                    style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: context.appText, fontSize: 13, fontWeight: FontWeight.w500),
                     overflow: TextOverflow.ellipsis)),
               ])),
               Expanded(flex: 2, child: Text('${s.total}',
                   style: TextStyle(color: context.appText, fontSize: 13))),
               Expanded(flex: 2, child: Text('${s.present}',
-                  style: const TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w600))),
+                  style: const TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.w500))),
               Expanded(flex: 2, child: Text('${s.late}',
                   style: TextStyle(
                       color: s.late > 0 ? AppColors.warningAmber : context.appSubtext,
                       fontSize: 13,
-                      fontWeight: s.late > 0 ? FontWeight.w600 : FontWeight.normal))),
+                      fontWeight: s.late > 0 ? FontWeight.w500 : FontWeight.normal))),
               Expanded(flex: 2, child: Text('${s.onLeave}',
                   style: TextStyle(
                       color: s.onLeave > 0 ? const Color(0xFF9B59B6) : context.appSubtext,
@@ -1635,14 +1635,14 @@ class _GroupBranchTable extends StatelessWidget {
                   style: TextStyle(
                       color: s.absent > 0 ? AppColors.errorRed : context.appSubtext,
                       fontSize: 13,
-                      fontWeight: s.absent > 0 ? FontWeight.w600 : FontWeight.normal))),
+                      fontWeight: s.absent > 0 ? FontWeight.w500 : FontWeight.normal))),
               Expanded(flex: 2, child: Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: rc.withAlpha(20), borderRadius: BorderRadius.circular(6)),
                   child: Text('${s.rate.toStringAsFixed(1)}%',
-                      style: TextStyle(color: rc, fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: TextStyle(color: rc, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
               )),
             ]),
@@ -1662,7 +1662,7 @@ class _GroupHighlightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isTop ? AppColors.successGreen : AppColors.errorRed;
-    final icon  = isTop ? Icons.emoji_events_rounded : Icons.trending_down_rounded;
+    final icon  = isTop ? AppIcons.emojiEventsRounded : AppIcons.trendingDownRounded;
     final label = isTop ? 'Best Performing Branch' : 'Needs Attention';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1675,18 +1675,18 @@ class _GroupHighlightCard extends StatelessWidget {
         Container(
           width: 42, height: 42,
           decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(11)),
-          child: Icon(icon, color: color, size: 20),
+          child: AppIcon(icon, color: color, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w400)),
           const SizedBox(height: 2),
           Text(stat.branchName,
-              style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w700),
+              style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600),
               overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
           Text('${stat.present}/${stat.total} present · ${stat.rate.toStringAsFixed(1)}%',
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
         ])),
       ]),
     );
@@ -1747,7 +1747,7 @@ class _DailyPdfButtonState extends ConsumerState<_DailyPdfButton> {
                 orElse: () => branches.first).name;
           }
           await DailyReportPdfService.download(
-            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
             dateLabel: DateFormat('d MMMM yyyy').format(widget.date),
             dateKey: fmt.format(widget.date),
             totalActive: emps.length,
@@ -1762,9 +1762,9 @@ class _DailyPdfButtonState extends ConsumerState<_DailyPdfButton> {
       icon: _downloading
           ? const SizedBox(width: 15, height: 15,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.download_rounded, size: 17),
+          : const AppIcon(AppIcons.downloadRounded, size: 17),
       label: const Text('Download PDF',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
     );
   }
 }
@@ -1842,7 +1842,7 @@ class _WeeklyPdfButtonState extends ConsumerState<_WeeklyPdfButton> {
                 orElse: () => branches.first).name;
           }
           await WeeklyReportPdfService.download(
-            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
             period: widget.periodLabel,
             fileKey: widget.fileKey,
             totalActive: emps.length,
@@ -1860,9 +1860,9 @@ class _WeeklyPdfButtonState extends ConsumerState<_WeeklyPdfButton> {
       icon: _downloading
           ? const SizedBox(width: 15, height: 15,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.download_rounded, size: 17),
+          : const AppIcon(AppIcons.downloadRounded, size: 17),
       label: const Text('Download PDF',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
     );
   }
 }
@@ -1942,7 +1942,7 @@ class _MonthlyPdfButtonState extends ConsumerState<_MonthlyPdfButton> {
                 orElse: () => branches.first).name;
           }
           await MonthlyReportPdfService.download(
-            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+            companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
             month: monthKey,
             totalActive: totalActive,
             present: present, late: late,
@@ -1960,9 +1960,9 @@ class _MonthlyPdfButtonState extends ConsumerState<_MonthlyPdfButton> {
       icon: _downloading
           ? const SizedBox(width: 15, height: 15,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.download_rounded, size: 17),
+          : const AppIcon(AppIcons.downloadRounded, size: 17),
       label: const Text('Download PDF',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
     );
   }
 }
@@ -1989,14 +1989,14 @@ class _DateChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.calendar_today_rounded, size: 14, color: context.appSubtext),
+            AppIcon(AppIcons.calendarTodayRounded, size: 14, color: context.appSubtext),
             const SizedBox(width: 6),
             Text(
               isToday ? 'Today' : DateFormat('d MMM yyyy').format(date),
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.expand_more_rounded, size: 14, color: context.appSubtext),
+            AppIcon(AppIcons.expandMoreRounded, size: 14, color: context.appSubtext),
           ],
         ),
       ),
@@ -2019,7 +2019,7 @@ class _AutoNote extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.schedule_send_rounded, color: AppColors.primaryBlue, size: 14),
+          const AppIcon(AppIcons.scheduleSendRounded, color: AppColors.primaryBlue, size: 14),
           const SizedBox(width: 8),
           Expanded(
             child: Text(message, style: const TextStyle(fontSize: 12, color: AppColors.primaryBlue)),
@@ -2046,7 +2046,7 @@ class _ErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.errorRed, size: 15),
+          const AppIcon(AppIcons.errorOutlineRounded, color: AppColors.errorRed, size: 15),
           const SizedBox(width: 8),
           Expanded(child: Text(clean.isNotEmpty ? clean : 'Something went wrong.', style: const TextStyle(fontSize: 12, color: AppColors.errorRed))),
         ],
@@ -2159,7 +2159,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                                     orElse: () => branches.first).name
                             : null;
                         await AttendancePdfService.download(
-                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
                           period: monthLabel,
                           employees: emps,
                           records: records,
@@ -2173,8 +2173,8 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
               icon: _downloading
                   ? const SizedBox(width: 15, height: 15,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.download_rounded, size: 17),
-              label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  : const AppIcon(AppIcons.downloadRounded, size: 17),
+              label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
           ]),
 
@@ -2206,23 +2206,23 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
             const SizedBox(height: 10),
             Row(children: [
               _StatTile(label: 'Employees', value: '${emps.length}',
-                  color: AppColors.primaryBlue, icon: Icons.people_rounded),
+                  color: AppColors.primaryBlue, icon: AppIcons.peopleRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Working Days', value: '$totalDays',
-                  color: const Color(0xFF8B5CF6), icon: Icons.calendar_month_rounded),
+                  color: const Color(0xFF8B5CF6), icon: AppIcons.calendarMonthRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Att. Rate', value: '$rate%',
                   color: rate >= 80 ? AppColors.successGreen : rate >= 60 ? AppColors.warningAmber : AppColors.errorRed,
-                  icon: Icons.trending_up_rounded),
+                  icon: AppIcons.trendingUpRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Present', value: '$presentCount',
-                  color: AppColors.successGreen, icon: Icons.check_circle_rounded),
+                  color: AppColors.successGreen, icon: AppIcons.checkCircleRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Late', value: '$lateCount',
-                  color: AppColors.warningAmber, icon: Icons.schedule_rounded),
+                  color: AppColors.warningAmber, icon: AppIcons.scheduleRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Absent', value: '$absentCount',
-                  color: AppColors.errorRed, icon: Icons.cancel_rounded),
+                  color: AppColors.errorRed, icon: AppIcons.cancelRounded),
             ]),
 
             const SizedBox(height: 16),
@@ -2272,14 +2272,14 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
             _SectionLabel('Employee Attendance Breakdown'),
             const SizedBox(height: 10),
             Container(
-              decoration: context.cardDeco(12),
+              decoration: context.cardDeco(),
               child: Column(children: [
                 // Header
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: context.appTint,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   ),
                   child: Row(children: [
                     _TH('Employee', flex: 3),
@@ -2332,15 +2332,15 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       child: Row(children: [
                         Expanded(flex: 3, child: Text(emp.fullName,
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText))),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText))),
                         Expanded(flex: 2, child: Text(emp.department,
                             style: TextStyle(fontSize: 12, color: context.appSubtext))),
                         Expanded(flex: 1, child: Text('$pres',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.successGreen))),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.successGreen))),
                         Expanded(flex: 1, child: Text('$late',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.warningAmber))),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.warningAmber))),
                         Expanded(flex: 1, child: Text('$absent',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
                                 color: absent > 0 ? AppColors.errorRed : context.appSubtext))),
                         Expanded(flex: 1, child: Align(alignment: Alignment.centerLeft, child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -2349,7 +2349,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text('$empRate%',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: rateColor)),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rateColor)),
                         ))),
                         Expanded(flex: 2, child: Text(avgCheckIn,
                             style: TextStyle(fontSize: 12, color: context.appSubtext))),
@@ -2365,13 +2365,13 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
             _SectionLabel('Daily Attendance Log'),
             const SizedBox(height: 10),
             Container(
-              decoration: context.cardDeco(12),
+              decoration: context.cardDeco(),
               child: Column(children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: context.appTint,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   ),
                   child: Row(children: [
                     _TH('Employee', flex: 3),
@@ -2427,7 +2427,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                         child: Row(children: [
                           Expanded(flex: 3, child: Text(emp.fullName,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText))),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: context.appText))),
                           Expanded(flex: 2, child: Text(dateFmt.format(r.date),
                               style: TextStyle(fontSize: 12, color: context.appSubtext))),
                           Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: Container(
@@ -2437,7 +2437,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(status,
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor)),
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: statusColor)),
                           ))),
                           Expanded(flex: 2, child: Text(
                               r.checkInTime != null ? timeFmt.format(r.checkInTime!) : '—',
@@ -2569,7 +2569,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                                     orElse: () => branches.first).name
                             : null;
                         await PerformanceReportPdfService.download(
-                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
                           month: monthKey,
                           records: records,
                           branchName: branchName,
@@ -2581,8 +2581,8 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
               icon: _downloading
                   ? const SizedBox(width: 15, height: 15,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.download_rounded, size: 17),
-              label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  : const AppIcon(AppIcons.downloadRounded, size: 17),
+              label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
           ]),
 
@@ -2613,7 +2613,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
               child: Padding(
                 padding: const EdgeInsets.all(60),
                 child: Column(children: [
-                  Icon(Icons.leaderboard_rounded, size: 48, color: context.appSubtext),
+                  AppIcon(AppIcons.leaderboardRounded, size: 48, color: context.appSubtext),
                   const SizedBox(height: 12),
                   Text('No performance reviews for $monthLabel',
                       style: TextStyle(fontSize: 14, color: context.appSubtext)),
@@ -2626,19 +2626,19 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
             const SizedBox(height: 10),
             Row(children: [
               _StatTile(label: 'Reviewed', value: '${records.length}',
-                  color: AppColors.primaryBlue, icon: Icons.people_rounded),
+                  color: AppColors.primaryBlue, icon: AppIcons.peopleRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Avg Score', value: avg.toStringAsFixed(1),
-                  color: scoreColor(avg), icon: Icons.star_rounded),
+                  color: scoreColor(avg), icon: AppIcons.starRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Excellent ≥4.5', value: '$excellent',
-                  color: AppColors.successGreen, icon: Icons.emoji_events_rounded),
+                  color: AppColors.successGreen, icon: AppIcons.emojiEventsRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Good 3–4.5', value: '$good',
-                  color: AppColors.warningAmber, icon: Icons.thumb_up_rounded),
+                  color: AppColors.warningAmber, icon: AppIcons.thumbUpRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Needs Work <3', value: '$poor',
-                  color: AppColors.errorRed, icon: Icons.trending_down_rounded),
+                  color: AppColors.errorRed, icon: AppIcons.trendingDownRounded),
             ]),
 
             const SizedBox(height: 16),
@@ -2675,14 +2675,14 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
             _SectionLabel('Employee Performance Scores — Ranked'),
             const SizedBox(height: 10),
             Container(
-              decoration: context.cardDeco(12),
+              decoration: context.cardDeco(),
               child: Column(children: [
                 // Header
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: context.appTint,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   ),
                   child: Row(children: [
                     _TH('#', flex: 1),
@@ -2697,7 +2697,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                               Flexible(child: Text(c,
                                   style: TextStyle(
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w600,
                                       color: context.appSubtext),
                                   overflow: TextOverflow.ellipsis)),
                               const SizedBox(width: 4),
@@ -2711,7 +2711,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                                     style: TextStyle(
                                         color: AppColors.primaryBlue,
                                         fontSize: 9,
-                                        fontWeight: FontWeight.w700)),
+                                        fontWeight: FontWeight.w600)),
                               ),
                             ]),
                           )
@@ -2736,10 +2736,10 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Row(children: [
                       Expanded(flex: 1, child: isMedal
-                          ? Icon(Icons.emoji_events_rounded, color: medalColors[rank - 1], size: 16)
+                          ? AppIcon(AppIcons.emojiEventsRounded, color: medalColors[rank - 1], size: 16)
                           : Text('$rank', style: TextStyle(fontSize: 12, color: context.appSubtext))),
                       Expanded(flex: 3, child: Text(r.employeeName,
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText))),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText))),
                       Expanded(flex: 2, child: Text(r.department,
                           style: TextStyle(fontSize: 12, color: context.appSubtext))),
                       Expanded(flex: 1, child: Align(alignment: Alignment.centerLeft, child: Container(
@@ -2749,16 +2749,16 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(r.overallScore.toStringAsFixed(1),
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
                       ))),
                       Expanded(flex: 2, child: Text(ratingLabel(r.overallScore),
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color))),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color))),
                       ...criteriaList.map((c) {
                         final score = r.scores[c];
                         return Expanded(flex: 2, child: score != null
                             ? Text(score.toStringAsFixed(1),
                                 style: TextStyle(fontSize: 12, color: scoreColor(score),
-                                    fontWeight: FontWeight.w600))
+                                    fontWeight: FontWeight.w500))
                             : Text('—', style: TextStyle(fontSize: 12, color: context.appSubtext)));
                       }),
                     ]),
@@ -2776,13 +2776,13 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                   .where((r) => r.aiReview != null && r.aiReview!.isNotEmpty)
                   .map((r) => Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        decoration: context.cardDeco(12),
+                        decoration: context.cardDeco(),
                         padding: const EdgeInsets.all(16),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
                             Expanded(
                               child: Text(r.employeeName,
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                                       color: context.appText)),
                             ),
                             Text(r.department,
@@ -2796,7 +2796,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                               ),
                               child: Text(
                                   '${r.overallScore.toStringAsFixed(1)} · ${ratingLabel(r.overallScore)}',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
                                       color: scoreColor(r.overallScore))),
                             ),
                           ]),
@@ -2812,7 +2812,7 @@ class _PerformanceReportTabState extends ConsumerState<_PerformanceReportTab> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                const Icon(Icons.comment_rounded, size: 13, color: AppColors.primaryBlue),
+                                const AppIcon(AppIcons.commentRounded, size: 13, color: AppColors.primaryBlue),
                                 const SizedBox(width: 6),
                                 Expanded(child: Text('Manager: ${r.managerNotes}',
                                     style: const TextStyle(fontSize: 12, color: AppColors.primaryBlue))),
@@ -2917,7 +2917,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                           }
                         }
                         await BranchesReportPdfService.download(
-                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNova',
+                          companyName: ref.read(companySettingsProvider).value?.companyName ?? 'HRNovva',
                           period: monthLabel,
                           branches: branches,
                           employees: allEmps,
@@ -2932,8 +2932,8 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
               icon: _downloading
                   ? const SizedBox(width: 15, height: 15,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.download_rounded, size: 17),
-              label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  : const AppIcon(AppIcons.downloadRounded, size: 17),
+              label: const Text('Download PDF', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
           ]),
 
@@ -2964,7 +2964,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
               child: Padding(
                 padding: const EdgeInsets.all(60),
                 child: Column(children: [
-                  Icon(Icons.account_tree_rounded, size: 48, color: context.appSubtext),
+                  AppIcon(AppIcons.accountTreeRounded, size: 48, color: context.appSubtext),
                   const SizedBox(height: 12),
                   Text('No branches found.',
                       style: TextStyle(fontSize: 14, color: context.appSubtext)),
@@ -2977,26 +2977,26 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
             const SizedBox(height: 10),
             Row(children: [
               _StatTile(label: 'Branches', value: '${branches.length}',
-                  color: AppColors.primaryBlue, icon: Icons.account_tree_rounded),
+                  color: AppColors.primaryBlue, icon: AppIcons.accountTreeRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Active\nEmployees', value: '${allEmps.where((e) => e.isActive).length}',
-                  color: const Color(0xFF8B5CF6), icon: Icons.people_rounded),
+                  color: const Color(0xFF8B5CF6), icon: AppIcons.peopleRounded),
               const SizedBox(width: 8),
               _StatTile(label: 'Working\nDays', value: '$totalDays',
-                  color: const Color(0xFF06B6D4), icon: Icons.calendar_month_rounded),
+                  color: const Color(0xFF06B6D4), icon: AppIcons.calendarMonthRounded),
               const SizedBox(width: 8),
               _StatTile(
                   label: 'Total\nPresent',
                   value: '${allRecords.where((r) => isPresent(r)).length}',
                   color: AppColors.successGreen,
-                  icon: Icons.check_circle_rounded),
+                  icon: AppIcons.checkCircleRounded),
               if (payrollAsync.valueOrNull != null) ...[
                 const SizedBox(width: 8),
                 _StatTile(
                     label: 'Payroll\nTotal',
                     value: 'RWF\n${rwfFmt.format(payrollAsync.valueOrNull!.totalGross.round())}',
                     color: AppColors.warningAmber,
-                    icon: Icons.payments_rounded),
+                    icon: AppIcons.paymentsRounded),
               ],
             ]),
 
@@ -3044,13 +3044,13 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
             _SectionLabel('Branch Performance Comparison'),
             const SizedBox(height: 10),
             Container(
-              decoration: context.cardDeco(12),
+              decoration: context.cardDeco(),
               child: Column(children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: context.appTint,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   ),
                   child: Row(children: [
                     _TH('Branch', flex: 3),
@@ -3086,15 +3086,15 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Row(children: [
                       Expanded(flex: 3, child: Text(b.name,
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.appText))),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText))),
                       Expanded(flex: 2, child: Text('$empCount',
                           style: TextStyle(fontSize: 13, color: context.appSubtext))),
                       Expanded(flex: 1, child: Text('$present',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.successGreen))),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.successGreen))),
                       Expanded(flex: 1, child: Text('$late',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.warningAmber))),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.warningAmber))),
                       Expanded(flex: 1, child: Text('$absent',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
                               color: absent > 0 ? AppColors.errorRed : context.appSubtext))),
                       Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -3103,7 +3103,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text('$rate%',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: rateColor)),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: rateColor)),
                       ))),
                       Expanded(flex: 2, child: Text(b.location.isNotEmpty ? b.location : '—',
                           style: TextStyle(fontSize: 11, color: context.appSubtext))),
@@ -3120,13 +3120,13 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                   ),
                   child: Row(children: [
                     Expanded(flex: 3, child: Text('TOTAL',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: context.appText))),
-                    Expanded(flex: 2, child: Text('${allEmps.where((e) => e.isActive).length}',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: context.appText))),
+                    Expanded(flex: 2, child: Text('${allEmps.where((e) => e.isActive).length}',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText))),
                     Expanded(flex: 1, child: Text('${allRecords.where((r) => isPresent(r)).length}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.successGreen))),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.successGreen))),
                     Expanded(flex: 1, child: Text('${allRecords.where((r) => r.isLate && isPresent(r)).length}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.warningAmber))),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.warningAmber))),
                     Expanded(flex: 1, child: Text('—', style: TextStyle(fontSize: 12, color: context.appSubtext))),
                     Expanded(flex: 2, child: const SizedBox()),
                     Expanded(flex: 2, child: const SizedBox()),
@@ -3159,10 +3159,10 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                       border: Border.all(color: AppColors.primaryBlue.withAlpha(50)),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 14),
+                      const AppIcon(AppIcons.businessRounded, color: AppColors.primaryBlue, size: 14),
                       const SizedBox(width: 8),
                       Text(b.name,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                               color: AppColors.primaryBlue)),
                       const SizedBox(width: 8),
                       Text('${branchEmps.length} employees',
@@ -3175,13 +3175,13 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                     ]),
                   ),
                   Container(
-                    decoration: context.cardDeco(10),
+                    decoration: context.cardDeco(),
                     child: Column(children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color: context.appTint,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                         ),
                         child: Row(children: [
                           _TH('#', flex: 1),
@@ -3205,7 +3205,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                             Expanded(flex: 1, child: Text('${i + 1}',
                                 style: TextStyle(fontSize: 11, color: context.appSubtext))),
                             Expanded(flex: 3, child: Text(emp.fullName,
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.appText))),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: context.appText))),
                             Expanded(flex: 2, child: Text(emp.department,
                                 style: TextStyle(fontSize: 11, color: context.appSubtext))),
                             Expanded(flex: 2, child: Text(emp.jobTitle,
@@ -3246,11 +3246,11 @@ class _DonutChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = segments.fold(0, (s, e) => s + e.$2);
     return Container(
-      decoration: context.cardDeco(14),
+      decoration: context.cardDeco(),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.appText)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText)),
         const SizedBox(height: 14),
         SizedBox(
           height: 220,
@@ -3286,14 +3286,14 @@ class _DonutChart extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Row(children: [
                             Container(width: 10, height: 10,
-                                decoration: BoxDecoration(color: s.$3, borderRadius: BorderRadius.circular(3))),
+                                decoration: BoxDecoration(color: s.$3, borderRadius: BorderRadius.circular(5))),
                             const SizedBox(width: 7),
                             Expanded(child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(s.$1, style: TextStyle(fontSize: 10, color: context.appSubtext)),
                                 Text('${s.$2}  ($pct%)',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                                         color: context.appText)),
                               ],
                             )),
@@ -3319,11 +3319,11 @@ class _TrendBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: context.cardDeco(14),
+      decoration: context.cardDeco(),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.appText)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText)),
         const SizedBox(height: 12),
         SizedBox(
           height: 220,
@@ -3398,11 +3398,11 @@ class _HorizBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: context.cardDeco(14),
+      decoration: context.cardDeco(),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.appText)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText)),
         const SizedBox(height: 14),
         if (items.isEmpty)
           Center(child: Text('No data', style: TextStyle(color: context.appSubtext, fontSize: 13)))
@@ -3415,10 +3415,10 @@ class _HorizBars extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Expanded(child: Text(item.$1,
-                      style: TextStyle(fontSize: 12, color: context.appText, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 12, color: context.appText, fontWeight: FontWeight.w400),
                       overflow: TextOverflow.ellipsis)),
                   Text(unit != null ? '$valStr$unit' : valStr,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: item.$4)),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: item.$4)),
                 ]),
                 const SizedBox(height: 5),
                 ClipRRect(
@@ -3448,7 +3448,7 @@ class _SectionLabel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(text,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: context.appText)),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
     );
   }
 }
@@ -3464,7 +3464,7 @@ class _TH extends StatelessWidget {
       flex: flex,
       child: Text(text,
           style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700,
+              fontSize: 11, fontWeight: FontWeight.w600,
               color: context.appSubtext, letterSpacing: 0.4)),
     );
   }
@@ -3486,7 +3486,7 @@ class _MonthNav extends StatelessWidget {
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, size: 18),
+          icon: const AppIcon(AppIcons.chevronLeftRounded, size: 18),
           onPressed: onPrev,
           padding: const EdgeInsets.all(6),
           constraints: const BoxConstraints(),
@@ -3494,10 +3494,10 @@ class _MonthNav extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(DateFormat('MMMM yyyy').format(month),
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.appText)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText)),
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_right_rounded, size: 18),
+          icon: const AppIcon(AppIcons.chevronRightRounded, size: 18),
           onPressed: onNext,
           padding: const EdgeInsets.all(6),
           constraints: const BoxConstraints(),

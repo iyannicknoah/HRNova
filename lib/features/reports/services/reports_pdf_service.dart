@@ -631,7 +631,7 @@ pw.Widget _header(String company, String title, String period, String? sub) {
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text(company,
                   style: pw.TextStyle(fontSize: 11, color: _white, fontWeight: pw.FontWeight.bold)),
-              pw.Text('HRNova', style: const pw.TextStyle(fontSize: 9, color: _grey)),
+              pw.Text('HRNovva', style: const pw.TextStyle(fontSize: 9, color: _grey)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
               pw.Text(title,
@@ -662,7 +662,7 @@ pw.Widget _footer() {
     child: pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Text('Confidential — Powered by HRNova HR Management System',
+        pw.Text('Confidential — Powered by HRNovva HR Management System',
             style: const pw.TextStyle(fontSize: 8, color: _grey)),
         pw.Text(DateFormat('d MMM yyyy').format(DateTime.now()),
             style: const pw.TextStyle(fontSize: 8, color: _grey)),

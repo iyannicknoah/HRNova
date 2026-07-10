@@ -7,7 +7,8 @@ class AppColors {
   static const Color brightBlue = Color(0xFF74CFFF);
   static const Color accentTeal = Color(0xFF43E0C8);
   static const Color darkNavy = Color(0xFF0A1628);
-  static const Color backgroundBlue = Color(0xFFF8FAFF);
+  // Light mode: containers/cards = white (see `white` below), page background = light gray.
+  static const Color backgroundBlue = Color(0xFFEFF1F4);
   static const Color successGreen = Color(0xFF1DB87A);
   static const Color warningAmber = Color(0xFFF5A623);
   static const Color errorRed = Color(0xFFE5534B);
@@ -16,8 +17,9 @@ class AppColors {
   static const Color cardBorder = Color(0xFFE8EFF8);
   static const Color lightBlue50 = Color(0xFFF0F6FF);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color darkCard = Color(0xFF0D1628);
-  static const Color darkBackground = Color(0xFF070E1C);
+  // Dark mode: page background = near-black, containers/cards = lighter dark gray.
+  static const Color darkBackground = Color(0xFF0F1215);
+  static const Color darkCard = Color(0xFF1D2428);
 
   // Status badge colors
   static const Color pillGreenBg = Color(0xFFE6F9F1);

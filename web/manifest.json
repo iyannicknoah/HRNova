@@ -1,11 +1,11 @@
 {
-    "name": "hrnova",
-    "short_name": "hrnova",
+    "name": "HRNovva",
+    "short_name": "HRNovva",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#FFFFFF",
+    "description": "AI-powered HR Management for Rwanda.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

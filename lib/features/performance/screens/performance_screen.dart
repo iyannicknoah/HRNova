@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/metric_card.dart';
 import '../../attendance/models/attendance_model.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -17,6 +18,8 @@ import '../../settings/models/company_settings_model.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/performance_model.dart';
 import '../providers/performance_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class PerformanceScreen extends ConsumerStatefulWidget {
   const PerformanceScreen({super.key});
@@ -116,7 +119,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 24,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: -0.5)),
                   const SizedBox(height: 2),
                   Text('Track and evaluate employee performance',
@@ -174,17 +177,17 @@ class _MonthPicker extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        _NavBtn(icon: Icons.chevron_left_rounded, onTap: onPrev),
+        _NavBtn(icon: AppIcons.chevronLeftRounded, onTap: onPrev),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(DateFormat('MMMM yyyy').format(month),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 15,
-                  fontWeight: FontWeight.w600)),
+                  fontWeight: FontWeight.w500)),
         ),
         _NavBtn(
-            icon: Icons.chevron_right_rounded,
+            icon: AppIcons.chevronRightRounded,
             onTap: isCurrentMonth ? null : onNext),
       ]),
     );
@@ -193,7 +196,7 @@ class _MonthPicker extends StatelessWidget {
 
 class _NavBtn extends StatelessWidget {
   const _NavBtn({required this.icon, this.onTap});
-  final IconData icon;
+  final IconRef icon;
   final VoidCallback? onTap;
 
   @override
@@ -208,7 +211,7 @@ class _NavBtn extends StatelessWidget {
                 : context.appField.withAlpha(80),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon,
+          child: AppIcon(icon,
               size: 18,
               color: onTap != null
                   ? context.appText
@@ -242,7 +245,7 @@ class _BranchFilterDrop extends StatelessWidget {
           isDense: true,
           dropdownColor: context.appCard,
           style: TextStyle(color: context.appText, fontSize: 14),
-          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: context.appSubtext),
+          icon: AppIcon(AppIcons.keyboardArrowDownRounded, size: 14, color: context.appSubtext),
           items: [
             DropdownMenuItem(
               value: 'all',
@@ -478,8 +481,8 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                     ),
                   ),
                   child: Row(children: [
-                    Icon(
-                      allScored ? Icons.celebration_rounded : Icons.assignment_turned_in_outlined,
+                    AppIcon(
+                      allScored ? AppIcons.celebrationRounded : AppIcons.assignmentTurnedInOutlined,
                       color: allScored ? AppColors.successGreen : AppColors.primaryBlue,
                       size: 20,
                     ),
@@ -492,7 +495,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                         style: TextStyle(
                           color: allScored ? AppColors.successGreen : context.appText,
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ),
@@ -505,7 +508,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                         ),
                         child: Text(
                           '$unscoredCount remaining',
-                          style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                       ),
                   ]),
@@ -522,12 +525,12 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                     border: Border.all(color: AppColors.warningAmber.withAlpha(60)),
                   ),
                   child: Row(children: [
-                    const Icon(Icons.warning_amber_rounded, color: AppColors.warningAmber, size: 18),
+                    const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Month-end reminder: $unscoredCount employee${unscoredCount == 1 ? "" : "s"} still need${unscoredCount == 1 ? "s" : ""} to be scored',
-                        style: const TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w500),
+                        style: const TextStyle(color: AppColors.warningAmber, fontSize: 13, fontWeight: FontWeight.w400),
                       ),
                     ),
                   ]),
@@ -536,10 +539,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
               // Employee list card
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: context.appCard,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  decoration: context.cardDeco(),
                   child: employeesAsync.isLoading
                       ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
                       : allEmployees.isEmpty
@@ -581,7 +581,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(e.fullName,
-                                                    style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w600),
+                                                    style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w500),
                                                     overflow: TextOverflow.ellipsis),
                                                 if (e.jobTitle.isNotEmpty)
                                                   Text(e.jobTitle,
@@ -607,7 +607,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                               style: TextStyle(
                                                 color: badgeColor,
                                                 fontSize: 12,
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                           ),
@@ -682,7 +682,7 @@ class _DeptSectionHeader extends StatelessWidget {
           style: TextStyle(
             color: context.appSubtext,
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
         ),
@@ -698,7 +698,7 @@ class _DeptSectionHeader extends StatelessWidget {
             style: TextStyle(
               color: allDone ? AppColors.successGreen : AppColors.primaryBlue,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -783,10 +783,7 @@ class _ScorePanelState extends State<_ScorePanel> {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(left: 16),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: context.cardDeco(),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -799,7 +796,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 16,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w600)),
               Text(widget.employee.department,
                   style: TextStyle(color: context.appSubtext, fontSize: 14)),
             ])),
@@ -816,7 +813,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                     style: TextStyle(
                         color: _overallColor,
                         fontSize: 22,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         height: 1)),
                 Text('/ 5', style: TextStyle(color: _overallColor, fontSize: 13)),
               ]),
@@ -824,7 +821,7 @@ class _ScorePanelState extends State<_ScorePanel> {
             const SizedBox(width: 8),
             IconButton(
               onPressed: widget.onClose,
-              icon: Icon(Icons.close_rounded, color: context.appSubtext, size: 18),
+              icon: AppIcon(AppIcons.closeRounded, color: context.appSubtext, size: 18),
             ),
           ]),
           const SizedBox(height: 20),
@@ -835,7 +832,7 @@ class _ScorePanelState extends State<_ScorePanel> {
               style: TextStyle(
                   color: context.appText,
                   fontSize: 15,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           ...widget.criteria.map((c) {
             final score = widget.scores[c.name] ?? 3.0;
@@ -869,7 +866,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                         style: TextStyle(
                             color: context.appText,
                             fontSize: 14,
-                            fontWeight: FontWeight.w500)),
+                            fontWeight: FontWeight.w400)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -879,7 +876,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                     ),
                     child: Text(label,
                         style: TextStyle(
-                            color: sliderColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                            color: sliderColor, fontSize: 13, fontWeight: FontWeight.w500)),
                   ),
                   const SizedBox(width: 8),
                   Text('${contribution.toStringAsFixed(2)} pts',
@@ -914,7 +911,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                       style: TextStyle(
                           color: sliderColor,
                           fontSize: 17,
-                          fontWeight: FontWeight.w800),
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ]),
@@ -929,7 +926,7 @@ class _ScorePanelState extends State<_ScorePanel> {
           // Manager notes
           Text('Manager Notes',
               style: TextStyle(
-                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           TextField(
             controller: widget.notesCtrl,
@@ -942,21 +939,21 @@ class _ScorePanelState extends State<_ScorePanel> {
               fillColor: context.appField,
               contentPadding: const EdgeInsets.all(12),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: context.appBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.alternate)),
               enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: context.appBorder)),
-              focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.alternate)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: context.tertiary, width: 1.5)),
             ),
           ),
           const SizedBox(height: 14),
           // AI Review section
           Text('AI Performance Review',
               style: TextStyle(
-                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           if (widget.generatingAi)
             Container(
@@ -985,23 +982,23 @@ class _ScorePanelState extends State<_ScorePanel> {
                 style: TextStyle(color: context.appText, fontSize: 15, height: 1.5),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: AppColors.primaryBlue.withAlpha(8),
+                  fillColor: context.tertiary.withAlpha(8),
                   contentPadding: const EdgeInsets.all(12),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: AppColors.primaryBlue.withAlpha(60))),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: context.tertiary.withAlpha(60))),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: AppColors.primaryBlue.withAlpha(60))),
-                  focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
-                      borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: context.tertiary.withAlpha(60))),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: const BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: context.tertiary, width: 1.5)),
                 ),
               ),
               const SizedBox(height: 6),
               TextButton.icon(
                 onPressed: widget.generatingAi ? null : widget.onGenerateAi,
-                icon: const Icon(Icons.refresh_rounded, size: 14),
+                icon: const AppIcon(AppIcons.refreshRounded, size: 14),
                 label: const Text('Regenerate', style: TextStyle(fontSize: 14)),
                 style: TextButton.styleFrom(foregroundColor: AppColors.primaryBlue),
               ),
@@ -1009,7 +1006,7 @@ class _ScorePanelState extends State<_ScorePanel> {
           else
             FilledButton.icon(
               onPressed: widget.onGenerateAi,
-              icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+              icon: const AppIcon(AppIcons.autoAwesomeRounded, size: 16),
               label: const Text('Generate AI Review'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue.withAlpha(200),
@@ -1026,7 +1023,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                 onPressed: widget.saving ? null : widget.onSave,
                 icon: widget.saving
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.save_rounded, size: 16),
+                    : const AppIcon(AppIcons.saveRounded, size: 16),
                 label: Text(widget.saving ? 'Saving...' : 'Save'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
@@ -1040,7 +1037,7 @@ class _ScorePanelState extends State<_ScorePanel> {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: widget.saving ? null : widget.onSaveAndNext,
-                  icon: const Icon(Icons.skip_next_rounded, size: 16),
+                  icon: const AppIcon(AppIcons.skipNextRounded, size: 16),
                   label: const Text('Save & Next'),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF9B59B6),
@@ -1087,7 +1084,7 @@ class _AutoCriterionRow extends StatelessWidget {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 14,
-                      fontWeight: FontWeight.w500)),
+                      fontWeight: FontWeight.w400)),
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1099,7 +1096,7 @@ class _AutoCriterionRow extends StatelessWidget {
                     style: TextStyle(
                         color: AppColors.primaryBlue,
                         fontSize: 10,
-                        fontWeight: FontWeight.w700)),
+                        fontWeight: FontWeight.w600)),
               ),
             ]),
           ),
@@ -1111,7 +1108,7 @@ class _AutoCriterionRow extends StatelessWidget {
             ),
             child: Text(label,
                 style: TextStyle(
-                    color: sliderColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                    color: sliderColor, fontSize: 13, fontWeight: FontWeight.w500)),
           ),
           const SizedBox(width: 8),
           Text('${contribution.toStringAsFixed(2)} pts',
@@ -1136,7 +1133,7 @@ class _AutoCriterionRow extends StatelessWidget {
             child: Text(scoreInt.toString(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: sliderColor, fontSize: 17, fontWeight: FontWeight.w800)),
+                    color: sliderColor, fontSize: 17, fontWeight: FontWeight.w700)),
           ),
         ]),
         Text('Weight: ${criterion.weight.toStringAsFixed(0)}% · Computed from attendance records',
@@ -1237,42 +1234,42 @@ class _HRDashboardView extends ConsumerWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // ── KPI Cards ─────────────────────────────────────────────────────
         Row(children: [
-          _KpiCard(
-            icon: Icons.bar_chart_rounded,
-            label: 'Company Average',
-            value: scores.isEmpty ? '—' : companyAvg.toStringAsFixed(1),
-            sub: '${scores.length} scored this month',
-            color: AppColors.primaryBlue,
+          Expanded(
+            child: MetricCard(
+              label: 'Company Average',
+              value: scores.isEmpty ? '—' : companyAvg.toStringAsFixed(1),
+              subtitle: '${scores.length} scored this month',
+            ),
           ),
           const SizedBox(width: 14),
-          _KpiCard(
-            icon: Icons.emoji_events_rounded,
-            label: 'Top Department',
-            value: topDept?.key ?? '—',
-            sub: topDept != null
-                ? '${topDept.value.toStringAsFixed(1)}/5 avg'
-                : 'No data',
-            color: AppColors.successGreen,
+          Expanded(
+            child: MetricCard(
+              label: 'Top Department',
+              value: topDept?.key ?? '—',
+              subtitle: topDept != null
+                  ? '${topDept.value.toStringAsFixed(1)}/5 avg'
+                  : 'No data',
+            ),
           ),
           const SizedBox(width: 14),
-          _KpiCard(
-            icon: Icons.trending_down_rounded,
-            label: 'Lowest Department',
-            value: lowestDept?.key ?? '—',
-            sub: lowestDept != null
-                ? '${lowestDept.value.toStringAsFixed(1)}/5 avg'
-                : 'No data',
-            color: AppColors.warningAmber,
+          Expanded(
+            child: MetricCard(
+              label: 'Lowest Department',
+              value: lowestDept?.key ?? '—',
+              subtitle: lowestDept != null
+                  ? '${lowestDept.value.toStringAsFixed(1)}/5 avg'
+                  : 'No data',
+            ),
           ),
           const SizedBox(width: 14),
-          _KpiCard(
-            icon: Icons.person_off_outlined,
-            label: 'Not Scored',
-            value: notScoredEmployees.length.toString(),
-            sub: notScoredEmployees.isEmpty
-                ? 'All employees scored'
-                : '${notScoredEmployees.length} employee${notScoredEmployees.length == 1 ? '' : 's'} pending',
-            color: AppColors.errorRed,
+          Expanded(
+            child: MetricCard(
+              label: 'Not Scored',
+              value: notScoredEmployees.length.toString(),
+              subtitle: notScoredEmployees.isEmpty
+                  ? 'All employees scored'
+                  : '${notScoredEmployees.length} employee${notScoredEmployees.length == 1 ? '' : 's'} pending',
+            ),
           ),
         ]),
         const SizedBox(height: 20),
@@ -1284,10 +1281,7 @@ class _HRDashboardView extends ConsumerWidget {
               flex: 6,
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: context.appCard,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: context.cardDeco(),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1295,7 +1289,7 @@ class _HRDashboardView extends ConsumerWidget {
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 15,
-                              fontWeight: FontWeight.w700)),
+                              fontWeight: FontWeight.w600)),
                       const SizedBox(height: 20),
                       SizedBox(
                         height: 200,
@@ -1310,10 +1304,7 @@ class _HRDashboardView extends ConsumerWidget {
               flex: 4,
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: context.appCard,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: context.cardDeco(),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1321,7 +1312,7 @@ class _HRDashboardView extends ConsumerWidget {
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 15,
-                              fontWeight: FontWeight.w700)),
+                              fontWeight: FontWeight.w600)),
                       const SizedBox(height: 14),
                       if (top5.isEmpty)
                         Text('No scores this month',
@@ -1346,10 +1337,10 @@ class _HRDashboardView extends ConsumerWidget {
                               final trendIcon = diff == null
                                   ? null
                                   : diff > 0.05
-                                      ? Icons.trending_up_rounded
+                                      ? AppIcons.trendingUpRounded
                                       : diff < -0.05
-                                          ? Icons.trending_down_rounded
-                                          : Icons.trending_flat_rounded;
+                                          ? AppIcons.trendingDownRounded
+                                          : AppIcons.trendingFlatRounded;
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: Row(children: [
@@ -1369,7 +1360,7 @@ class _HRDashboardView extends ConsumerWidget {
                                                   ? const Color(0xFFFFD700)
                                                   : context.appSubtext,
                                               fontSize: 13,
-                                              fontWeight: FontWeight.w700)),
+                                              fontWeight: FontWeight.w600)),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -1388,7 +1379,7 @@ class _HRDashboardView extends ConsumerWidget {
                                               style: TextStyle(
                                                   color: context.appText,
                                                   fontSize: 14,
-                                                  fontWeight: FontWeight.w600),
+                                                  fontWeight: FontWeight.w500),
                                               overflow: TextOverflow.ellipsis),
                                           Text(perf.department,
                                               style: TextStyle(
@@ -1406,7 +1397,7 @@ class _HRDashboardView extends ConsumerWidget {
                                         Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(trendIcon,
+                                              AppIcon(trendIcon,
                                                   color: trendColor, size: 11),
                                               const SizedBox(width: 2),
                                               Text(
@@ -1417,7 +1408,7 @@ class _HRDashboardView extends ConsumerWidget {
                                                     color: trendColor,
                                                     fontSize: 11,
                                                     fontWeight:
-                                                        FontWeight.w600),
+                                                        FontWeight.w500),
                                               ),
                                             ]),
                                       ],
@@ -1454,65 +1445,6 @@ class _HRDashboardView extends ConsumerWidget {
       ]),
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  KPI Card
-// ─────────────────────────────────────────────────────────────────────────────
-class _KpiCard extends StatelessWidget {
-  const _KpiCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.sub,
-    required this.color,
-  });
-  final IconData icon;
-  final String label, value, sub;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(label,
-                    style: TextStyle(
-                        color: context.appSubtext,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 3),
-                Text(value,
-                    style: TextStyle(
-                        color: context.appText,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800),
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(sub,
-                    style:
-                        TextStyle(color: context.appSubtext, fontSize: 13)),
-              ]),
-            ),
-          ]),
-        ),
-      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1617,16 +1549,13 @@ class _BranchComparisonCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: context.cardDeco(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Branch Comparison',
             style: TextStyle(
                 color: context.appText,
                 fontSize: 15,
-                fontWeight: FontWeight.w700)),
+                fontWeight: FontWeight.w600)),
         const SizedBox(height: 16),
         SizedBox(
           height: 160,
@@ -1652,19 +1581,19 @@ class _AttentionCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.warningAmber.withAlpha(80)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.warning_amber_rounded,
+          const AppIcon(AppIcons.warningAmberRounded,
               color: AppColors.warningAmber, size: 18),
           const SizedBox(width: 8),
           Text('Needs Attention (${scores.length})',
               style: const TextStyle(
                   color: AppColors.warningAmber,
                   fontSize: 15,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
         ]),
         const SizedBox(height: 14),
         ...scores.map((s) {
@@ -1689,7 +1618,7 @@ class _AttentionCard extends StatelessWidget {
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 15,
-                        fontWeight: FontWeight.w600)),
+                        fontWeight: FontWeight.w500)),
                 Text(reason,
                     style: const TextStyle(
                         color: AppColors.warningAmber, fontSize: 13)),
@@ -1716,19 +1645,19 @@ class _AutoOnlyCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.primaryBlue.withAlpha(50)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.auto_awesome_rounded,
+          const AppIcon(AppIcons.autoAwesomeRounded,
               color: AppColors.primaryBlue, size: 18),
           const SizedBox(width: 8),
           Text('Auto-Scored Only — Manager Review Pending (${employees.length})',
               style: const TextStyle(
                   color: AppColors.primaryBlue,
                   fontSize: 15,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
         ]),
         const SizedBox(height: 4),
         Text(
@@ -1770,19 +1699,16 @@ class _NotScoredCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: context.cardDeco(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.pending_outlined, color: context.appSubtext, size: 18),
+          AppIcon(AppIcons.pendingOutlined, color: context.appSubtext, size: 18),
           const SizedBox(width: 8),
           Text('Not Yet Scored (${employees.length})',
               style: TextStyle(
                   color: context.appText,
                   fontSize: 15,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
         ]),
         const SizedBox(height: 12),
         Wrap(
@@ -1827,12 +1753,12 @@ class _ScoreStars extends StatelessWidget {
       ...List.generate(5, (i) {
         final filled = (i + 1) <= score.floor();
         final half = !filled && (i + 0.5) < score;
-        return Icon(
+        return AppIcon(
           filled
-              ? Icons.star_rounded
+              ? AppIcons.starRounded
               : half
-                  ? Icons.star_half_rounded
-                  : Icons.star_outline_rounded,
+                  ? AppIcons.starHalfRounded
+                  : AppIcons.starOutlineRounded,
           color: (filled || half) ? color : color.withAlpha(60),
           size: size,
         );
@@ -1840,7 +1766,7 @@ class _ScoreStars extends StatelessWidget {
       const SizedBox(width: 4),
       Text(score.toStringAsFixed(1),
           style: TextStyle(
-              color: color, fontSize: size - 1, fontWeight: FontWeight.w700)),
+              color: color, fontSize: size - 1, fontWeight: FontWeight.w600)),
     ]);
   }
 }
@@ -1879,7 +1805,7 @@ class _SmallAvatar extends StatelessWidget {
           style: TextStyle(
               color: Colors.white,
               fontSize: size * 0.35,
-              fontWeight: FontWeight.w700)),
+              fontWeight: FontWeight.w600)),
     );
   }
 }

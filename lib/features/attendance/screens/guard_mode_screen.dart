@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../providers/attendance_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 // ── State machine ─────────────────────────────────────────────────────────────
 enum _ScanState {
@@ -234,10 +236,10 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
   @override
   Widget build(BuildContext context) {
     final companyName =
-        ref.watch(companySettingsProvider).value?.companyName ?? 'HRNova';
+        ref.watch(companySettingsProvider).value?.companyName ?? 'HRNovva';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: AppColors.darkBackground,
       body: Column(children: [
         _TopBar(
             timeStr: _timeStr,
@@ -282,17 +284,17 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 10),
-      decoration: const BoxDecoration(color: Color(0xFF0D1628)),
+      decoration: const BoxDecoration(color: AppColors.darkBackground),
       child: Column(children: [
         Row(children: [
-          const Icon(Icons.shield_rounded,
+          const AppIcon(AppIcons.shieldRounded,
               color: AppColors.primaryBlue, size: 20),
           const SizedBox(width: 8),
           const Text('Guard Mode',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 17,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
           const Spacer(),
           Expanded(
             child: Text(companyName,
@@ -300,14 +302,14 @@ class _TopBar extends StatelessWidget {
                 style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 15,
-                    fontWeight: FontWeight.w500)),
+                    fontWeight: FontWeight.w400)),
           ),
           const Spacer(),
           Text(timeStr,
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   fontFamily: 'monospace')),
         ]),
         const SizedBox(height: 8),
@@ -420,7 +422,7 @@ class _BottomHint extends StatelessWidget {
         child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.qr_code_scanner_rounded,
+              AppIcon(AppIcons.qrCodeScannerRounded,
                   color: AppColors.primaryBlue, size: 18),
               SizedBox(width: 8),
               Text('Scan QR code to check in / check out',
@@ -460,14 +462,14 @@ class _NotFoundOverlay extends StatelessWidget {
             radius: 40,
             backgroundColor: Colors.white24,
             child:
-                Icon(Icons.person_off_rounded, size: 40, color: Colors.white),
+                AppIcon(AppIcons.personOffRounded, size: 40, color: Colors.white),
           ),
           SizedBox(height: 20),
           Text('Employee Not Found',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
-                  fontWeight: FontWeight.w800)),
+                  fontWeight: FontWeight.w700)),
           SizedBox(height: 8),
           Text('Please contact HR Admin',
               style: TextStyle(color: Colors.white70, fontSize: 17)),
@@ -496,7 +498,7 @@ class _CheckInOverlay extends StatelessWidget {
       child: Stack(children: [
         Positioned.fill(
           child: Center(
-            child: Icon(Icons.check_circle_outline_rounded,
+            child: AppIcon(AppIcons.checkCircleOutlineRounded,
                 size: 400, color: Colors.white.withAlpha(18)),
           ),
         ),
@@ -509,7 +511,7 @@ class _CheckInOverlay extends StatelessWidget {
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.w800)),
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
                 style: const TextStyle(color: Colors.white70, fontSize: 17)),
@@ -524,7 +526,7 @@ class _CheckInOverlay extends StatelessWidget {
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 2)),
             ),
             const SizedBox(height: 16),
@@ -533,7 +535,7 @@ class _CheckInOverlay extends StatelessWidget {
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.w800)),
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(t,
                   style:
@@ -543,7 +545,7 @@ class _CheckInOverlay extends StatelessWidget {
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -555,7 +557,7 @@ class _CheckInOverlay extends StatelessWidget {
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 1.5)),
               ),
             ],
@@ -584,7 +586,7 @@ class _CheckOutOverlay extends StatelessWidget {
       child: Stack(children: [
         Positioned.fill(
           child: Center(
-            child: Icon(Icons.logout_rounded,
+            child: AppIcon(AppIcons.logoutRounded,
                 size: 400, color: Colors.white.withAlpha(18)),
           ),
         ),
@@ -597,7 +599,7 @@ class _CheckOutOverlay extends StatelessWidget {
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.w800)),
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
                 style: const TextStyle(color: Colors.white70, fontSize: 17)),
@@ -612,7 +614,7 @@ class _CheckOutOverlay extends StatelessWidget {
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 2)),
             ),
             const SizedBox(height: 16),
@@ -620,7 +622,7 @@ class _CheckOutOverlay extends StatelessWidget {
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
-                    fontWeight: FontWeight.w700)),
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Text('Worked: ${h}h ${m}m today',
                 style: const TextStyle(color: Colors.white70, fontSize: 20)),
@@ -649,7 +651,7 @@ class _AlreadyDoneOverlay extends StatelessWidget {
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
-                  fontWeight: FontWeight.w700)),
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           const Text('Already completed today',
               style: TextStyle(color: Colors.white70, fontSize: 17)),
@@ -674,7 +676,7 @@ class _AfterHoursOverlay extends StatelessWidget {
       child: Stack(children: [
         Positioned.fill(
           child: Center(
-            child: Icon(Icons.watch_later_rounded,
+            child: AppIcon(AppIcons.watchLaterRounded,
                 size: 380, color: Colors.white.withAlpha(15)),
           ),
         ),
@@ -687,7 +689,7 @@ class _AfterHoursOverlay extends StatelessWidget {
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.w800)),
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text('${result.jobTitle}  ·  ${result.department}',
                 style: const TextStyle(color: Colors.white70, fontSize: 17)),
@@ -702,7 +704,7 @@ class _AfterHoursOverlay extends StatelessWidget {
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 2)),
             ),
             const SizedBox(height: 16),
@@ -710,7 +712,7 @@ class _AfterHoursOverlay extends StatelessWidget {
                 style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 18,
-                    fontWeight: FontWeight.w600)),
+                    fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             const Text('Check-in is no longer accepted for today',
                 style: TextStyle(color: Colors.white54, fontSize: 15)),
@@ -770,7 +772,7 @@ class _GuardAvatar extends StatelessWidget {
           style: TextStyle(
               color: Colors.white,
               fontSize: size * 0.33,
-              fontWeight: FontWeight.w700)),
+              fontWeight: FontWeight.w600)),
     );
   }
 }

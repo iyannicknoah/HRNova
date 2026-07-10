@@ -195,7 +195,7 @@ async function handleIncomingMessage(phone, messageText, companyId) {
   // ── Kinyarwanda trigger ───────────────────────────────────────────────────
   if (isKinyarwanda || (!session && upper === 'URUHUSHYA') || (!session && upper === 'IMPUSHYA')) {
     await sendMessage(phone,
-      `Muraho! 👋 Murakaza neza kuri HRNova.\n\n` +
+      `Muraho! 👋 Murakaza neza kuri HRNovva.\n\n` +
       `Hitamo icyo ushaka:\n` +
       `1️⃣ Gusaba uruhushya\n` +
       `2️⃣ Kureba impushya nsigaranye\n\n` +
@@ -244,7 +244,7 @@ async function handleIncomingMessage(phone, messageText, companyId) {
   // ── English trigger (no session) ─────────────────────────────────────────
   if (!session || upper === 'LEAVE') {
     await sendMessage(phone,
-      `👋 Welcome to HRNova Leave Portal!\n\nPlease select your leave type:\n\n` +
+      `👋 Welcome to HRNovva Leave Portal!\n\nPlease select your leave type:\n\n` +
       `1️⃣ Annual Leave\n2️⃣ Sick Leave\n3️⃣ Maternity Leave\n4️⃣ Paternity Leave\n5️⃣ Unpaid Leave\n6️⃣ Emergency Leave\n\n` +
       `Reply with the number (1-6) or send *CANCEL* to quit.\n\n` +
       `_Kinyarwanda: Subiza URUHUSHYA_`

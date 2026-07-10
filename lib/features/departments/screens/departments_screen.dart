@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../shared/widgets/app_dialog_shell.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../shared/widgets/app_icon.dart';
 
 class DepartmentsScreen extends ConsumerStatefulWidget {
   const DepartmentsScreen({super.key});
@@ -38,18 +43,20 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
     }
   }
 
-  void _showAdd() => showDialog(
+  void _showAdd() => AppDialogShell.show(
     context: context,
-    builder: (_) => _DeptDialog(
+    alignment: Alignment.center,
+    child: _DeptDialog(
       title: 'Add Department',
       existing: _depts ?? [],
       onConfirm: (name) => _persist([...(_depts ?? []), name]),
     ),
   );
 
-  void _showEdit(int i) => showDialog(
+  void _showEdit(int i) => AppDialogShell.show(
     context: context,
-    builder: (_) => _DeptDialog(
+    alignment: Alignment.center,
+    child: _DeptDialog(
       title: 'Edit Department',
       initial: _depts![i],
       existing: (_depts ?? []).where((d) => d != _depts![i]).toList(),
@@ -63,33 +70,46 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
 
   void _confirmDelete(int i) {
     final name = _depts![i];
-    showDialog(
+    AppDialogShell.show(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: context.appCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Department',
-            style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w700)),
-        content: Text(
-          'Remove "$name"?\n\nEmployees already assigned to this department will keep their current assignment — update them manually in the Employees section.',
-          style: TextStyle(color: context.appSubtext, fontSize: 14, height: 1.6),
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Delete Department',
+                style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 15),
+            Text(
+              'Remove "$name"?\n\nEmployees already assigned to this department will keep their current assignment — update them manually in the Employees section.',
+              style: TextStyle(color: context.appSubtext, fontSize: 14, height: 1.6),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                HRNovaButton.text(
+                  label: 'Cancel',
+                  onPressed: () => Navigator.pop(context),
+                  textColor: context.appSubtext,
+                ),
+                HRNovaButton(
+                  label: 'Delete',
+                  isFullWidth: false,
+                  backgroundColor: AppColors.errorRed,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    final copy = List<String>.from(_depts!);
+                    copy.removeAt(i);
+                    _persist(copy);
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: context.appSubtext)),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              final copy = List<String>.from(_depts!);
-              copy.removeAt(i);
-              _persist(copy);
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.errorRed),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }
@@ -109,7 +129,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
         return Scaffold(
           backgroundColor: context.appBg,
           body: Padding(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.section, vertical: AppSpacing.section),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -120,7 +140,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
                         style: TextStyle(
                           color: context.appText,
                           fontSize: 20,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
                         )),
                     const SizedBox(height: 2),
@@ -140,15 +160,11 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: context.appSubtext),
                       ),
                     ),
-                  FilledButton.icon(
+                  HRNovaButton(
+                    label: 'Add Department',
+                    icon: AppIcons.addRounded,
+                    isFullWidth: false,
                     onPressed: _showAdd,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Department', style: TextStyle(fontWeight: FontWeight.w600)),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
                   ),
                 ]),
                 const SizedBox(height: 28),
@@ -196,16 +212,12 @@ class _DeptTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.appBorder),
-      ),
+      decoration: context.cardDeco(),
       child: Row(children: [
         Container(
           width: 36, height: 36,
           decoration: BoxDecoration(
-            color: AppColors.pillBlueBg,
+            color: context.pillBlueBg,
             borderRadius: BorderRadius.circular(10),
           ),
           alignment: Alignment.center,
@@ -214,7 +226,7 @@ class _DeptTile extends StatelessWidget {
             style: const TextStyle(
               color: AppColors.primaryBlue,
               fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -225,22 +237,22 @@ class _DeptTile extends StatelessWidget {
             style: TextStyle(
               color: context.appText,
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
         _IconBtn(
-          icon: Icons.edit_outlined,
+          icon: AppIcons.editOutlined,
           color: AppColors.primaryBlue,
-          bg: AppColors.pillBlueBg,
+          bg: context.pillBlueBg,
           tooltip: 'Edit',
           onTap: onEdit,
         ),
         const SizedBox(width: 8),
         _IconBtn(
-          icon: Icons.delete_outline_rounded,
+          icon: AppIcons.deleteOutlineRounded,
           color: AppColors.errorRed,
-          bg: AppColors.pillRedBg,
+          bg: context.pillRedBg,
           tooltip: 'Delete',
           onTap: onDelete,
         ),
@@ -257,7 +269,7 @@ class _IconBtn extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
   });
-  final IconData icon;
+  final IconRef icon;
   final Color color, bg;
   final String tooltip;
   final VoidCallback onTap;
@@ -271,7 +283,7 @@ class _IconBtn extends StatelessWidget {
       child: Container(
         width: 34, height: 34,
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 16, color: color),
+        child: AppIcon(icon, size: 16, color: color),
       ),
     ),
   );
@@ -286,13 +298,13 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.category_outlined, size: 64, color: context.appSubtext.withAlpha(80)),
+        AppIcon(AppIcons.categoryOutlined, size: 64, color: context.appSubtext.withAlpha(80)),
         const SizedBox(height: 16),
         Text('No departments yet',
             style: TextStyle(
               color: context.appText,
               fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             )),
         const SizedBox(height: 8),
         Text(
@@ -300,11 +312,11 @@ class _EmptyState extends StatelessWidget {
           style: TextStyle(color: context.appSubtext, fontSize: 15),
         ),
         const SizedBox(height: 24),
-        FilledButton.icon(
+        HRNovaButton(
+          label: 'Add First Department',
+          icon: AppIcons.addRounded,
+          isFullWidth: false,
           onPressed: onAdd,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Add First Department', style: TextStyle(fontWeight: FontWeight.w600)),
-          style: FilledButton.styleFrom(backgroundColor: AppColors.primaryBlue),
         ),
       ]),
     );
@@ -368,34 +380,29 @@ class _DeptDialogState extends State<_DeptDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: context.appCard,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Header
             Row(children: [
               Container(
                 width: 40, height: 40,
-                decoration: BoxDecoration(color: AppColors.pillBlueBg, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.category_outlined, color: AppColors.primaryBlue, size: 20),
+                decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(12)),
+                child: const AppIcon(AppIcons.categoryOutlined, color: AppColors.primaryBlue, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(child: Text(widget.title,
-                  style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w700))),
+                  style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600))),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close_rounded, color: context.appSubtext),
+                icon: AppIcon(AppIcons.closeRounded, color: context.appSubtext),
               ),
             ]),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Field
             Text('Department Name *',
-                style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500)),
+                style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
             const SizedBox(height: 6),
             TextField(
               controller: _ctrl,
@@ -409,50 +416,35 @@ class _DeptDialogState extends State<_DeptDialog> {
                 fillColor: context.appField,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: context.appBorder)),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: context.appBorder)),
                 focusedBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                     borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
                 errorText: _error,
                 errorStyle: const TextStyle(color: AppColors.errorRed),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Buttons
             Row(children: [
-              Expanded(child: OutlinedButton(
+              Expanded(child: HRNovaButton(
+                label: 'Cancel',
+                outlined: true,
                 onPressed: _saving ? null : () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.appBorder),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                ),
-                child: Text('Cancel', style: TextStyle(color: context.appText, fontWeight: FontWeight.w600)),
               )),
               const SizedBox(width: 12),
-              Expanded(child: FilledButton(
+              Expanded(child: HRNovaButton(
+                label: widget.initial == null ? 'Add' : 'Save Changes',
+                isLoading: _saving,
                 onPressed: _saving ? null : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  disabledBackgroundColor: AppColors.primaryBlue.withAlpha(100),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                ),
-                child: _saving
-                    ? const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(widget.initial == null ? 'Add' : 'Save Changes',
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
               )),
             ]),
-          ]),
-        ),
-      ),
+      ]),
     );
   }
 }
