@@ -164,7 +164,7 @@ class _EmptyState extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 3.1,
+              childAspectRatio: 4.2,
               children: _suggestions.map((s) => _SuggestionCard(text: s, onTap: onSuggestion)).toList(),
             ),
           ),
@@ -185,13 +185,13 @@ class _SuggestionCard extends StatelessWidget {
       onTap: () => onTap(text),
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: context.cardDeco(14),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 26, height: 26,
+              width: 22, height: 22,
               decoration: BoxDecoration(
                 color: AppColors.warningAmber.withAlpha(20),
                 borderRadius: BorderRadius.circular(8),
@@ -362,24 +362,32 @@ class _InputBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appCard,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: context.appBorder),
           boxShadow: [BoxShadow(color: Colors.black.withAlpha(context.isDark ? 40 : 12), blurRadius: 16, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
-            const SizedBox(width: 10),
             Expanded(
-              child: TextField(
-                controller: controller,
-                enabled: !loading,
-                style: TextStyle(fontSize: 13, color: context.appText),
-                decoration: InputDecoration(
-                  hintText: 'Ask Nova about your HR data…',
-                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-                  border: InputBorder.none,
-                  isCollapsed: true,
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: context.appBorder),
                 ),
-                onSubmitted: loading ? null : onSend,
+                child: Center(
+                  child: TextField(
+                    controller: controller,
+                    enabled: !loading,
+                    style: TextStyle(fontSize: 13, color: context.appText),
+                    decoration: InputDecoration(
+                      hintText: 'Ask Nova about your HR data…',
+                      hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+                      border: InputBorder.none,
+                      isCollapsed: true,
+                    ),
+                    onSubmitted: loading ? null : onSend,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),

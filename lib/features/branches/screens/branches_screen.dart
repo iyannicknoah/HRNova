@@ -199,21 +199,21 @@ class _BranchCard extends StatelessWidget {
   }
 }
 
-class _BranchCardContent extends StatelessWidget {
+class _BranchCardContent extends ConsumerWidget {
   const _BranchCardContent({required this.branch, required this.onToggleActive});
   final BranchModel branch;
   final ValueChanged<bool> onToggleActive;
 
   @override
-  Widget build(BuildContext context) {
-    final accent = AppColors.gradientForName(branch.name).first;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final employeeCount = (ref.watch(employeesProvider).value ?? [])
+        .where((e) => e.branchId == branch.id).length;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(height: 4, color: accent),
           Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -259,7 +259,7 @@ class _BranchCardContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Row(children: [
-                  Text('${branch.employeeCount}',
+                  Text('$employeeCount',
                       style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w700, height: 1)),
                   const SizedBox(width: 6),
                   Text('employees', style: TextStyle(color: context.appSubtext, fontSize: 13)),

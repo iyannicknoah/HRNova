@@ -796,7 +796,7 @@ class _ResultLayout extends ConsumerWidget {
 
         // ── Anomaly warnings ────────────────────────────────────────────────
         if (anomalies.isNotEmpty) ...[
-          _AnomalyBanner(anomalies: anomalies),
+          _AnomalyButton(anomalies: anomalies),
           const SizedBox(height: 16),
         ],
 
@@ -892,37 +892,80 @@ class _MetricGrid extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ANOMALY BANNER
+// ANOMALY BUTTON + DIALOG
 // ─────────────────────────────────────────────────────────────────────────────
-class _AnomalyBanner extends StatelessWidget {
-  const _AnomalyBanner({required this.anomalies});
+class _AnomalyButton extends StatelessWidget {
+  const _AnomalyButton({required this.anomalies});
   final List<PayslipModel> anomalies;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: AppColors.warningAmber.withAlpha(15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.warningAmber.withAlpha(80))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => AppDialogShell.show(
+        context: context,
+        alignment: Alignment.center,
+        maxWidth: 480,
+        child: _AnomalyDialogContent(anomalies: anomalies),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+            color: AppColors.warningAmber.withAlpha(15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.warningAmber.withAlpha(80))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
           const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 16),
           const SizedBox(width: 8),
           Text('${anomalies.length} anomaly warning${anomalies.length > 1 ? 's' : ''}',
               style: const TextStyle(color: AppColors.warningAmber,
-                  fontWeight: FontWeight.w600, fontSize: 15)),
+                  fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(width: 6),
+          const AppIcon(AppIcons.chevronRightRounded, color: AppColors.warningAmber, size: 14),
+        ]),
+      ),
+    );
+  }
+}
+
+class _AnomalyDialogContent extends StatelessWidget {
+  const _AnomalyDialogContent({required this.anomalies});
+  final List<PayslipModel> anomalies;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('${anomalies.length} Anomaly Warning${anomalies.length > 1 ? 's' : ''}',
+                style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+          ),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: AppIcon(AppIcons.closeRounded, color: context.appSubtext),
+          ),
         ]),
         const SizedBox(height: 8),
-        ...anomalies.map((p) => Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Text(
-            '• ${p.fullName}: ${p.absentDays} absent days'
-            '${p.netSalary == 0 ? ' · net salary is RWF 0' : ''}',
-            style: const TextStyle(color: AppColors.warningAmber, fontSize: 14),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 400),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: anomalies.map((p) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  '• ${p.fullName}: ${p.absentDays} absent days'
+                  '${p.netSalary == 0 ? ' · net salary is RWF 0' : ''}',
+                  style: TextStyle(color: context.appText, fontSize: 14, height: 1.4),
+                ),
+              )).toList(),
+            ),
           ),
-        )),
+        ),
       ]),
     );
   }

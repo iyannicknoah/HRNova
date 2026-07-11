@@ -511,16 +511,15 @@ class _ActionCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: context.appBorder),
           ),
           child: Row(
             children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(12)),
+              SizedBox(
+                width: 36, height: 36,
                 child: AppIcon(icon, color: context.appText, size: 22),
               ),
               const SizedBox(width: 12),

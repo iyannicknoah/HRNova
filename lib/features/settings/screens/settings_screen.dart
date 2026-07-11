@@ -221,7 +221,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _section(String key, IconRef icon, String title, String subtitle, Widget body) {
     final open = _expanded[key] ?? false;
     return Container(
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.appBorder),
+      ),
       child: Column(
         children: [
           InkWell(

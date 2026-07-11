@@ -292,7 +292,7 @@ class _GenButton extends StatelessWidget {
   final bool loading;
   final VoidCallback onTap;
   final String label;
-  const _GenButton({required this.loading, required this.onTap, this.label = 'Generate Report'});
+  const _GenButton({required this.loading, required this.onTap, this.label = 'Generate AI Summary'});
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +377,9 @@ class _AiSummaryPanelState extends State<_AiSummaryPanel> {
   String? _shownFor;
   bool _dismissed = false;
 
-  String? get _reportText => widget.freshReport ?? (widget.savedDoc?['report'] as String?);
+  // Only ever show a report generated in this session — a previously saved
+  // report must not auto-appear just because the page was opened.
+  String? get _reportText => widget.freshReport;
 
   @override
   void didUpdateWidget(_AiSummaryPanel old) {
@@ -1250,7 +1252,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
           const Spacer(),
           _GenButton(
             loading: state.loading,
-            label: 'Generate Group Report',
+            label: 'Generate AI Summary',
             onTap: () => notifier.generateGroupDaily(date: _fmt.format(_date)),
           ),
           const SizedBox(width: 10),

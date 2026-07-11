@@ -215,19 +215,16 @@ class _DeptTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
       decoration: context.cardDeco(),
       child: Row(children: [
-        Container(
+        SizedBox(
           width: 36, height: 36,
-          decoration: BoxDecoration(
-            color: context.pillBlueBg,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '$index',
-            style: const TextStyle(
-              color: AppColors.primaryBlue,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          child: Center(
+            child: Text(
+              '$index',
+              style: const TextStyle(
+                color: AppColors.primaryBlue,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

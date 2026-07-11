@@ -539,6 +539,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
               // Employee list card
               Expanded(
                 child: Container(
+                  clipBehavior: Clip.antiAlias,
                   decoration: context.cardDeco(),
                   child: employeesAsync.isLoading
                       ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
@@ -551,6 +552,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                                     dept: dept,
                                     total: grouped[dept]!.length,
                                     scored: grouped[dept]!.where((e) => _isManuallyScored(scoreMap[e.id])).length,
+                                    isFirst: dept == sortedDepts.first,
                                   ),
                                   ...grouped[dept]!.map((e) {
                                     final existing = scoreMap[e.id];
@@ -666,16 +668,22 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
 }
 
 class _DeptSectionHeader extends StatelessWidget {
-  const _DeptSectionHeader({required this.dept, required this.total, required this.scored});
+  const _DeptSectionHeader({required this.dept, required this.total, required this.scored, this.isFirst = false});
   final String dept;
   final int total, scored;
+  final bool isFirst;
 
   @override
   Widget build(BuildContext context) {
     final allDone = scored == total;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: context.appTint,
+      decoration: BoxDecoration(
+        color: context.appTint,
+        borderRadius: isFirst
+            ? const BorderRadius.only(topLeft: Radius.circular(18), topRight: Radius.circular(18))
+            : BorderRadius.zero,
+      ),
       child: Row(children: [
         Text(
           dept,
