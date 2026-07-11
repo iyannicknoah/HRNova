@@ -36,7 +36,8 @@ Future<bool> showConfirmDialog(
               Expanded(
                 child: HRNovaButton(
                   label: cancelLabel,
-                  outlined: true,
+                  backgroundColor: ctx.appField,
+                  textColor: ctx.appText,
                   onPressed: () => Navigator.of(ctx).pop(false),
                 ),
               ),

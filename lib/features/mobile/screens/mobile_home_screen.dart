@@ -27,6 +27,7 @@ import '../../../features/settings/providers/settings_provider.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/month_nav.dart';
 
 // Mobile-only notification providers filtered by employeeId
 final _mobileNotifsProvider =
@@ -1046,22 +1047,12 @@ class _BalanceCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: AppIcon(icon, color: color, size: 18),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(label,
-                        style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                        style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 1),
                     Text('$remaining days remaining',
                         style: TextStyle(
@@ -1429,7 +1420,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
                 hintText: 'Describe the reason...',
                 hintStyle: TextStyle(color: context.appSubtext),
                 filled: true,
-                fillColor: context.appField,
+                fillColor: context.appCard,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: context.appBorder),
@@ -1502,7 +1493,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: context.appField,
+        color: context.appCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: context.appBorder),
       ),
@@ -1538,7 +1529,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: context.appField,
+          color: context.appCard,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: context.appBorder),
         ),
@@ -2654,32 +2645,12 @@ class _MonthNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = DateFormat('MMM yyyy').format(month);
     final canGoNext =
         !DateTime(month.year, month.month + 1).isAfter(DateTime.now());
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: onPrev,
-          icon: AppIcon(AppIcons.chevronLeftRounded, color: context.appSubtext),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        ),
-        Text(label,
-            style: TextStyle(
-                color: context.appText,
-                fontSize: 15,
-                fontWeight: FontWeight.w400)),
-        IconButton(
-          onPressed: canGoNext ? onNext : null,
-          icon: AppIcon(AppIcons.chevronRightRounded,
-              color: canGoNext ? context.appSubtext : context.appBorder),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        ),
-      ],
+    return MonthNav(
+      label: DateFormat('MMM yyyy').format(month),
+      onPrev: onPrev,
+      onNext: canGoNext ? onNext : null,
     );
   }
 }

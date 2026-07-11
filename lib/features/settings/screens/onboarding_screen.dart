@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../providers/settings_provider.dart';
 import '../../../core/theme/app_icons.dart';
@@ -80,8 +81,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       context: context,
       initialTime: isStart ? _startTime : _endTime,
       builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(primary: AppColors.primaryBlue),
+        data: (ctx.isDark ? ThemeData.dark() : ThemeData.light()).copyWith(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.primaryBlue,
+            brightness: ctx.isDark ? Brightness.dark : Brightness.light,
+            primary: AppColors.primaryBlue,
+          ),
         ),
         child: child!,
       ),
@@ -159,18 +164,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     'Set up emergency contacts and notification preferences',
   ];
 
-  // ── Shared colours ────────────────────────────────────────────────────────
-  static const _bg     = AppColors.darkBackground;
-  static const _card   = AppColors.darkBackground;
-  static const _field  = AppColors.darkCard;
-  static const _border = Color(0xFF2A3236);
-  static const _sub    = Color(0xFF8899BB);
-  static const _blue   = AppColors.primaryBlue;
+  static const _blue = AppColors.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: context.appBg,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -197,30 +196,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _logo() => Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(color: _blue.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-        child: const AppIcon(AppIcons.gridViewRounded, color: _blue, size: 22),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.asset(
+          context.isDark
+              ? 'assets/icon/icon_dark.png'
+              : 'assets/icon/icon_light.png',
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+        ),
       ),
       const SizedBox(width: 10),
-      const Text('HRNovva', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: -0.5)),
+      Text('HRNovva', style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: -0.5)),
     ],
   );
 
   Widget _formCard() => Container(
     width: double.infinity,
-    decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _border)),
+    decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(18), border: Border.all(color: context.appBorder)),
     padding: const EdgeInsets.all(32),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Step ${_step + 1} of $_total', style: const TextStyle(color: _blue, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.5)),
         const SizedBox(height: 6),
-        Text(_stepTitles[_step], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
+        Text(_stepTitles[_step], style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
-        Text(_stepSubs[_step], style: const TextStyle(color: _sub, fontSize: 15)),
+        Text(_stepSubs[_step], style: TextStyle(color: context.appSubtext, fontSize: 15)),
         const SizedBox(height: 24),
-        const Divider(color: _border, height: 1),
+        Divider(color: context.appBorder, height: 1),
         const SizedBox(height: 24),
         _buildStep(),
       ],
@@ -234,7 +239,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           label: 'Back',
           outlined: true,
           isFullWidth: false,
-          textColor: Colors.white,
+          textColor: context.appText,
           height: 52,
           onPressed: _saving ? null : _back,
         ),
@@ -272,7 +277,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const SizedBox(height: 20),
       _textField('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
       const SizedBox(height: 20),
-      const Text('Working Days', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
+      Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
       const SizedBox(height: 10),
       Wrap(
         spacing: 8, runSpacing: 8,
@@ -284,11 +289,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
               decoration: BoxDecoration(
-                color: sel ? _blue.withAlpha(25) : _field,
+                color: sel ? _blue.withAlpha(25) : context.appField,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: sel ? _blue : _border, width: sel ? 1.5 : 1),
+                border: Border.all(color: sel ? _blue : context.appBorder, width: sel ? 1.5 : 1),
               ),
-              child: Text(d, style: TextStyle(color: sel ? _blue : _sub, fontSize: 15, fontWeight: sel ? FontWeight.w500 : FontWeight.w400)),
+              child: Text(d, style: TextStyle(color: sel ? _blue : context.appSubtext, fontSize: 15, fontWeight: sel ? FontWeight.w500 : FontWeight.w400)),
             ),
           );
         }).toList(),
@@ -311,16 +316,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         decoration: BoxDecoration(color: _blue.withAlpha(18), borderRadius: BorderRadius.circular(12), border: Border.all(color: _blue.withAlpha(60))),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            AppIcon(AppIcons.infoOutlineRounded, color: _blue, size: 18),
-            SizedBox(width: 12),
+          children: [
+            const AppIcon(AppIcons.infoOutlineRounded, color: _blue, size: 18),
+            const SizedBox(width: 12),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
-                SizedBox(height: 4),
+                const Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
                 Text('Maternity: 84 days  •  Paternity: 4 days\nThese are mandatory and cannot be configured.',
-                    style: TextStyle(color: _sub, fontSize: 14, height: 1.5)),
+                    style: TextStyle(color: context.appSubtext, fontSize: 14, height: 1.5)),
               ],
             )),
           ],
@@ -339,22 +344,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Overtime Multiplier', style: TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
+            Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
             const SizedBox(height: 6),
             Container(
               height: 50,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: _field, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+              decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _overtime,
-                  items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
+                  items: ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
                     value: v,
-                    child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 15)),
+                    child: Text(v, style: TextStyle(color: context.appText, fontSize: 15)),
                   )).toList(),
                   onChanged: (v) => setState(() => _overtime = v!),
-                  dropdownColor: _card,
-                  icon: const AppIcon(AppIcons.keyboardArrowDownRounded, color: _sub),
+                  dropdownColor: context.appCard,
+                  icon: AppIcon(AppIcons.keyboardArrowDownRounded, color: context.appSubtext),
                   isExpanded: true,
                 ),
               ),
@@ -379,16 +384,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Expanded(
           child: TextField(
             controller: _deptCtrl,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+            style: TextStyle(color: context.appText, fontSize: 15),
             onSubmitted: (_) => _addDept(),
             decoration: InputDecoration(
               hintText: 'e.g. Finance, Operations, IT...',
-              hintStyle: const TextStyle(color: Color(0xFF445566)),
-              filled: true, fillColor: _field,
+              hintStyle: TextStyle(color: context.appSubtext.withAlpha(150)),
+              filled: true, fillColor: context.appField,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: _blue, width: 1.5)),
             ),
           ),
         ),
@@ -435,7 +440,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildNotifications() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Emergency Contacts', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 14),
       _textField('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
       const SizedBox(height: 14),
@@ -463,9 +468,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ]),
       ),
       const SizedBox(height: 24),
-      const Divider(color: _border, height: 1),
+      Divider(color: context.appBorder, height: 1),
       const SizedBox(height: 20),
-      const Text('Notification Method', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      Text('Notification Method', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 6),
       Container(
         padding: const EdgeInsets.all(12),
@@ -476,12 +481,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             const SizedBox(width: 8),
             const Text('Email only', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
             const Spacer(),
-            Text('WhatsApp coming in Phase 2', style: TextStyle(color: _sub, fontSize: 13)),
+            Text('WhatsApp coming in Phase 2', style: TextStyle(color: context.appSubtext, fontSize: 13)),
           ],
         ),
       ),
       const SizedBox(height: 20),
-      const Divider(color: _border, height: 1),
+      Divider(color: context.appBorder, height: 1),
       const SizedBox(height: 20),
       _textField('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX (for RRA payroll export)'),
     ],
@@ -492,21 +497,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
+          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
           const SizedBox(height: 6),
           TextField(
             controller: ctrl, keyboardType: type,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+            style: TextStyle(color: context.appText, fontSize: 15),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Color(0xFF445566)),
+              hintStyle: TextStyle(color: context.appSubtext.withAlpha(150)),
               suffixText: suffix,
-              suffixStyle: const TextStyle(color: _sub, fontSize: 15),
-              filled: true, fillColor: _field,
+              suffixStyle: TextStyle(color: context.appSubtext, fontSize: 15),
+              filled: true, fillColor: context.appField,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
+              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: _blue, width: 1.5)),
             ),
           ),
         ],
@@ -516,18 +521,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _sub, fontSize: 14, fontWeight: FontWeight.w400)),
+          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
           const SizedBox(height: 6),
           GestureDetector(
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(color: _field, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+              decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
               child: Row(
                 children: [
-                  const AppIcon(AppIcons.accessTimeRounded, color: _sub, size: 18),
+                  AppIcon(AppIcons.accessTimeRounded, color: context.appSubtext, size: 18),
                   const SizedBox(width: 10),
-                  Text(_fmtTime(t), style: const TextStyle(color: Colors.white, fontSize: 15)),
+                  Text(_fmtTime(t), style: TextStyle(color: context.appText, fontSize: 15)),
                 ],
               ),
             ),
@@ -541,16 +546,14 @@ class _StepIndicators extends StatelessWidget {
   const _StepIndicators({required this.current, required this.total});
   final int current, total;
 
-  static const _blue   = AppColors.primaryBlue;
-  static const _border = Color(0xFF1A3050);
-  static const _card   = Color(0xFF0D1E35);
+  static const _blue = AppColors.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: List.generate(total * 2 - 1, (i) {
         if (i.isOdd) {
-          return Expanded(child: Container(height: 2, color: i ~/ 2 < current ? _blue : _border));
+          return Expanded(child: Container(height: 2, color: i ~/ 2 < current ? _blue : context.appBorder));
         }
         final idx = i ~/ 2;
         final done = idx < current;
@@ -559,13 +562,13 @@ class _StepIndicators extends StatelessWidget {
           width: 36, height: 36,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: done ? _blue : active ? _blue.withAlpha(30) : _card,
-            border: Border.all(color: done || active ? _blue : _border, width: 1.5),
+            color: done ? _blue : active ? _blue.withAlpha(30) : context.appCard,
+            border: Border.all(color: done || active ? _blue : context.appBorder, width: 1.5),
           ),
           child: Center(
             child: done
                 ? const AppIcon(AppIcons.checkRounded, color: Colors.white, size: 16)
-                : Text('${idx + 1}', style: TextStyle(color: active ? _blue : const Color(0xFF445566), fontSize: 15, fontWeight: FontWeight.w500)),
+                : Text('${idx + 1}', style: TextStyle(color: active ? _blue : context.appSubtext, fontSize: 15, fontWeight: FontWeight.w500)),
           ),
         );
       }),

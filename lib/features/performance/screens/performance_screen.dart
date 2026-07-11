@@ -20,6 +20,7 @@ import '../models/performance_model.dart';
 import '../providers/performance_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/month_nav.dart';
 
 class PerformanceScreen extends ConsumerStatefulWidget {
   const PerformanceScreen({super.key});
@@ -167,57 +168,13 @@ class _MonthPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final isCurrentMonth =
-    
-        month.year == now.year && month.month == now.month;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        _NavBtn(icon: AppIcons.chevronLeftRounded, onTap: onPrev),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(DateFormat('MMMM yyyy').format(month),
-              style: TextStyle(
-                  color: context.appText,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500)),
-        ),
-        _NavBtn(
-            icon: AppIcons.chevronRightRounded,
-            onTap: isCurrentMonth ? null : onNext),
-      ]),
+    final isCurrentMonth = month.year == now.year && month.month == now.month;
+    return MonthNav(
+      label: DateFormat('MMMM yyyy').format(month),
+      onPrev: onPrev,
+      onNext: isCurrentMonth ? null : onNext,
     );
   }
-}
-
-class _NavBtn extends StatelessWidget {
-  const _NavBtn({required this.icon, this.onTap});
-  final IconRef icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: onTap != null
-                ? context.appField
-                : context.appField.withAlpha(80),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: AppIcon(icon,
-              size: 18,
-              color: onTap != null
-                  ? context.appText
-                  : context.appSubtext.withAlpha(100)),
-        ),
-      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

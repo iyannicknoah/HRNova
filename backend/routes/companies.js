@@ -35,10 +35,33 @@ router.post('/create', async (req, res) => {
   const store = db();
   const isMulti = companyType === 'multi_branch';
 
+  // Reserve a company ID locally (no write yet) so the Auth user's custom
+  // claims can reference it before the Firestore document is created.
+  const coRef = store.collection('companies').doc();
+  const role        = isMulti ? 'group_hr_admin' : 'hr_admin';
+  const displayName = contactPerson || `${name} HR Admin`;
+
+  let hrUser;
   try {
-    // 1. Firestore company doc
-    const coRef = store.collection('companies').doc();
-    const slug  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    // 1. Firebase Auth user — created first. If this fails, nothing has
+    //    been written to Firestore, so there's no orphaned company left
+    //    behind with no matching account.
+    hrUser = await getAuth().createUser({ email: hrAdminEmail, password: tempPassword, displayName });
+    await getAuth().setCustomUserClaims(hrUser.uid, {
+      role, companyId: coRef.id, companyName: name,
+      companyType: isMulti ? 'multi_branch' : 'single', displayName,
+    });
+    await getAuth().revokeRefreshTokens(hrUser.uid);
+  } catch (e) {
+    console.error('Create company (auth step):', e);
+    if (e.code === 'auth/email-already-exists')
+      return res.status(400).json({ error: 'That email address is already registered' });
+    return res.status(500).json({ error: e.message });
+  }
+
+  try {
+    // 2. Firestore company doc
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     await coRef.set({
       name, slug,
       companyType: isMulti ? 'multi_branch' : 'single',
@@ -53,16 +76,6 @@ router.post('/create', async (req, res) => {
       status: 'active',
       createdAt: FieldValue.serverTimestamp(),
     });
-
-    // 2. Firebase Auth user
-    const role        = isMulti ? 'group_hr_admin' : 'hr_admin';
-    const displayName = contactPerson || `${name} HR Admin`;
-    const hrUser = await getAuth().createUser({ email: hrAdminEmail, password: tempPassword, displayName });
-    await getAuth().setCustomUserClaims(hrUser.uid, {
-      role, companyId: coRef.id, companyName: name,
-      companyType: isMulti ? 'multi_branch' : 'single', displayName,
-    });
-    await getAuth().revokeRefreshTokens(hrUser.uid);
 
     // 3. First branch (multi-branch only)
     let branchResult = null;
@@ -89,9 +102,11 @@ router.post('/create', async (req, res) => {
       branch: branchResult,
     });
   } catch (e) {
-    console.error('Create company:', e);
-    if (e.code === 'auth/email-already-exists')
-      return res.status(400).json({ error: 'That email address is already registered' });
+    // Firestore write failed after the Auth account was already created —
+    // delete the orphaned Auth user so a retry doesn't hit
+    // "email already exists" for an account that never actually got a company.
+    console.error('Create company (firestore step):', e);
+    await getAuth().deleteUser(hrUser.uid).catch(() => {});
     res.status(500).json({ error: e.message });
   }
 });

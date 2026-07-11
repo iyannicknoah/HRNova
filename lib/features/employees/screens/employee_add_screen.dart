@@ -266,7 +266,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
             child: HRNovaButton(
               label: 'Done',
               isFullWidth: false,
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             ),
           ),
         ]),

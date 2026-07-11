@@ -22,6 +22,7 @@ import '../models/attendance_model.dart';
 import '../providers/attendance_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/month_nav.dart';
 
 // ── Joined display row ────────────────────────────────────────────────────────
 typedef _JR = ({
@@ -979,19 +980,11 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
         child: Row(children: [
-          _navBtn(AppIcons.chevronLeftRounded,
-              () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
-              context),
-          const SizedBox(width: 12),
-          Text(DateFormat('MMMM yyyy').format(_month),
-              style: TextStyle(
-                  color: context.appText,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(width: 12),
-          _navBtn(AppIcons.chevronRightRounded,
-              () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
-              context),
+          MonthNav(
+            label: DateFormat('MMMM yyyy').format(_month),
+            onPrev: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
+            onNext: () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
+          ),
           const Spacer(),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -1057,21 +1050,6 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
       ),
     ]);
   }
-
-  Widget _navBtn(
-          IconRef icon, VoidCallback onTap, BuildContext context) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-              color: context.appCard,
-              borderRadius: BorderRadius.circular(8)),
-          child:
-              AppIcon(icon, color: context.appText, size: 18),
-        ),
-      );
 
   List<_SRow> _buildSummary(
       List<EmployeeModel> employees, List<AttendanceModel> records, String workEndTime) {

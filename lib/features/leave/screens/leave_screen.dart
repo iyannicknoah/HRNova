@@ -17,6 +17,7 @@ import '../models/leave_request_model.dart';
 import '../providers/leave_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/month_nav.dart';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -2013,21 +2014,13 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
         child: Row(children: [
-          _navBtn(AppIcons.chevronLeftRounded,
-              () => setState(() =>
-                  _month = DateTime(_month.year, _month.month - 1)),
-              context),
-          const SizedBox(width: 12),
-          Text(DateFormat('MMMM yyyy').format(_month),
-              style: TextStyle(
-                  color: context.appText,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(width: 12),
-          _navBtn(AppIcons.chevronRightRounded,
-              () => setState(() =>
-                  _month = DateTime(_month.year, _month.month + 1)),
-              context),
+          MonthNav(
+            label: DateFormat('MMMM yyyy').format(_month),
+            onPrev: () => setState(() =>
+                _month = DateTime(_month.year, _month.month - 1)),
+            onNext: () => setState(() =>
+                _month = DateTime(_month.year, _month.month + 1)),
+          ),
           const Spacer(),
           ...[
             ('Annual', AppColors.primaryBlue),
@@ -2130,19 +2123,6 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
     ]);
   }
 
-  Widget _navBtn(IconRef icon, VoidCallback onTap, BuildContext ctx) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-              color: ctx.appCard,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: ctx.appBorder)),
-          child: AppIcon(icon, color: ctx.appText, size: 18),
-        ),
-      );
 }
 
 class _CalendarCell extends StatelessWidget {

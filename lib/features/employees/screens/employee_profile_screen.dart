@@ -34,6 +34,7 @@ import '../../performance/services/performance_pdf_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/month_nav.dart';
 
 class EmployeeProfileScreen extends ConsumerStatefulWidget {
   const EmployeeProfileScreen({super.key, required this.employeeId});
@@ -891,6 +892,7 @@ class _QRTab extends ConsumerStatefulWidget {
 
 class _QRTabState extends ConsumerState<_QRTab> {
   final GlobalKey _qrKey = GlobalKey();
+  final GlobalKey _qrOnlyKey = GlobalKey();
   bool _regenerating = false;
 
   Future<void> _downloadPng() async {
@@ -902,6 +904,25 @@ class _QRTabState extends ConsumerState<_QRTab> {
       final bytes = byteData.buffer.asUint8List();
       downloadBytes(bytes,
           '${widget.employee.fullName.replaceAll(' ', '_')}_QR.png',
+          'image/png');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e'), backgroundColor: AppColors.errorRed),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadQrOnly() async {
+    try {
+      final boundary = _qrOnlyKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final bytes = byteData.buffer.asUint8List();
+      downloadBytes(bytes,
+          '${widget.employee.fullName.replaceAll(' ', '_')}_QR_only.png',
           'image/png');
     } catch (e) {
       if (mounted) {
@@ -1004,12 +1025,18 @@ class _QRTabState extends ConsumerState<_QRTab> {
                   ]),
                 ),
                 const SizedBox(height: 20),
-                QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 180,
-                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: AppColors.darkNavy),
-                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: AppColors.darkNavy),
+                RepaintBoundary(
+                  key: _qrOnlyKey,
+                  child: Container(
+                    color: Colors.white,
+                    child: QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      size: 180,
+                      eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: AppColors.darkNavy),
+                      dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: AppColors.darkNavy),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(e.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
@@ -1027,7 +1054,14 @@ class _QRTabState extends ConsumerState<_QRTab> {
               style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue), foregroundColor: AppColors.primaryBlue),
               onPressed: _downloadPng,
               icon: const AppIcon(AppIcons.downloadOutlined, size: 18),
-              label: const Text('Download PNG'),
+              label: const Text('Download Badge'),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue), foregroundColor: AppColors.primaryBlue),
+              onPressed: _downloadQrOnly,
+              icon: const AppIcon(AppIcons.qrCodeScannerRounded, size: 18),
+              label: const Text('QR Only'),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
@@ -1127,15 +1161,11 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Month nav + summary chips
         Row(children: [
-          _monthNavBtn(AppIcons.chevronLeftRounded, _prevMonth, context),
-          const SizedBox(width: 12),
-          Text(DateFormat('MMMM yyyy').format(_month),
-              style: TextStyle(
-                  color: context.appText,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(width: 12),
-          _monthNavBtn(AppIcons.chevronRightRounded, _nextMonth, context),
+          MonthNav(
+            label: DateFormat('MMMM yyyy').format(_month),
+            onPrev: _prevMonth,
+            onNext: _nextMonth,
+          ),
           const Spacer(),
           _chip('$present Present', AppColors.successGreen, context.pillGreenBg),
           const SizedBox(width: 8),
@@ -1277,19 +1307,6 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
     if (rows.isNotEmpty && rows.last is Divider) rows.removeLast();
     return rows;
   }
-
-  Widget _monthNavBtn(IconRef icon, VoidCallback onTap, BuildContext context) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-              color: context.appCard,
-              borderRadius: BorderRadius.circular(8)),
-          child: AppIcon(icon, color: context.appText, size: 16),
-        ),
-      );
 
   Widget _chip(String label, Color fg, Color bg) => Container(
         padding:

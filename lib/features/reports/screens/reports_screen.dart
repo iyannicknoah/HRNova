@@ -21,6 +21,7 @@ import '../services/reports_pdf_service.dart';
 import 'nova_ai_screen.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/month_nav.dart';
 
 // ── Attendance helpers (mirror attendance_screen logic) ───────────────────────
 DateTime _endOfWorkDt(DateTime day, String workEndTime) {
@@ -982,38 +983,12 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
                 const SizedBox(width: 10),
               ],
               // Week navigator
-              Container(
-                decoration: BoxDecoration(
-                  color: context.appField,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: context.appBorder),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const AppIcon(AppIcons.chevronLeftRounded, size: 18),
-                      onPressed: () => setState(() => _weekStart = _weekStart.subtract(const Duration(days: 7))),
-                      padding: const EdgeInsets.all(6),
-                      constraints: const BoxConstraints(),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        periodLabel,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const AppIcon(AppIcons.chevronRightRounded, size: 18),
-                      onPressed: _weekStart.isBefore(DateTime.now().subtract(const Duration(days: 7)))
-                          ? () => setState(() => _weekStart = _weekStart.add(const Duration(days: 7)))
-                          : null,
-                      padding: const EdgeInsets.all(6),
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
+              MonthNav(
+                label: periodLabel,
+                onPrev: () => setState(() => _weekStart = _weekStart.subtract(const Duration(days: 7))),
+                onNext: _weekStart.isBefore(DateTime.now().subtract(const Duration(days: 7)))
+                    ? () => setState(() => _weekStart = _weekStart.add(const Duration(days: 7)))
+                    : null,
               ),
               const Spacer(),
               _GenButton(
@@ -1091,38 +1066,12 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
                 const SizedBox(width: 10),
               ],
               // Month navigator
-              Container(
-                decoration: BoxDecoration(
-                  color: context.appField,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: context.appBorder),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const AppIcon(AppIcons.chevronLeftRounded, size: 18),
-                      onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
-                      padding: const EdgeInsets.all(6),
-                      constraints: const BoxConstraints(),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        DateFormat('MMMM yyyy').format(_month),
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const AppIcon(AppIcons.chevronRightRounded, size: 18),
-                      onPressed: _month.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
-                          ? () => setState(() => _month = DateTime(_month.year, _month.month + 1))
-                          : null,
-                      padding: const EdgeInsets.all(6),
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
+              _MonthNav(
+                month: _month,
+                onPrev: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
+                onNext: _month.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
+                    ? () => setState(() => _month = DateTime(_month.year, _month.month + 1))
+                    : null,
               ),
               const Spacer(),
               _GenButton(
@@ -3413,31 +3362,10 @@ class _MonthNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appField,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: context.appBorder),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        IconButton(
-          icon: const AppIcon(AppIcons.chevronLeftRounded, size: 18),
-          onPressed: onPrev,
-          padding: const EdgeInsets.all(6),
-          constraints: const BoxConstraints(),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(DateFormat('MMMM yyyy').format(month),
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.appText)),
-        ),
-        IconButton(
-          icon: const AppIcon(AppIcons.chevronRightRounded, size: 18),
-          onPressed: onNext,
-          padding: const EdgeInsets.all(6),
-          constraints: const BoxConstraints(),
-        ),
-      ]),
+    return MonthNav(
+      label: DateFormat('MMMM yyyy').format(month),
+      onPrev: onPrev,
+      onNext: onNext,
     );
   }
 }
