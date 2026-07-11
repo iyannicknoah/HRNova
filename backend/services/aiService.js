@@ -50,11 +50,12 @@ const MARKDOWN_RULE = `Format rules:
 - Do not repeat the title in the body
 
 Language rules:
-- Use simple, clear English that anyone can understand
-- Use short sentences — one idea per sentence
-- Avoid complex words; use everyday language
-- Write like you are explaining to a colleague, not writing an academic paper
-- Be direct and friendly in tone`;
+- The reader is Rwandan HR staff — educated, but English is not their first language
+- Use very simple, everyday words. If a small word works, don't use a big one
+- Keep sentences short — one idea per sentence, max about 15 words
+- Never use idioms, jargon, or business buzzwords (no "leverage", "synergy", "holistic", "circle back", etc.)
+- Do not over-explain — say what matters and stop
+- Write like you are talking to a colleague face to face, plainly and directly`;
 
 async function generateReport(summaryData, reportType, companyName, isGroup = false) {
   const now = new Date();

@@ -413,13 +413,13 @@ class _AiSummaryPanelState extends State<_AiSummaryPanel> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primaryBlue, Color(0xFF2979E0)],
+            gradient: LinearGradient(
+              colors: [AppColors.primaryBlue.withAlpha(200), const Color(0xFF2979E0).withAlpha(200)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: AppColors.primaryBlue.withAlpha(60), blurRadius: 16, offset: const Offset(0, 6))],
+            boxShadow: [BoxShadow(color: AppColors.primaryBlue.withAlpha(45), blurRadius: 16, offset: const Offset(0, 6))],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [

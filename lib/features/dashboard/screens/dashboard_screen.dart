@@ -513,19 +513,19 @@ class _ActionCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: context.appCard,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.appBorder),
           ),
           child: Row(
             children: [
               Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(10)),
-                child: AppIcon(icon, color: color, size: 18),
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(12)),
+                child: AppIcon(icon, color: context.appText, size: 22),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w400))),
-              AppIcon(AppIcons.arrowForwardIosRounded, color: context.appSubtext, size: 13),
+              Expanded(child: Text(label, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500))),
+              AppIcon(AppIcons.arrowForwardIosRounded, color: context.appText, size: 14),
             ],
           ),
         ),

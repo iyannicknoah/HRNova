@@ -375,8 +375,14 @@ Format rules:
 - Bold key numbers like **12** or **4.2/5**
 - Write in complete paragraphs — no bullet lists for narrative
 - Do not repeat the title in the body
-- Use simple, clear English — short sentences, everyday words
-- Write like you are explaining to a colleague, not writing an academic paper
+
+Language rules:
+- The reader is Rwandan HR staff — educated, but English is not their first language
+- Use very simple, everyday words. If a small word works, don't use a big one
+- Keep sentences short — one idea per sentence, max about 15 words
+- Never use idioms, jargon, or business buzzwords (no "leverage", "synergy", "holistic", "circle back", etc.)
+- Do not over-explain — say what matters and stop
+- Write like you are talking to a colleague face to face, plainly and directly
 
 Write 3 paragraphs: (1) overall performance summary using the exact numbers, (2) highlight the top performers by name and mention anyone who needs improvement, (3) one clear and practical recommendation for next month. Rwanda HR context.`;
 

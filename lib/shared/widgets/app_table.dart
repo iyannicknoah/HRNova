@@ -37,7 +37,7 @@ class AppTableHeader extends StatelessWidget {
                     style: TextStyle(
                       color: context.appSubtext,
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
