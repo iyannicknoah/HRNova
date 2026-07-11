@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 
 class HRNovaCard extends StatelessWidget {
   const HRNovaCard({
@@ -27,8 +28,8 @@ class HRNovaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = color ?? AppColors.white;
-    final border = borderColor ?? AppColors.cardBorder;
+    final cardColor = color ?? context.appCard;
+    final border = borderColor ?? context.appBorder;
 
     final content = Container(
       margin: margin,

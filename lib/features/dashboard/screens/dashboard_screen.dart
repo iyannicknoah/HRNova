@@ -381,7 +381,10 @@ class _QuickActionsPanel extends ConsumerWidget {
       return months >= 5 && balance >= annualEntitlement;
     }).length;
 
-    return Column(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: context.cardDeco(),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Quick Actions', style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
@@ -489,6 +492,7 @@ class _QuickActionsPanel extends ConsumerWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -925,10 +929,10 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
             style: TextStyle(color: context.appText),
             decoration: InputDecoration(
               hintText: 'Reason for rejection',
-              hintStyle: TextStyle(color: context.appSubtext),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.alternate)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue)),
-              filled: true, fillColor: context.appField,
+              hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
+              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+              filled: true, fillColor: Colors.transparent,
             ),
             maxLines: 3,
           ),

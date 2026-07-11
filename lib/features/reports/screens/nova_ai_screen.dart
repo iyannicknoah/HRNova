@@ -18,32 +18,32 @@ class NovaAiScreen extends StatelessWidget {
       body: Column(
         children: [
           Container(
-            color: context.appCard,
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
             child: Row(
               children: [
-                Container(
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4A9EFF), Color(0xFF43E0C8)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Text('Nova AI', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: context.appText, letterSpacing: -0.3)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withAlpha(24),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: const Text('BETA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primaryBlue, letterSpacing: 0.4)),
+                        ),
+                      ]),
+                      Text('Your HR assistant, grounded in your company\'s live data', style: TextStyle(fontSize: 12, color: context.appSubtext)),
+                    ],
                   ),
-                  child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Nova AI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.appText)),
-                    Text('Your HR assistant', style: TextStyle(fontSize: 12, color: context.appSubtext)),
-                  ],
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: context.appBorder),
           const Expanded(child: NovaAiView()),
         ],
       ),
@@ -143,6 +143,7 @@ class _EmptyState extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFF4A9EFF), Color(0xFF43E0C8)]),
               borderRadius: BorderRadius.circular(22),
+              boxShadow: [BoxShadow(color: AppColors.primaryBlue.withAlpha(60), blurRadius: 20, offset: const Offset(0, 8))],
             ),
             child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 34),
           ),
@@ -155,11 +156,17 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(fontSize: 13, color: context.appSubtext, height: 1.6),
           ),
           const SizedBox(height: 28),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
-            children: _suggestions.map((s) => _SuggestionChip(text: s, onTap: onSuggestion)).toList(),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 3.1,
+              children: _suggestions.map((s) => _SuggestionCard(text: s, onTap: onSuggestion)).toList(),
+            ),
           ),
         ],
       ),
@@ -167,29 +174,33 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _SuggestionChip extends StatelessWidget {
+class _SuggestionCard extends StatelessWidget {
   final String text;
   final ValueChanged<String> onTap;
-  const _SuggestionChip({required this.text, required this.onTap});
+  const _SuggestionCard({required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => onTap(text),
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: context.appCard,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.alternate),
-        ),
+        padding: const EdgeInsets.all(14),
+        decoration: context.cardDeco(14),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppIcon(AppIcons.lightbulbOutlineRounded, size: 13, color: AppColors.warningAmber),
-            const SizedBox(width: 6),
-            Flexible(child: Text(text, style: TextStyle(fontSize: 12, color: context.appText, fontWeight: FontWeight.w400))),
+            Container(
+              width: 26, height: 26,
+              decoration: BoxDecoration(
+                color: AppColors.warningAmber.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const AppIcon(AppIcons.lightbulbOutlineRounded, size: 13, color: AppColors.warningAmber),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(text,
+                style: TextStyle(fontSize: 12.5, color: context.appText, fontWeight: FontWeight.w500, height: 1.3))),
           ],
         ),
       ),
@@ -344,59 +355,50 @@ class _InputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        border: Border(top: BorderSide(color: context.appBorder)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              enabled: !loading,
-              style: TextStyle(fontSize: 13, color: context.appText),
-              decoration: InputDecoration(
-                hintText: 'Ask Nova about your HR data...',
-                hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-                filled: true,
-                fillColor: context.appField,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.alternate),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      color: context.appBg,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        decoration: BoxDecoration(
+          color: context.appCard,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: context.appBorder),
+          boxShadow: [BoxShadow(color: Colors.black.withAlpha(context.isDark ? 40 : 12), blurRadius: 16, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                enabled: !loading,
+                style: TextStyle(fontSize: 13, color: context.appText),
+                decoration: InputDecoration(
+                  hintText: 'Ask Nova about your HR data…',
+                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+                  border: InputBorder.none,
+                  isCollapsed: true,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.alternate),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.tertiary, width: 1.5),
-                ),
+                onSubmitted: loading ? null : onSend,
               ),
-              onSubmitted: loading ? null : onSend,
             ),
-          ),
-          const SizedBox(width: 8),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            child: Material(
+            const SizedBox(width: 8),
+            Material(
               color: loading ? context.alternate : context.tertiary,
               borderRadius: BorderRadius.circular(30),
               child: InkWell(
                 onTap: loading ? null : () => onSend(controller.text),
                 borderRadius: BorderRadius.circular(30),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(11),
                   child: loading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const AppIcon(AppIcons.sendRounded, color: Colors.white, size: 18),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

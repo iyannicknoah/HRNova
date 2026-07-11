@@ -141,8 +141,7 @@ class HRNovaSidebar extends ConsumerWidget {
             margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: context.appTint,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.alternate, width: 1),
             ),
             child: Row(

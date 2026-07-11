@@ -445,8 +445,8 @@ class _Sidebar extends StatelessWidget {
           margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: context.appTint,
             borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: context.appBorder),
           ),
           child: Row(children: [
             Container(
@@ -1035,7 +1035,7 @@ class _CoRowState extends State<_CoRow> {
           color: _hover
             ? (p.dark ? const Color(0xFF122440) : const Color(0xFFF5F8FF))
             : Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
           child: Row(children: [
             Expanded(flex: 3, child: Row(children: [
               _CoAvatar(co.name, size: 36),

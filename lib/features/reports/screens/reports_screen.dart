@@ -138,52 +138,47 @@ class _Header extends StatelessWidget {
       'Monthly',
       'Ask Nova',
     ];
-    return Container(
-      color: context.appCard,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 4),
-            child: Row(
-              children: [
-                const AppIcon(AppIcons.barChartRounded, color: AppColors.primaryBlue, size: 22),
-                const SizedBox(width: 10),
-                Text('Reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4A9EFF).withAlpha(22),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.primaryBlue, size: 13),
-                      const SizedBox(width: 4),
-                      Text('AI-Powered', style: const TextStyle(fontSize: 11, color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 22, 24, 4),
+          child: Row(
+            children: [
+              Text('Reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText, letterSpacing: -0.3)),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A9EFF).withAlpha(22),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.primaryBlue, size: 13),
+                    const SizedBox(width: 4),
+                    const Text('AI-Powered', style: TextStyle(fontSize: 11, color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            ],
           ),
-          TabBar(
-            controller: tabs,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            indicatorColor: AppColors.primaryBlue,
-            indicatorWeight: 2,
-            labelColor: AppColors.primaryBlue,
-            unselectedLabelColor: context.appSubtext,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
-            dividerColor: Colors.transparent,
-            tabs: labels.map((l) => Tab(text: l)).toList(),
-          ),
-          Divider(height: 1, color: context.appBorder),
-        ],
-      ),
+        ),
+        TabBar(
+          controller: tabs,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          indicatorColor: AppColors.primaryBlue,
+          indicatorWeight: 2,
+          labelColor: AppColors.primaryBlue,
+          unselectedLabelColor: context.appSubtext,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
+          dividerColor: Colors.transparent,
+          tabs: labels.map((l) => Tab(text: l)).toList(),
+        ),
+        Divider(height: 1, color: context.appBorder),
+      ],
     );
   }
 }
@@ -323,7 +318,8 @@ class _StatTile extends StatelessWidget {
   final String value;
   final Color color;
   final IconRef icon;
-  const _StatTile({required this.label, required this.value, required this.color, required this.icon});
+  final String? sub;
+  const _StatTile({required this.label, required this.value, required this.color, required this.icon, this.sub});
 
   @override
   Widget build(BuildContext context) {
@@ -342,14 +338,21 @@ class _StatTile extends StatelessWidget {
           Text(label,
               style: TextStyle(color: context.appSubtext, fontSize: 11),
               textAlign: TextAlign.center),
+          if (sub != null) ...[
+            const SizedBox(height: 2),
+            Text(sub!,
+                style: TextStyle(color: context.appSubtext.withAlpha(180), fontSize: 10),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis),
+          ],
         ]),
       ),
     );
   }
 }
 
-// ── AI summary panel ──────────────────────────────────────────────────────────
-class _AiSummaryPanel extends StatelessWidget {
+// ── AI summary trigger bar — the full report renders inline below it ─────────
+class _AiSummaryPanel extends StatefulWidget {
   final bool loading;
   final String? error;
   final String? freshReport;
@@ -367,91 +370,88 @@ class _AiSummaryPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final reportText = freshReport ?? (savedDoc?['report'] as String?);
-    final genAt = savedDoc?['generatedAt'];
-    String timeStr = '';
-    if (genAt != null) {
-      try {
-        final dt = genAt is DateTime ? genAt : DateTime.tryParse(genAt.toString());
-        if (dt != null) timeStr = DateFormat('d MMM, HH:mm').format(dt);
-      } catch (_) {}
-    }
+  State<_AiSummaryPanel> createState() => _AiSummaryPanelState();
+}
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withAlpha(10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
-          child: Row(children: [
-            const AppIcon(AppIcons.autoAwesomeRounded, color: AppColors.primaryBlue, size: 16),
-            const SizedBox(width: 8),
-            Text('AI Summary — $periodLabel',
-                style: const TextStyle(
-                    color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
-            const Spacer(),
-            if (timeStr.isNotEmpty)
-              Text(timeStr,
-                  style: TextStyle(color: context.appSubtext, fontSize: 11)),
-          ]),
-        ),
-        const SizedBox(height: 10),
-        if (loading)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Row(children: [
-              SizedBox(
-                  width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue)),
-              SizedBox(width: 12),
-              Text('Generating AI summary…',
-                  style: TextStyle(color: AppColors.primaryBlue, fontSize: 13)),
-            ]),
-          )
-        else if (error != null)
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: _ErrorBanner(error!),
-          )
-        else if (reportText != null && reportText.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: MarkdownBody(
-              data: reportText,
-              styleSheet: MarkdownStyleSheet(
-                p: TextStyle(fontSize: 13, color: context.appText, height: 1.65),
-                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText),
-                strong: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+class _AiSummaryPanelState extends State<_AiSummaryPanel> {
+  String? _shownFor;
+  bool _dismissed = false;
+
+  String? get _reportText => widget.freshReport ?? (widget.savedDoc?['report'] as String?);
+
+  @override
+  void didUpdateWidget(_AiSummaryPanel old) {
+    super.didUpdateWidget(old);
+    final text = _reportText;
+    // The instant a generation finishes, reveal the result inline on the page.
+    if (old.loading && !widget.loading && text != null && text.isNotEmpty && text != _shownFor) {
+      _shownFor = text;
+      setState(() => _dismissed = false);
+    } else if (old.loading && !widget.loading && widget.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: _ErrorBanner(widget.error!),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 6),
+        ));
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reportText = _reportText;
+    final hasReport = reportText != null && reportText.isNotEmpty;
+
+    if (!hasReport || _dismissed) return const SizedBox.shrink();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primaryBlue, Color(0xFF2979E0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                'No AI summary for this period yet.',
-                style: TextStyle(color: context.appSubtext, fontSize: 13),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: AppColors.primaryBlue.withAlpha(60), blurRadius: 16, offset: const Offset(0, 6))],
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('AI Summary — ${widget.periodLabel}',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
               ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: onGenerate,
-                icon: const AppIcon(AppIcons.autoAwesomeRounded, size: 14),
-                label: const Text('Generate AI Summary', style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryBlue,
-                  side: const BorderSide(color: AppColors.primaryBlue),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              InkWell(
+                onTap: () => setState(() => _dismissed = true),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(40), shape: BoxShape.circle),
+                  child: const AppIcon(AppIcons.closeRounded, color: Colors.white, size: 15),
                 ),
               ),
             ]),
-          ),
-      ]),
-    );
+            const SizedBox(height: 14),
+            MarkdownBody(
+              data: reportText,
+              styleSheet: MarkdownStyleSheet(
+                p: const TextStyle(fontSize: 14, color: Colors.white, height: 1.65, fontWeight: FontWeight.w400),
+                h2: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                strong: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                listBullet: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ]),
+        ),
+    ]);
   }
 }
 
@@ -839,8 +839,6 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const _AutoNote('Morning reports are sent automatically to HR Admin and Manager at 9:30am every working day.'),
           const SizedBox(height: 12),
           _AiSummaryPanel(
             loading: state.loading,
@@ -1295,8 +1293,6 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
           ),
         ]),
         const SizedBox(height: 12),
-        const _AutoNote('Group reports are sent automatically to Group HR Admin at 9:30am every working day.'),
-        const SizedBox(height: 12),
         _AiSummaryPanel(
           loading: state.loading,
           error: state.error,
@@ -1320,7 +1316,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
           ))
         else ...[
           Row(children: [
-            _GroupKpiCard(
+            _StatTile(
               icon: AppIcons.corporateFareRounded,
               label: 'Total Employees',
               value: '$totalActive',
@@ -1328,7 +1324,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
               color: AppColors.primaryBlue,
             ),
             const SizedBox(width: 12),
-            _GroupKpiCard(
+            _StatTile(
               icon: AppIcons.checkCircleOutlineRounded,
               label: isToday ? 'Present Today' : 'Present',
               value: '$totalPresent',
@@ -1336,7 +1332,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
               color: AppColors.successGreen,
             ),
             const SizedBox(width: 12),
-            _GroupKpiCard(
+            _StatTile(
               icon: AppIcons.accessTimeRounded,
               label: 'Arrived Late',
               value: '$totalLate',
@@ -1346,7 +1342,7 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
               color: AppColors.warningAmber,
             ),
             const SizedBox(width: 12),
-            _GroupKpiCard(
+            _StatTile(
               icon: AppIcons.beachAccessRounded,
               label: 'On Leave',
               value: '$totalOnLeave',
@@ -1437,43 +1433,6 @@ class _BranchStat {
   final String branchId, branchName;
   final int total, present, late, onLeave, absent;
   final double rate;
-}
-
-// ── Group KPI card ─────────────────────────────────────────────────────────────
-class _GroupKpiCard extends StatelessWidget {
-  const _GroupKpiCard({
-    required this.icon, required this.label, required this.value,
-    required this.sub, required this.color,
-  });
-  final IconRef icon;
-  final String label, value, sub;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: context.cardDeco(),
-      child: Row(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color: color.withAlpha(22),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: AppIcon(icon, color: color, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 12, fontWeight: FontWeight.w400)),
-          const SizedBox(height: 2),
-          Text(value, style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w700, height: 1.1)),
-          const SizedBox(height: 2),
-          Text(sub, style: TextStyle(color: context.appSubtext, fontSize: 12), overflow: TextOverflow.ellipsis),
-        ])),
-      ]),
-    ),
-  );
 }
 
 // ── Branch attendance bar chart ───────────────────────────────────────────────
@@ -1999,32 +1958,6 @@ class _DateChip extends StatelessWidget {
             AppIcon(AppIcons.expandMoreRounded, size: 14, color: context.appSubtext),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── Auto-delivery info note ───────────────────────────────────────────────────
-class _AutoNote extends StatelessWidget {
-  final String message;
-  const _AutoNote(this.message);
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withAlpha(15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primaryBlue.withAlpha(40)),
-      ),
-      child: Row(
-        children: [
-          const AppIcon(AppIcons.scheduleSendRounded, color: AppColors.primaryBlue, size: 14),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(message, style: const TextStyle(fontSize: 12, color: AppColors.primaryBlue)),
-          ),
-        ],
       ),
     );
   }

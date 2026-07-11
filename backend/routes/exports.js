@@ -7,7 +7,7 @@ const { generateRRAPayeExport, generateRSSBExport } = require('../services/rraEx
 const { sendPayslipEmail } = require('../services/emailService');
 
 const db = () => getFirestore(getApp(), 'default');
-const ALLOWED = requireRole('hr_admin', 'director', 'finance_manager', 'super_admin');
+const ALLOWED = requireRole('hr_admin', 'group_hr_admin', 'director', 'finance_manager', 'super_admin');
 
 router.use(verifyToken);
 

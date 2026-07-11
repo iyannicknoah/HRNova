@@ -677,23 +677,23 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                 TextField(
                   controller: _searchCtrl,
                   onChanged: (v) => setState(() => _employeeSearch = v),
-                  style: TextStyle(color: context.appText, fontSize: 14),
+                  style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w400),
                   decoration: InputDecoration(
                     hintText: 'Search employee by name...',
-                    hintStyle: TextStyle(color: context.appSubtext, fontSize: 14),
+                    hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
                     prefixIcon: AppIcon(AppIcons.searchRounded, color: context.appSubtext, size: 18),
                     filled: true,
-                    fillColor: context.appField,
+                    fillColor: Colors.transparent,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide(color: context.appBorder)),
                     enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide(color: context.appBorder)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppColors.primaryBlue)),
+                    focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(16)),
+                        borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
                   ),
                 ),
                 if (_employeeSearch.isNotEmpty && filtered.isNotEmpty) ...[
@@ -770,8 +770,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: context.appField,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: context.appBorder),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -884,23 +883,23 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
               TextField(
                 controller: _reasonCtrl,
                 maxLines: 2,
-                style: TextStyle(color: context.appText, fontSize: 14),
+                style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w400),
                 decoration: InputDecoration(
                   hintText: 'E.g. Employee came in person to request leave...',
-                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
+                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
                   filled: true,
-                  fillColor: context.appField,
+                  fillColor: Colors.transparent,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.appBorder)),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.appBorder)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.primaryBlue)),
+                  focusedBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(16)),
+                      borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -912,7 +911,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                     child: HRNovaButton(
                       label: 'Cancel',
                       onPressed: () => Navigator.of(context).pop(),
-                      backgroundColor: context.appField,
+                      backgroundColor: context.isDark ? AppColors.darkCard : AppColors.backgroundBlue,
                       textColor: context.appText,
                       height: 45,
                     ),
@@ -947,8 +946,7 @@ class _DateButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: context.appField,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: context.appBorder),
         ),
         child: Row(
@@ -1536,7 +1534,7 @@ class _RequestRowState extends ConsumerState<_RequestRow> {
         onTap: () => setState(() => _expanded = !_expanded),
         child: Padding(
           padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
           child: Row(children: [
             Expanded(
               flex: 24,
@@ -1917,7 +1915,7 @@ class _ExpiredRow extends StatelessWidget {
     final ago = _agoText(req.endDate);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
       child: Row(children: [
         Expanded(
           flex: 24,
@@ -1984,10 +1982,14 @@ class _CalendarTab extends ConsumerStatefulWidget {
 class _CalendarTabState extends ConsumerState<_CalendarTab> {
   DateTime _month =
       DateTime(DateTime.now().year, DateTime.now().month);
+  late DateTime _selected = DateTime.now();
 
   static const _weekDays = [
     'Mon','Tue','Wed','Thu','Fri','Sat','Sun'
   ];
+
+  String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -2005,6 +2007,7 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
     final lastDay = DateTime(_month.year, _month.month + 1, 0);
     final startOffset = firstDay.weekday - 1;
     final totalCells = startOffset + lastDay.day;
+    final selectedEntries = byDate[_dateKey(_selected)] ?? [];
 
     return Column(children: [
       Padding(
@@ -2018,8 +2021,8 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
           Text(DateFormat('MMMM yyyy').format(_month),
               style: TextStyle(
                   color: context.appText,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500)),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(width: 12),
           _navBtn(AppIcons.chevronRightRounded,
               () => setState(() =>
@@ -2035,12 +2038,11 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
                 padding: const EdgeInsets.only(left: 16),
                 child: Row(children: [
                   Container(
-                      width: 10,
-                      height: 10,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                          color: item.$2,
-                          borderRadius: BorderRadius.circular(3))),
-                  const SizedBox(width: 5),
+                          color: item.$2, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
                   Text(item.$1,
                       style: TextStyle(
                           color: context.appSubtext, fontSize: 13)),
@@ -2049,69 +2051,80 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
         ]),
       ),
       Expanded(
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          decoration: BoxDecoration(
-            color: context.appCard,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(children: [
-            Container(
-              decoration: BoxDecoration(
-                color: context.appTint,
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12)),
-              ),
-              child: Row(
-                children: _weekDays
-                    .map((d) => Expanded(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 10),
-                            child: Text(d,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    color: context.appSubtext,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
-            Divider(height: 1, color: context.appBorder),
-            Expanded(
-              child: GridView.builder(
-                padding: EdgeInsets.zero,
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 7,
-                  childAspectRatio: 1.3,
-                ),
-                itemCount: totalCells,
-                itemBuilder: (_, index) {
-                  if (index < startOffset) {
-                    return Container(
-                        decoration: BoxDecoration(
-                            border: Border.all(
-                                color: context.appBorder.withAlpha(40),
-                                width: 0.5)));
-                  }
-                  final day = index - startOffset + 1;
-                  final dateStr =
-                      '${_month.year}-${_month.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
-                  final entries = byDate[dateStr] ?? [];
-                  final now = DateTime.now();
-                  final isToday = now.year == _month.year &&
-                      now.month == _month.month &&
-                      now.day == day;
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: Container(
+                  decoration: context.cardDeco(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(children: [
+                    Container(
+                      color: context.appTint,
+                      child: Row(
+                        children: _weekDays
+                            .map((d) => Expanded(
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 12),
+                                    child: Text(d,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: context.appSubtext,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600)),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(6),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 7,
+                          childAspectRatio: 1.15,
+                          mainAxisSpacing: 4,
+                          crossAxisSpacing: 4,
+                        ),
+                        itemCount: totalCells,
+                        itemBuilder: (_, index) {
+                          if (index < startOffset) return const SizedBox.shrink();
+                          final day = index - startOffset + 1;
+                          final date = DateTime(_month.year, _month.month, day);
+                          final entries = byDate[_dateKey(date)] ?? [];
+                          final now = DateTime.now();
+                          final isToday = now.year == date.year &&
+                              now.month == date.month &&
+                              now.day == date.day;
+                          final isSelected = _selected.year == date.year &&
+                              _selected.month == date.month &&
+                              _selected.day == date.day;
 
-                  return _CalendarCell(
-                      day: day, entries: entries, isToday: isToday);
-                },
+                          return _CalendarCell(
+                            day: day,
+                            entries: entries,
+                            isToday: isToday,
+                            isSelected: isSelected,
+                            onTap: () => setState(() => _selected = date),
+                          );
+                        },
+                      ),
+                    ),
+                  ]),
+                ),
               ),
-            ),
-          ]),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 280,
+                child: _OnLeavePanel(date: _selected, entries: selectedEntries),
+              ),
+            ],
+          ),
         ),
       ),
     ]);
@@ -2133,70 +2146,153 @@ class _CalendarTabState extends ConsumerState<_CalendarTab> {
 }
 
 class _CalendarCell extends StatelessWidget {
-  const _CalendarCell(
-      {required this.day, required this.entries, required this.isToday});
+  const _CalendarCell({
+    required this.day,
+    required this.entries,
+    required this.isToday,
+    required this.isSelected,
+    required this.onTap,
+  });
   final int day;
   final List<Map<String, dynamic>> entries;
   final bool isToday;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final visible = entries.take(2).toList();
-    final more = entries.length - visible.length;
+    final dots = <String>{};
+    for (final e in entries) {
+      dots.add(e['leaveType'] as String? ?? '');
+    }
 
-    return Container(
-      decoration: BoxDecoration(
-          border: Border.all(
-              color: context.appBorder.withAlpha(50), width: 0.5)),
-      padding: const EdgeInsets.fromLTRB(5, 5, 4, 3),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: isToday
-              ? const BoxDecoration(
-                  color: AppColors.primaryBlue, shape: BoxShape.circle)
-              : null,
-          child: Center(
-            child: Text('$day',
-                style: TextStyle(
-                    color: isToday ? Colors.white : context.appSubtext,
-                    fontSize: 13,
-                    fontWeight:
-                        isToday ? FontWeight.w600 : FontWeight.w400)),
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: isSelected ? AppColors.primaryBlue.withAlpha(18) : null,
+          border: isSelected ? Border.all(color: AppColors.primaryBlue, width: 1.5) : null,
         ),
-        if (visible.isNotEmpty) ...[
-          const SizedBox(height: 3),
-          ...visible.map((e) {
-            final type = e['leaveType'] as String? ?? '';
-            final name = e['employeeName'] as String? ?? '';
-            final first = name.split(' ').first;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 2),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: BoxDecoration(
-                color: _leaveColor(type).withAlpha(30),
-                borderRadius: BorderRadius.circular(4),
-                border: Border(
-                    left: BorderSide(
-                        color: _leaveColor(type), width: 2)),
-              ),
-              child: Text(first,
+        padding: const EdgeInsets.all(6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: isToday
+                ? const BoxDecoration(
+                    color: AppColors.primaryBlue, shape: BoxShape.circle)
+                : null,
+            child: Center(
+              child: Text('$day',
                   style: TextStyle(
-                      color: _leaveColor(type),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500),
-                  overflow: TextOverflow.ellipsis),
-            );
-          }),
-          if (more > 0)
-            Text('+$more more',
-                style: TextStyle(
-                    color: context.appSubtext, fontSize: 9)),
-        ],
+                      color: isToday ? Colors.white : context.appText,
+                      fontSize: 13,
+                      fontWeight:
+                          isToday ? FontWeight.w600 : FontWeight.w400)),
+            ),
+          ),
+          if (entries.isNotEmpty) ...[
+            const Spacer(),
+            Row(children: [
+              ...dots.take(4).map((type) => Container(
+                    width: 6, height: 6,
+                    margin: const EdgeInsets.only(right: 3),
+                    decoration: BoxDecoration(color: _leaveColor(type), shape: BoxShape.circle),
+                  )),
+            ]),
+            const SizedBox(height: 3),
+            Text('${entries.length} on leave',
+                style: TextStyle(color: context.appSubtext, fontSize: 9.5, fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+// ── On-leave side panel ────────────────────────────────────────────────────────
+class _OnLeavePanel extends StatelessWidget {
+  const _OnLeavePanel({required this.date, required this.entries});
+  final DateTime date;
+  final List<Map<String, dynamic>> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday = DateUtils.isSameDay(date, DateTime.now());
+    return Container(
+      decoration: context.cardDeco(16),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              AppIcon(AppIcons.beachAccessRounded, size: 15, color: AppColors.primaryBlue),
+              const SizedBox(width: 8),
+              Text('On Leave', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+            ]),
+            const SizedBox(height: 2),
+            Text(
+              isToday ? 'Today · ${DateFormat('MMM d').format(date)}' : DateFormat('EEEE, MMM d').format(date),
+              style: TextStyle(color: context.appSubtext, fontSize: 13),
+            ),
+          ]),
+        ),
+        Divider(height: 1, color: context.appBorder),
+        Expanded(
+          child: entries.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      AppIcon(AppIcons.checkCircleOutlineRounded, size: 32, color: context.appSubtext.withAlpha(120)),
+                      const SizedBox(height: 8),
+                      Text('Nobody on leave this day',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                    ]),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => Divider(height: 1, color: context.appBorder),
+                  itemBuilder: (_, i) {
+                    final e = entries[i];
+                    final name = e['employeeName'] as String? ?? 'Unknown';
+                    final type = e['leaveType'] as String? ?? '';
+                    final color = _leaveColor(type);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      child: Row(children: [
+                        _InitialsAvatar(name: name, size: 30),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(name,
+                              style: TextStyle(color: context.appText, fontSize: 14, fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: color.withAlpha(24), borderRadius: BorderRadius.circular(100)),
+                          child: Text(_leaveTypeLabel(type),
+                              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ),
+                      ]),
+                    );
+                  },
+                ),
+        ),
       ]),
     );
   }
+
+  String _leaveTypeLabel(String t) => switch (t) {
+    'annual' => 'Annual', 'sick' => 'Sick', 'maternity' => 'Maternity',
+    'paternity' => 'Paternity', 'unpaid' => 'Unpaid', 'emergency' => 'Emergency',
+    'compassionate' => 'Compassionate', _ => t.isEmpty ? '—' : t,
+  };
 }

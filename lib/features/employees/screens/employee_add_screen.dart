@@ -443,7 +443,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                 color: context.appField,
                 borderRadius: BorderRadius.circular(100),
               ),
-              child: Text('Cancel', style: TextStyle(color: context.appText, fontWeight: FontWeight.w500, fontSize: 16)),
+              child: Text('Cancel', style: TextStyle(color: context.appText, fontWeight: FontWeight.w500, fontSize: 15)),
             ),
           ),
           const Spacer(),
@@ -460,7 +460,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
                       isEdit ? 'Save Changes' : 'Add Employee',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                     ),
             ),
           ),

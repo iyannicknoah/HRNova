@@ -206,62 +206,86 @@ class _BranchCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = AppColors.gradientForName(branch.name).first;
     return Container(
-      padding: const EdgeInsets.all(18),
+      clipBehavior: Clip.antiAlias,
       decoration: context.cardDeco(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: AppColors.gradientForName(branch.name), begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(12),
+          Container(height: 4, color: accent),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: AppColors.gradientForName(branch.name), begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600))),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(branch.name, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(
+                        branch.location.isNotEmpty
+                            ? branch.location
+                            : (branch.branchCode.isNotEmpty ? branch.branchCode : 'No location set'),
+                        style: TextStyle(color: context.appSubtext, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ])),
+                    GestureDetector(
+                      onTap: () => onToggleActive(!branch.isActive),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: branch.isActive ? context.pillGreenBg : context.pillRedBg,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          branch.isActive ? 'Active' : 'Inactive',
+                          style: TextStyle(color: branch.isActive ? context.pillGreenText : context.pillRedText, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600))),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(branch.name, style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
-                if (branch.branchCode.isNotEmpty)
-                  Text(branch.branchCode, style: TextStyle(color: context.appSubtext, fontSize: 13)),
-              ])),
-              GestureDetector(
-                onTap: () => onToggleActive(!branch.isActive),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: branch.isActive ? context.pillGreenBg : context.pillRedBg,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    branch.isActive ? 'Active' : 'Inactive',
-                    style: TextStyle(color: branch.isActive ? context.pillGreenText : context.pillRedText, fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Row(children: [
+                  Text('${branch.employeeCount}',
+                      style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w700, height: 1)),
+                  const SizedBox(width: 6),
+                  Text('employees', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                  const Spacer(),
+                  Text('View details', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 2),
+                  const AppIcon(AppIcons.chevronRightRounded, size: 13, color: AppColors.primaryBlue),
+                ]),
+                if (branch.branchHrAdminEmail != null) ...[
+                  const SizedBox(height: 12),
+                  Divider(color: context.appBorder, height: 1),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    AppIcon(AppIcons.personOutlineRounded, size: 13, color: context.appSubtext),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(branch.branchHrAdminEmail!,
+                        style: TextStyle(color: context.appSubtext, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                  ]),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Divider(color: context.appBorder, height: 1),
-          const SizedBox(height: 10),
-          _row(AppIcons.locationOnRounded, branch.location.isEmpty ? 'No location set' : branch.location),
-          const SizedBox(height: 6),
-          _row(AppIcons.peopleRounded, '${branch.employeeCount} employees'),
-          const SizedBox(height: 6),
-          _row(AppIcons.emailOutlined, branch.branchHrAdminEmail ?? 'No HR Admin assigned'),
         ],
       ),
     );
   }
-
-  Widget _row(IconRef icon, String text) => Builder(builder: (context) => Row(children: [
-    AppIcon(icon, size: 14, color: context.appSubtext),
-    const SizedBox(width: 6),
-    Expanded(child: Text(text, style: TextStyle(color: context.appSubtext, fontSize: 14), overflow: TextOverflow.ellipsis)),
-  ]));
 }
 
 // ── Branch detail dialog ──────────────────────────────────────────────────────
@@ -363,6 +387,68 @@ class _BranchDetailDialog extends ConsumerWidget {
               const SizedBox(width: 10),
               _DetailStat('Approved (all time)', '$approvedLeaves', AppColors.successGreen),
             ]),
+            if (branchEmployees.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Row(children: [
+                Text('Team Members', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
+                const SizedBox(width: 8),
+                Text('(${branchEmployees.length})', style: TextStyle(fontSize: 13, color: context.appSubtext)),
+              ]),
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: context.appBorder),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    for (final entry in branchEmployees.take(6).toList().asMap().entries)
+                      Column(children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: Row(children: [
+                            Container(
+                              width: 30, height: 30,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(colors: AppColors.gradientForName(entry.value.fullName)),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(child: Text(
+                                entry.value.fullName.isNotEmpty ? entry.value.fullName[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                              )),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(entry.value.fullName,
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText),
+                                  overflow: TextOverflow.ellipsis),
+                              Text(entry.value.jobTitle.isEmpty ? entry.value.department : entry.value.jobTitle,
+                                  style: TextStyle(fontSize: 12, color: context.appSubtext),
+                                  overflow: TextOverflow.ellipsis),
+                            ])),
+                            Container(
+                              width: 7, height: 7,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: entry.value.isActive ? AppColors.successGreen : AppColors.errorRed,
+                              ),
+                            ),
+                          ]),
+                        ),
+                        if (entry.key < branchEmployees.take(6).length - 1)
+                          Divider(height: 1, color: context.appBorder),
+                      ]),
+                    if (branchEmployees.length > 6)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Text('+ ${branchEmployees.length - 6} more',
+                            style: TextStyle(fontSize: 13, color: context.appSubtext)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             // Attendance rate progress
             if (activeCount > 0) ...[

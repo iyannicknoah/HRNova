@@ -25,7 +25,7 @@ class AppTableHeader extends StatelessWidget {
       children: [
         Divider(height: 1, thickness: 1, color: context.alternate),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.l),
           child: Row(
             children: [
               for (var i = 0; i < columns.length; i++) ...[
@@ -36,8 +36,8 @@ class AppTableHeader extends StatelessWidget {
                     columns[i],
                     style: TextStyle(
                       color: context.appSubtext,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

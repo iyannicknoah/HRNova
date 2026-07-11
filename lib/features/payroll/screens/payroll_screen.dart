@@ -11,6 +11,7 @@ import '../../../shared/widgets/app_table.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/metric_card.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/providers/branches_provider.dart';
 import '../../employees/providers/employees_provider.dart';
@@ -21,6 +22,7 @@ import '../services/payslip_pdf_service.dart';
 import '../../../core/utils/download_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/row_actions_menu.dart';
 
 final _numFmt = NumberFormat('#,##0', 'en_US');
 String _rwf(double v) => 'RWF ${_numFmt.format(v.round())}';
@@ -162,7 +164,10 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     final payslips = ref.read(payslipsByMonthProvider(month)).value ?? [];
     final settings = ref.read(companySettingsProvider).value;
     final pending  = payslips.where((p) => !p.emailSent).toList();
-    if (pending.isEmpty) return;
+    if (pending.isEmpty) {
+      _snack('All payslips already sent', AppColors.primaryBlue);
+      return;
+    }
 
     setState(() { _sending = true; _sendProgress = 0; _sendTotal = pending.length; });
     int sent = 0;
@@ -243,9 +248,6 @@ class _TopBar extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 22, 24, 16),
-      decoration: BoxDecoration(
-        color: context.appCard,
-      ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         // Title
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -258,19 +260,6 @@ class _TopBar extends ConsumerWidget {
 
         const SizedBox(width: 16),
 
-        // Month badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-              color: context.appTint,
-              borderRadius: BorderRadius.circular(100)),
-          child: Text(_monthLabel(month),
-              style: TextStyle(color: context.appText, fontSize: 14,
-                  fontWeight: FontWeight.w600)),
-        ),
-
-        const SizedBox(width: 10),
-
         // Status pill
         if (isApproved)
           const StatusBadge(text: 'Approved', type: StatusType.success)
@@ -280,15 +269,6 @@ class _TopBar extends ConsumerWidget {
           const StatusBadge(text: 'Calculated', type: StatusType.info),
 
         const Spacer(),
-
-        // Run button in header when nothing calculated yet
-        if (!calcState.isRunning && run == null && calcState.payslips.isEmpty)
-          HRNovaButton(
-            label: 'Run ${_monthLabel(month)}',
-            icon: AppIcons.playArrowRounded,
-            onPressed: () => ref.read(payrollNotifierProvider.notifier).runPayroll(month),
-            isFullWidth: false,
-          ),
       ]),
     );
   }
@@ -311,38 +291,46 @@ class _MonthStrip extends ConsumerWidget {
     return Container(
       color: context.appCard,
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: months.map((m) {
-            final sel = m == month;
-            final label = DateFormat('MMM yy').format(DateTime.parse('$m-01'));
-            return GestureDetector(
-              onTap: () {
-                ref.read(_selectedMonthProvider.notifier).state = m;
-                ref.read(payrollNotifierProvider.notifier).reset();
-                ref.read(_deptFilterProvider.notifier).state   = null;
-                ref.read(_branchFilterProvider.notifier).state = null;
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(right: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: sel ? AppColors.primaryBlue : Colors.transparent,
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                      color: sel ? AppColors.primaryBlue : context.appBorder),
-                ),
-                child: Text(label,
-                    style: TextStyle(
-                        color: sel ? Colors.white : context.appSubtext,
-                        fontSize: 14,
-                        fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: months.map((m) {
+                  final sel = m == month;
+                  final label = DateFormat('MMM yy').format(DateTime.parse('$m-01'));
+                  return GestureDetector(
+                    onTap: () {
+                      ref.read(_selectedMonthProvider.notifier).state = m;
+                      ref.read(payrollNotifierProvider.notifier).reset();
+                      ref.read(_deptFilterProvider.notifier).state   = null;
+                      ref.read(_branchFilterProvider.notifier).state = null;
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.only(left: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: sel ? AppColors.primaryBlue : Colors.transparent,
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                            color: sel ? AppColors.primaryBlue : context.appBorder),
+                      ),
+                      child: Text(label,
+                          style: TextStyle(
+                              color: sel ? Colors.white : context.appSubtext,
+                              fontSize: 14,
+                              fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+                    ),
+                  );
+                }).toList(),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -368,28 +356,7 @@ class _PreRunLayout extends ConsumerWidget {
         // ── Top: hero section ───────────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryBlue.withAlpha(18),
-                AppColors.primaryBlue.withAlpha(4),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primaryBlue.withAlpha(50)),
-          ),
           child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            // Icon
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(16)),
-              child: const AppIcon(AppIcons.paymentsRounded, color: Colors.white, size: 28),
-            ),
-            const SizedBox(width: 20),
             // Text
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -705,6 +672,8 @@ class _ResultLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isApproved = run?.status == 'approved';
     final rawList = run != null ? (payslipsAsync.value ?? []) : payslips;
+    final canExport = ref.watch(currentUserRoleProvider) != AppConstants.roleBranchHrAdmin;
+    const noPermissionMsg = "You don't have permission to do this — only Group HR can send payslips or generate exports.";
 
     // ── Filter ────────────────────────────────────────────────────────────────
     final selectedDept     = ref.watch(_deptFilterProvider);
@@ -784,15 +753,18 @@ class _ResultLayout extends ConsumerWidget {
               _OutBtn(
                 icon: AppIcons.markEmailReadRounded,
                 label: 'Send Payslips',
-                onTap: onSend,
+                onTap: canExport ? onSend : null,
                 color: AppColors.primaryBlue,
+                tooltip: canExport ? null : noPermissionMsg,
               ),
             const SizedBox(width: 8),
             _OutBtn(icon: AppIcons.downloadRounded, label: 'RRA PAYE',
-                onTap: onExportRra),
+                onTap: canExport ? onExportRra : null,
+                tooltip: canExport ? null : noPermissionMsg),
             const SizedBox(width: 8),
             _OutBtn(icon: AppIcons.downloadRounded, label: 'RSSB',
-                onTap: onExportRssb),
+                onTap: canExport ? onExportRssb : null,
+                tooltip: canExport ? null : noPermissionMsg),
           ],
         ]),
 
@@ -858,35 +830,65 @@ class _MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = [
-      _M('Employees',       employees.toString()),
-      _M('Total Earnings',  _rwfShort(totalEarnings)),
-      _M('Adj. Gross',      _rwfShort(totalGross)),
-      _M('Total Net',       _rwfShort(totalNet)),
-      _M('Total PAYE',      _rwfShort(totalPaye)),
-      _M('Employee RSSB',   _rwfShort(totalRssb)),
-    ];
-
-    return Row(
-      children: cards.asMap().entries.map((e) {
-        final i = e.key; final m = e.value;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i < cards.length - 1 ? 12 : 0),
-            child: MetricCard(
-              label: m.label,
-              value: m.value,
+    return IntrinsicHeight(
+      child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryBlue, Color(0xFF2979E0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [BoxShadow(color: AppColors.primaryBlue.withAlpha(60), blurRadius: 16, offset: const Offset(0, 6))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Total Net Payout', style: TextStyle(color: Colors.white.withAlpha(210), fontSize: 14, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                Text(_rwfShort(totalNet),
+                    style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w700, height: 1)),
+                const SizedBox(height: 8),
+                Text('$employees employee${employees == 1 ? '' : 's'} this run',
+                    style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 13)),
+              ],
             ),
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 5,
+          child: Column(
+            children: [
+              Row(children: [
+                Expanded(child: MetricCard(label: 'Employees', value: employees.toString())),
+                const SizedBox(width: 12),
+                Expanded(child: MetricCard(label: 'Total Earnings', value: _rwfShort(totalEarnings))),
+                const SizedBox(width: 12),
+                Expanded(child: MetricCard(label: 'Adj. Gross', value: _rwfShort(totalGross))),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: MetricCard(label: 'Total PAYE', value: _rwfShort(totalPaye))),
+                const SizedBox(width: 12),
+                Expanded(child: MetricCard(label: 'Employee RSSB', value: _rwfShort(totalRssb))),
+                const SizedBox(width: 12),
+                const Expanded(child: SizedBox()),
+              ]),
+            ],
+          ),
+        ),
+      ],
+      ),
     );
   }
-}
-
-class _M {
-  const _M(this.label, this.value);
-  final String label, value;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1009,7 +1011,7 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           color: _hover ? context.appTint : Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
           child: Row(children: [
             // Employee
             Expanded(flex: 3, child: Row(children: [
@@ -1052,8 +1054,6 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
                     fontSize: 15, fontWeight: FontWeight.w700))),
             // Actions
             Expanded(flex: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (!widget.isLocked)
-                _TinyBtn(AppIcons.tuneRounded, 'Adjust', _showAdjust),
               if (widget.isLocked)
                 Tooltip(
                   message: widget.ps.emailSent ? 'Payslip emailed' : 'Not emailed yet',
@@ -1070,7 +1070,11 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
                     ),
                   ),
                 ),
-              _TinyBtn(AppIcons.pictureAsPdfRounded, 'PDF', _downloadPdf),
+              RowActionsMenu(actions: [
+                if (!widget.isLocked)
+                  RowAction(label: 'Adjust', icon: AppIcons.tuneRounded, onTap: _showAdjust),
+                RowAction(label: 'Download PDF', icon: AppIcons.pictureAsPdfRounded, onTap: _downloadPdf),
+              ]),
             ])),
           ]),
         ),
@@ -1156,43 +1160,29 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _TinyBtn extends StatelessWidget {
-  const _TinyBtn(this.icon, this.tooltip, this.onTap);
-  final IconRef icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: onTap,
-      child: Padding(padding: const EdgeInsets.all(4),
-          child: AppIcon(icon, size: 15, color: context.appSubtext)),
-    ),
-  );
-}
-
 class _OutBtn extends StatelessWidget {
-  const _OutBtn({required this.icon, required this.label, this.onTap, this.color});
+  const _OutBtn({required this.icon, required this.label, this.onTap, this.color, this.tooltip});
   final IconRef icon;
   final String label;
   final VoidCallback? onTap;
   final Color? color;
+  final String? tooltip;
 
   @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: onTap,
-    icon: AppIcon(icon, size: 15),
-    label: Text(label),
-    style: OutlinedButton.styleFrom(
-      foregroundColor: color ?? context.appText,
-      side: BorderSide(color: color?.withAlpha(100) ?? context.appBorder),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final btn = OutlinedButton.icon(
+      onPressed: onTap,
+      icon: AppIcon(icon, size: 15),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color ?? context.appText,
+        side: BorderSide(color: color?.withAlpha(100) ?? context.appBorder),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      ),
+    );
+    return tooltip != null ? Tooltip(message: tooltip!, child: btn) : btn;
+  }
 }
 
 class _FillBtn extends StatelessWidget {
@@ -1392,20 +1382,31 @@ class _ConfirmDialog extends StatelessWidget {
   final Color confirmColor;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    backgroundColor: context.appCard,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    title: Text(title, style: TextStyle(color: context.appText,
-        fontWeight: FontWeight.w600, fontSize: 17)),
-    content: Text(body, style: TextStyle(color: context.appSubtext, height: 1.5)),
-    actions: [
-      TextButton(onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel')),
-      FilledButton(
-        onPressed: () => Navigator.pop(context, true),
-        style: FilledButton.styleFrom(backgroundColor: confirmColor),
-        child: Text(confirmLabel),
-      ),
-    ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(24),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(color: context.appText,
+            fontWeight: FontWeight.w600, fontSize: 17)),
+        const SizedBox(height: 12),
+        Text(body, style: TextStyle(color: context.appSubtext, height: 1.5)),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(backgroundColor: confirmColor),
+              child: Text(confirmLabel),
+            ),
+          ],
+        ),
+      ],
+    ),
   );
 }

@@ -8,6 +8,7 @@ import '../../../shared/widgets/hrnova_button.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/row_actions_menu.dart';
 
 class DepartmentsScreen extends ConsumerStatefulWidget {
   const DepartmentsScreen({super.key});
@@ -211,7 +212,7 @@ class _DeptTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
       decoration: context.cardDeco(),
       child: Row(children: [
         Container(
@@ -241,52 +242,13 @@ class _DeptTile extends StatelessWidget {
             ),
           ),
         ),
-        _IconBtn(
-          icon: AppIcons.editOutlined,
-          color: AppColors.primaryBlue,
-          bg: context.pillBlueBg,
-          tooltip: 'Edit',
-          onTap: onEdit,
-        ),
-        const SizedBox(width: 8),
-        _IconBtn(
-          icon: AppIcons.deleteOutlineRounded,
-          color: AppColors.errorRed,
-          bg: context.pillRedBg,
-          tooltip: 'Delete',
-          onTap: onDelete,
-        ),
+        RowActionsMenu(actions: [
+          RowAction(label: 'Edit', icon: AppIcons.editOutlined, onTap: onEdit),
+          RowAction(label: 'Delete', icon: AppIcons.deleteOutlineRounded, onTap: onDelete, danger: true),
+        ]),
       ]),
     );
   }
-}
-
-class _IconBtn extends StatelessWidget {
-  const _IconBtn({
-    required this.icon,
-    required this.color,
-    required this.bg,
-    required this.tooltip,
-    required this.onTap,
-  });
-  final IconRef icon;
-  final Color color, bg;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 34, height: 34,
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-        child: AppIcon(icon, size: 16, color: color),
-      ),
-    ),
-  );
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────

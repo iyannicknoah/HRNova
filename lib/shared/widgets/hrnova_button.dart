@@ -137,15 +137,15 @@ class HRNovaButton extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppIcon(icon!, size: 18),
+          AppIcon(icon!, size: 17),
           const SizedBox(width: 8),
           Text(label,
               style:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
         ],
       );
     }
     return Text(label,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16));
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15));
   }
 }

@@ -15,6 +15,7 @@ import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/row_actions_menu.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Main screen
@@ -555,7 +556,7 @@ class _EmployeeTable extends StatelessWidget {
                   onTap: () => onView(e),
                   hoverColor: context.appTint,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
                     child: Row(children: [
                       Expanded(flex: 30, child: Row(children: [
                         _Avatar(name: e.fullName, photoUrl: e.profilePhotoUrl, size: 34),
@@ -567,12 +568,15 @@ class _EmployeeTable extends StatelessWidget {
                       Expanded(flex: 15, child: Align(alignment: Alignment.centerLeft, child: _Chip(_ctLabel(e.contractType), context.pillBlueBg, context.pillBlueText))),
                       if (canEdit) Expanded(flex: 17, child: Text(_salaryStr(e), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: context.appText))),
                       Expanded(flex: 12, child: Align(alignment: Alignment.centerLeft, child: StatusBadge.fromString(e.status))),
-                      Expanded(flex: 14, child: Row(children: [
-                        _ActionBtn(AppIcons.visibilityOutlined, 'View Profile', () => onView(e)),
-                        if (canEdit) _ActionBtn(AppIcons.editOutlined, 'Edit', () => onEdit(e)),
-                        if (canEdit && e.isActive) _ActionBtn(AppIcons.blockOutlined, 'Deactivate', () => onDeactivate(e), color: AppColors.warningAmber),
-                        if (canEdit) _ActionBtn(AppIcons.deleteOutlineRounded, 'Delete', () => onDelete(e), color: AppColors.errorRed),
-                      ])),
+                      Expanded(flex: 14, child: Align(
+                        alignment: Alignment.centerRight,
+                        child: RowActionsMenu(actions: [
+                          RowAction(label: 'View Profile', icon: AppIcons.visibilityOutlined, onTap: () => onView(e)),
+                          if (canEdit) RowAction(label: 'Edit', icon: AppIcons.editOutlined, onTap: () => onEdit(e)),
+                          if (canEdit && e.isActive) RowAction(label: 'Deactivate', icon: AppIcons.blockOutlined, onTap: () => onDeactivate(e)),
+                          if (canEdit) RowAction(label: 'Delete', icon: AppIcons.deleteOutlineRounded, onTap: () => onDelete(e), danger: true),
+                        ]),
+                      )),
                     ]),
                   ),
                 );
@@ -609,17 +613,6 @@ class _Chip extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
     child: Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: fg)),
-  );
-}
-
-class _ActionBtn extends StatelessWidget {
-  const _ActionBtn(this.icon, this.tip, this.onTap, {this.color});
-  final IconRef icon; final String tip; final VoidCallback onTap; final Color? color;
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tip,
-    child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(6),
-      child: Padding(padding: const EdgeInsets.all(5), child: AppIcon(icon, size: 17, color: color ?? context.appSubtext))),
   );
 }
 

@@ -92,16 +92,6 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Row(
         children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [Color(0xFF4A9EFF), Color(0xFF2979E0)]),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const AppIcon(AppIcons.workRounded, color: Colors.white, size: 18),
-          ),
-          const SizedBox(width: 12),
           Text('Recruitment',
               style: TextStyle(
                   fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),

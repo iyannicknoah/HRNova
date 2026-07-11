@@ -193,13 +193,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
 
     return Scaffold(
       backgroundColor: context.appBg,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showManualEntry(context),
-        backgroundColor: AppColors.primaryBlue,
-        icon: const AppIcon(AppIcons.addRounded, color: Colors.white),
-        label: const Text('Manual Entry',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -210,6 +203,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
             branches: branches,
             selectedBranchName: selectedBranch?.name,
             onBranchPick: (id) => setState(() => _branchFilter = id),
+            onManualEntry: () => _showManualEntry(context),
           ),
           _SummaryRow(
               present: present, late: late, absent: absent, onLeave: onLeave),
@@ -259,6 +253,7 @@ class _Header extends StatelessWidget {
     this.branches = const [],
     this.selectedBranchName,
     this.onBranchPick,
+    this.onManualEntry,
   });
   final DateTime date;
   final VoidCallback onDatePick;
@@ -266,6 +261,7 @@ class _Header extends StatelessWidget {
   final List<BranchModel> branches;
   final String? selectedBranchName;
   final ValueChanged<String?>? onBranchPick;
+  final VoidCallback? onManualEntry;
 
   void _showBranchMenu(BuildContext context) async {
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -322,6 +318,14 @@ class _Header extends StatelessWidget {
             onTap: () => _showBranchMenu(ctx),
           )),
         ],
+        const SizedBox(width: 10),
+        HRNovaButton(
+          label: 'Manual Entry',
+          icon: AppIcons.addRounded,
+          isFullWidth: false,
+          height: 42,
+          onPressed: onManualEntry,
+        ),
       ]),
     );
   }
@@ -344,6 +348,7 @@ class _HeaderBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appCard,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.appBorder),
         ),
         child: Row(children: [
           AppIcon(icon, size: 15, color: context.appSubtext),
@@ -377,60 +382,42 @@ class _SummaryRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
       child: Row(children: [
-        Expanded(child: _SCard('Present', present, AppIcons.checkCircleRounded,
-            AppColors.successGreen, context.pillGreenBg)),
+        Expanded(child: _SCard('Present', present)),
         const SizedBox(width: 12),
-        Expanded(child: _SCard('Late', late, AppIcons.scheduleRounded,
-            AppColors.warningAmber, context.pillAmberBg)),
+        Expanded(child: _SCard('Late', late)),
         const SizedBox(width: 12),
-        Expanded(child: _SCard('Absent', absent, AppIcons.cancelRounded,
-            AppColors.errorRed, context.pillRedBg)),
+        Expanded(child: _SCard('Absent', absent)),
         const SizedBox(width: 12),
-        Expanded(child: _SCard('On Leave', onLeave, AppIcons.beachAccessRounded,
-            AppColors.primaryBlue, context.pillBlueBg)),
+        Expanded(child: _SCard('On Leave', onLeave)),
       ]),
     );
   }
 }
 
 class _SCard extends StatelessWidget {
-  const _SCard(this.label, this.count, this.icon, this.color, this.bg);
+  const _SCard(this.label, this.count);
   final String label;
   final int count;
-  final IconRef icon;
-  final Color color, bg;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
       decoration: context.cardDeco(18),
-      child: Row(children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-              color: bg, borderRadius: BorderRadius.circular(10)),
-          child: AppIcon(icon, color: color, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('$count',
-                    style: TextStyle(
-                        color: context.appText,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        height: 1)),
-                const SizedBox(height: 2),
-                Text(label,
-                    style:
-                        TextStyle(color: context.appSubtext, fontSize: 14)),
-              ]),
-        ),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$count',
+              style: TextStyle(
+                  color: context.appText,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  height: 1)),
+          const SizedBox(height: 4),
+          Text(label,
+              style: TextStyle(color: context.appSubtext, fontSize: 14)),
+        ],
+      ),
     );
   }
 }
@@ -582,6 +569,7 @@ class _DropFilter extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(prefix,
@@ -626,7 +614,7 @@ class _AttRow extends StatelessWidget {
     return InkWell(
       hoverColor: context.appTint,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
         child: Row(children: [
           // Employee
           Expanded(
@@ -642,7 +630,7 @@ class _AttRow extends StatelessWidget {
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 15,
-                              fontWeight: FontWeight.w500),
+                              fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 1),
                       Text(row.dept,
@@ -1005,16 +993,12 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
               () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
               context),
           const Spacer(),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                  color: _exporting ? context.appBorder : AppColors.primaryBlue),
-              foregroundColor:
-                  _exporting ? context.appSubtext : AppColors.primaryBlue,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(100)),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.successGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: _exporting || summaryRows.isEmpty
                 ? null
@@ -1024,9 +1008,10 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
                     width: 14,
                     height: 14,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.primaryBlue))
+                        strokeWidth: 2, color: Colors.white))
                 : const AppIcon(AppIcons.downloadRounded, size: 16),
-            label: Text(_exporting ? 'Generating…' : 'Export PDF'),
+            label: Text(_exporting ? 'Generating…' : 'Export PDF',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ]),
       ),
@@ -1141,7 +1126,7 @@ class _SummaryRow2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
       child: Row(children: [
         Expanded(
           flex: 24,
@@ -1153,7 +1138,7 @@ class _SummaryRow2 extends StatelessWidget {
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 15,
-                      fontWeight: FontWeight.w400),
+                      fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis),
             ),
           ]),
@@ -1331,7 +1316,8 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                               child: Text(e.fullName,
                                   style: TextStyle(
                                       color: context.appText,
-                                      fontSize: 15)),
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500)),
                             ))
                         .toList(),
                     onChanged: (v) =>

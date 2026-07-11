@@ -1490,17 +1490,8 @@ class _LeaveProfileTab extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                   child: Column(children: [
                     Row(children: [
-                      Container(
-                        width: 34, height: 34,
-                        decoration: BoxDecoration(
-                          color: t.$3.withAlpha(18),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: AppIcon(t.$4, size: 16, color: t.$3),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(t.$2, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
+                        Text(t.$2, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.appText)),
                         Text('$used used · $total total',
                             style: TextStyle(fontSize: 13, color: context.appSubtext)),
                       ])),

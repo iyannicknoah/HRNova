@@ -14,6 +14,7 @@ class AppIcons {
   AppIcons._();
 
   static const closeRounded = IconRef.hero(HeroIcons.xMark);
+  static const moreHorizRounded = IconRef.hero(HeroIcons.ellipsisHorizontal);
   static const infoOutlineRounded = IconRef.hero(HeroIcons.informationCircle);
   static const autoAwesomeRounded = IconRef.hero(HeroIcons.sparkles);
   static const addRounded = IconRef.hero(HeroIcons.plus);

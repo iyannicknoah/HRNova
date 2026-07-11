@@ -186,55 +186,68 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
         await Future.delayed(Duration.zero); // yield to UI
       }
 
-      state = state.copyWith(step: PayrollStep.done, payslips: payslips);
+      // Persist immediately so every employee's payslip is available right
+      // away (e.g. in the mobile app) without requiring a separate manual
+      // "Save Draft" step.
+      state = state.copyWith(step: PayrollStep.saving, payslips: payslips);
+      final run = await _persistPayslips(companyId, month, payslips);
+      state = state.copyWith(step: PayrollStep.done, payslips: payslips, run: run);
     } catch (e) {
       state = state.copyWith(step: PayrollStep.error, error: e.toString());
     }
   }
 
-  /// Persist payslips + run header to Firestore.
+  /// Batch-writes [payslips] + the payroll run header to Firestore and
+  /// returns the created run.
+  Future<PayrollRunModel> _persistPayslips(
+      String companyId, String month, List<PayslipModel> payslips) async {
+    final batch = FirebaseService.db.batch();
+    final psRef = FirebaseService.payslipsRef(companyId, month);
+
+    double totalEarnings = 0, totalGross = 0, totalNet = 0,
+        totalPaye = 0, totalRssb = 0, totalEmployerCost = 0;
+
+    for (final ps in payslips) {
+      batch.set(psRef.doc(ps.employeeId), {
+        ...ps.toMap(),
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      totalEarnings += ps.totalEarnings;
+      totalGross += ps.adjustedGross;
+      totalNet += ps.netSalary;
+      totalPaye += ps.paye;
+      totalRssb += ps.totalEmployeeRssb + ps.pensionEmployer + ps.maternityEmployer;
+      totalEmployerCost += ps.totalEmployerCost;
+    }
+
+    final run = PayrollRunModel(
+      companyId: companyId,
+      payrollMonth: month,
+      status: 'draft',
+      totalEarnings: totalEarnings,
+      totalGross: totalGross,
+      totalNet: totalNet,
+      totalPaye: totalPaye,
+      totalRssb: totalRssb,
+      totalEmployerCost: totalEmployerCost,
+      employeeCount: payslips.length,
+      createdAt: DateTime.now(),
+    );
+    batch.set(FirebaseService.payrollRef(companyId).doc(month), run.toMap());
+
+    await batch.commit();
+    return run;
+  }
+
+  /// Persist payslips + run header to Firestore (used for manual re-save,
+  /// e.g. after editing calculated-but-unsaved payslips).
   Future<void> savePayroll(String month) async {
     final companyId = _companyId;
     if (companyId == null || state.payslips.isEmpty) return;
 
     state = state.copyWith(step: PayrollStep.saving);
     try {
-      final batch = FirebaseService.db.batch();
-      final psRef = FirebaseService.payslipsRef(companyId, month);
-
-      double totalEarnings = 0, totalGross = 0, totalNet = 0,
-          totalPaye = 0, totalRssb = 0, totalEmployerCost = 0;
-
-      for (final ps in state.payslips) {
-        batch.set(psRef.doc(ps.employeeId), {
-          ...ps.toMap(),
-          'createdAt': DateTime.now().toIso8601String(),
-        });
-        totalEarnings += ps.totalEarnings;
-        totalGross += ps.adjustedGross;
-        totalNet += ps.netSalary;
-        totalPaye += ps.paye;
-        totalRssb += ps.totalEmployeeRssb + ps.pensionEmployer + ps.maternityEmployer;
-        totalEmployerCost += ps.totalEmployerCost;
-      }
-
-      final run = PayrollRunModel(
-        companyId: companyId,
-        payrollMonth: month,
-        status: 'draft',
-        totalEarnings: totalEarnings,
-        totalGross: totalGross,
-        totalNet: totalNet,
-        totalPaye: totalPaye,
-        totalRssb: totalRssb,
-        totalEmployerCost: totalEmployerCost,
-        employeeCount: state.payslips.length,
-        createdAt: DateTime.now(),
-      );
-      batch.set(
-          FirebaseService.payrollRef(companyId).doc(month), run.toMap());
-
-      await batch.commit();
+      final run = await _persistPayslips(companyId, month, state.payslips);
       state = state.copyWith(step: PayrollStep.done, run: run);
     } catch (e) {
       state = state.copyWith(step: PayrollStep.error, error: e.toString());
