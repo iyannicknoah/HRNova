@@ -223,71 +223,6 @@ class _BranchFilter extends ConsumerWidget {
   }
 }
 
-// ── Report card ────────────────────────────────────────────────────────────────
-class _ReportCard extends StatelessWidget {
-  final Map<String, dynamic> doc;
-  const _ReportCard({required this.doc});
-
-  @override
-  Widget build(BuildContext context) {
-    final report = doc['report'] as String? ?? '';
-    final generatedAt = doc['generatedAt'];
-    String timeStr = '';
-    if (generatedAt is String) {
-      try {
-        timeStr = DateFormat('d MMM y, HH:mm').format(DateTime.parse(generatedAt));
-      } catch (_) {}
-    }
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: context.cardDeco(),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const AppIcon(AppIcons.descriptionRounded, color: AppColors.primaryBlue, size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    _docLabel(doc),
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: context.appText),
-                  ),
-                ),
-                if (timeStr.isNotEmpty)
-                  Text(timeStr, style: TextStyle(fontSize: 11, color: context.appSubtext)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            MarkdownBody(
-              data: report,
-              styleSheet: MarkdownStyleSheet(
-                p: TextStyle(fontSize: 13, color: context.appText, height: 1.65),
-                h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText),
-                strong: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _docLabel(Map<String, dynamic> doc) {
-    final type = doc['type'] as String? ?? '';
-    switch (type) {
-      case 'daily':       return 'Daily — ${doc['date'] ?? ''}';
-      case 'weekly':      return 'Week of ${doc['startDate'] ?? ''}';
-      case 'monthly':     return 'Monthly — ${doc['month'] ?? ''}';
-      case 'group_daily': return 'Group Daily — ${doc['date'] ?? ''}';
-      case 'end_of_day':  return 'End of Day — ${doc['date'] ?? ''}';
-      default:            return doc['id'] as String? ?? '';
-    }
-  }
-}
-
 // ── Generate button ────────────────────────────────────────────────────────────
 class _GenButton extends StatelessWidget {
   final bool loading;
@@ -854,12 +789,6 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
           const SizedBox(height: 20),
           // Live attendance data
           _DailyLiveSection(date: _date, branchId: _branchId),
-          if (docs.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
-            const SizedBox(height: 10),
-            ...docs.take(5).map((d) => _ReportCard(doc: d)),
-          ],
           const SizedBox(height: 20),
           const _AnomalySection(),
         ],
@@ -1018,12 +947,6 @@ class _WeeklyTabState extends ConsumerState<_WeeklyTab> {
           const SizedBox(height: 20),
           // Live weekly breakdown
           _WeeklyLiveSection(weekStart: _weekStart, branchId: _branchId),
-          if (docs.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
-            const SizedBox(height: 10),
-            ...docs.take(5).map((d) => _ReportCard(doc: d)),
-          ],
         ],
       ),
     );
@@ -1104,12 +1027,6 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
           const SizedBox(height: 20),
           // Live monthly overview
           _MonthlyLiveSection(month: _month, branchId: _branchId),
-          if (docs.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text('Previous Reports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText)),
-            const SizedBox(height: 10),
-            ...docs.take(5).map((d) => _ReportCard(doc: d)),
-          ],
         ],
       ),
     );
@@ -1360,14 +1277,6 @@ class _GroupTabState extends ConsumerState<_GroupTab> {
                 ),
               ])),
             ),
-        ],
-
-        // ── Previous reports ──────────────────────────────────────────────────
-        if (docs.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          _SectionLabel('Previous Group Reports'),
-          const SizedBox(height: 10),
-          ...docs.take(5).map((d) => _ReportCard(doc: d)),
         ],
       ]),
     );

@@ -2153,7 +2153,10 @@ class _CalendarCell extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: isSelected ? AppColors.primaryBlue.withAlpha(18) : null,
-          border: isSelected ? Border.all(color: AppColors.primaryBlue, width: 1.5) : null,
+          border: Border.all(
+            color: isSelected ? AppColors.primaryBlue : context.appBorder,
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
         padding: const EdgeInsets.all(6),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

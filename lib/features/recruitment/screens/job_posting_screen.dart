@@ -474,10 +474,10 @@ class _JobFormState extends ConsumerState<_JobForm> {
                           children: [
                             HRNovaButton(
                               label: widget.initialJob != null ? 'Save Draft' : 'Save as Draft',
-                              outlined: true,
                               isFullWidth: false,
                               height: 46,
-                              backgroundColor: context.appSubtext,
+                              backgroundColor: context.appField,
+                              textColor: context.appText,
                               onPressed: notifier.loading ? null : () => _save('draft'),
                             ),
                             const SizedBox(width: 12),
@@ -512,7 +512,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
         hintText: hint,
         hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
         filled: true,
-        fillColor: context.appField,
+        fillColor: context.appCard,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),

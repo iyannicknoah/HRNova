@@ -12,12 +12,22 @@ async function callGemini(prompt, maxTokens = 800) {
       `${GEMINI_URL}?key=${apiKey}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 },
+        // thinkingBudget: 0 disables Gemini 2.5's internal "thinking" tokens —
+        // without this, thinking models can silently spend the whole
+        // maxOutputTokens budget on invisible reasoning and return no text.
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } },
       },
       { timeout: 30000 }
     );
     const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Empty response from Gemini');
+    if (!text) {
+      const finishReason = response.data?.candidates?.[0]?.finishReason;
+      throw new Error(
+        finishReason === 'MAX_TOKENS'
+          ? 'AI response was cut off before finishing. Please try again.'
+          : 'Empty response from Gemini'
+      );
+    }
     return text.trim();
   } catch (err) {
     const status = err.response?.status;

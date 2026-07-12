@@ -221,15 +221,6 @@ class _BranchCardContent extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 44, height: 44,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: AppColors.gradientForName(branch.name), begin: Alignment.topLeft, end: Alignment.bottomRight),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600))),
-                    ),
-                    const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(branch.name, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 2),
@@ -319,15 +310,6 @@ class _BranchDetailDialog extends ConsumerWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             // Header
             Row(children: [
-              Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: AppColors.gradientForName(branch.name), begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(child: Text(branch.name[0], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600))),
-              ),
-              const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(branch.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.appText)),
                 if (branch.location.isNotEmpty)
@@ -387,68 +369,6 @@ class _BranchDetailDialog extends ConsumerWidget {
               const SizedBox(width: 10),
               _DetailStat('Approved (all time)', '$approvedLeaves', AppColors.successGreen),
             ]),
-            if (branchEmployees.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Row(children: [
-                Text('Team Members', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
-                const SizedBox(width: 8),
-                Text('(${branchEmployees.length})', style: TextStyle(fontSize: 13, color: context.appSubtext)),
-              ]),
-              const SizedBox(height: 10),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: context.appBorder),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    for (final entry in branchEmployees.take(6).toList().asMap().entries)
-                      Column(children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          child: Row(children: [
-                            Container(
-                              width: 30, height: 30,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: AppColors.gradientForName(entry.value.fullName)),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(child: Text(
-                                entry.value.fullName.isNotEmpty ? entry.value.fullName[0].toUpperCase() : '?',
-                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                              )),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(entry.value.fullName,
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText),
-                                  overflow: TextOverflow.ellipsis),
-                              Text(entry.value.jobTitle.isEmpty ? entry.value.department : entry.value.jobTitle,
-                                  style: TextStyle(fontSize: 12, color: context.appSubtext),
-                                  overflow: TextOverflow.ellipsis),
-                            ])),
-                            Container(
-                              width: 7, height: 7,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: entry.value.isActive ? AppColors.successGreen : AppColors.errorRed,
-                              ),
-                            ),
-                          ]),
-                        ),
-                        if (entry.key < branchEmployees.take(6).length - 1)
-                          Divider(height: 1, color: context.appBorder),
-                      ]),
-                    if (branchEmployees.length > 6)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Text('+ ${branchEmployees.length - 6} more',
-                            style: TextStyle(fontSize: 13, color: context.appSubtext)),
-                      ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 24),
             // Attendance rate progress
             if (activeCount > 0) ...[
@@ -484,7 +404,11 @@ class _DetailStat extends StatelessWidget {
   Widget build(BuildContext context) => Expanded(
     child: Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color.withAlpha(15), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.appBorder),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: color)),
         Text(label, style: TextStyle(fontSize: 12, color: context.appSubtext)),
@@ -723,7 +647,7 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
             decoration: InputDecoration(
               hintText: 'Min 6 characters',
               hintStyle: TextStyle(color: context.appSubtext),
-              filled: true, fillColor: context.appField,
+              filled: true, fillColor: context.appCard,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               suffixIcon: IconButton(
                 onPressed: () => setState(() => _obscure = !_obscure),
@@ -750,10 +674,6 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
 
   Widget _dialogHeader(BuildContext context, String title, String subtitle) {
     return Row(children: [
-      Container(width: 40, height: 40,
-        decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(12)),
-        child: const AppIcon(AppIcons.addBusinessRounded, color: AppColors.primaryBlue, size: 20)),
-      const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
         Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 13)),
@@ -815,7 +735,7 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: context.appSubtext),
-            filled: true, fillColor: context.appField,
+            filled: true, fillColor: context.appCard,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),

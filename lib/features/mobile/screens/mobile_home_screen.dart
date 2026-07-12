@@ -125,7 +125,7 @@ class _MobileHomeScreenState extends ConsumerState<MobileHomeScreen> {
           selectedIndex: _tab,
           onDestinationSelected: (i) => setState(() => _tab = i),
           backgroundColor: context.appCard,
-          indicatorColor: _blue.withOpacity(context.isDark ? 0.22 : 0.12),
+          indicatorColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           elevation: 2,
           shadowColor: Colors.black.withOpacity(0.08),
@@ -271,9 +271,6 @@ class _HomeContent extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: BoxDecoration(
         color: context.appCard,
-        border: Border(
-          bottom: BorderSide(color: context.appBorder, width: 1),
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(context.isDark ? 0.15 : 0.04),
@@ -288,15 +285,16 @@ class _HomeContent extends ConsumerWidget {
           // Top bar: logo + notification bell
           Row(
             children: [
-              Container(
-                width: 26, height: 26,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_blue, Color(0xFF2979E0)]),
-                  borderRadius: BorderRadius.circular(7),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(7),
+                child: Image.asset(
+                  context.isDark
+                      ? 'assets/icon/icon_dark.png'
+                      : 'assets/icon/icon_light.png',
+                  width: 26,
+                  height: 26,
+                  fit: BoxFit.cover,
                 ),
-                child: const AppIcon(AppIcons.boltRounded,
-                    color: Colors.white, size: 15),
               ),
               const SizedBox(width: 7),
               Text('HRNovva',
@@ -309,40 +307,15 @@ class _HomeContent extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 18),
-          // Greeting + avatar
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(greeting,
-                        style: TextStyle(color: context.appSubtext, fontSize: 14)),
-                    const SizedBox(height: 2),
-                    Text('${emp.firstName} ${emp.lastName}',
-                        style: TextStyle(
-                            color: context.appText,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _blue.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(emp.jobTitle,
-                          style: const TextStyle(
-                              color: _blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500)),
-                    ),
-                  ],
-                ),
-              ),
-              _Avatar(emp: emp, radius: 26),
-            ],
-          ),
+          // Greeting
+          Text(greeting,
+              style: TextStyle(color: context.appSubtext, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text('${emp.firstName} ${emp.lastName}',
+              style: TextStyle(
+                  color: context.appText,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -2089,17 +2062,11 @@ class _ProfileContent extends ConsumerWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Header with gradient
+          // Header
           Container(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [AppColors.darkBackground, AppColors.darkCard]
-                    : [AppColors.primaryBlue.withOpacity(0.08), AppColors.backgroundBlue],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+              color: context.appBg,
               border: Border(
                 bottom: BorderSide(color: context.appBorder),
               ),
@@ -2126,7 +2093,7 @@ class _ProfileContent extends ConsumerWidget {
                       width: 88,
                       height: 88,
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.backgroundBlue,
+                        color: context.appBg,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -2339,14 +2306,14 @@ class _MobileNotificationBell extends ConsumerWidget {
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: context.appBorder.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(10),
+              color: context.appTint,
+              shape: BoxShape.circle,
             ),
             child: AppIcon(AppIcons.notificationsRounded,
-                size: 18, color: context.appSubtext),
+                size: 20, color: context.appText),
           ),
           if (count > 0)
             Positioned(
