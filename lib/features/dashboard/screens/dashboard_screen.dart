@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
@@ -922,18 +923,12 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
             style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 15),
-          TextField(
+          HRNovaTextField(
+            label: 'Reason for rejection',
             controller: _ctrl,
             autofocus: true,
-            style: TextStyle(color: context.appText),
-            decoration: InputDecoration(
-              hintText: 'Reason for rejection',
-              hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-              filled: true, fillColor: Colors.transparent,
-            ),
             maxLines: 3,
+            minLines: 3,
           ),
           const SizedBox(height: 15),
           Row(

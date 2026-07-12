@@ -9,6 +9,7 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/app_table.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/metric_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../../core/constants/app_constants.dart';
@@ -1281,20 +1282,10 @@ class _AdjField extends StatelessWidget {
   final TextInputType type;
 
   @override
-  Widget build(BuildContext context) => TextField(
+  Widget build(BuildContext context) => HRNovaTextField(
+    label: label,
     controller: ctrl,
     keyboardType: type,
-    style: TextStyle(color: context.appText, fontSize: 15),
-    decoration: InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-      filled: true, fillColor: context.appField,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: context.appBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: context.appBorder)),
-    ),
   );
 }
 

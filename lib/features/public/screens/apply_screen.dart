@@ -9,6 +9,7 @@ import '../../../core/platform/file_upload_helper.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 
@@ -468,23 +469,21 @@ class _ApplicationForm extends StatelessWidget {
             const SizedBox(height: 20),
 
             // Name
-            _Label('Full Name *'),
-            TextFormField(
+            HRNovaTextField(
+              label: 'Full Name *',
               controller: name,
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-              decoration: _dec(context, 'Your full name'),
+              hint: 'Your full name',
               validator: (v) =>
                   v?.trim().isEmpty == true ? 'Name is required' : null,
             ),
             const SizedBox(height: 14),
 
             // Email
-            _Label('Email Address *'),
-            TextFormField(
+            HRNovaTextField(
+              label: 'Email Address *',
               controller: email,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-              decoration: _dec(context, 'your@email.com'),
+              hint: 'your@email.com',
               validator: (v) {
                 if (v?.trim().isEmpty == true) return 'Email is required';
                 if (!RegExp(r'^.+@.+\..+$').hasMatch(v!.trim())) {
@@ -496,38 +495,42 @@ class _ApplicationForm extends StatelessWidget {
             const SizedBox(height: 14),
 
             // Phone
-            _Label('Phone Number *'),
-            TextFormField(
+            HRNovaTextField(
+              label: 'Phone Number *',
               controller: phone,
               keyboardType: TextInputType.phone,
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-              decoration: _dec(context, '+250 7XX XXX XXX'),
+              hint: '+250 7XX XXX XXX',
               validator: (v) =>
                   v?.trim().isEmpty == true ? 'Phone number is required' : null,
             ),
             const SizedBox(height: 14),
 
             // Experience
-            _Label('Years of Experience *'),
-            TextFormField(
+            HRNovaTextField(
+              label: 'Years of Experience *',
               controller: experience,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-              decoration: _dec(context, 'e.g. 3'),
+              hint: 'e.g. 3',
               validator: (v) =>
                   v?.trim().isEmpty == true ? 'Required' : null,
+              onChanged: (v) {
+                final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
+                if (digits != v) {
+                  experience.value = experience.value.copyWith(
+                    text: digits,
+                    selection: TextSelection.collapsed(offset: digits.length),
+                  );
+                }
+              },
             ),
             const SizedBox(height: 14),
 
             // Cover letter
-            _Label('Cover Letter (Optional)'),
-            TextFormField(
+            HRNovaTextField(
+              label: 'Cover Letter (Optional)',
               controller: coverLetter,
               maxLines: 5,
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-              decoration: _dec(context,
-                  'Tell us why you are the right person for this role...'),
+              hint: 'Tell us why you are the right person for this role...',
             ),
             const SizedBox(height: 14),
 
@@ -583,28 +586,6 @@ class _ApplicationForm extends StatelessWidget {
     );
   }
 
-  InputDecoration _dec(BuildContext context, String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle:
-            const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-        filled: true,
-        fillColor: const Color(0xFFF8FAFF),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.cardBorder)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.cardBorder)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide:
-                const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.errorRed)),
-      );
 }
 
 class _Label extends StatelessWidget {

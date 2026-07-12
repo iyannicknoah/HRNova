@@ -4,6 +4,8 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
@@ -328,30 +330,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Row(children: [
       Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-        const SizedBox(height: 6),
-        Container(
-          height: 48, padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.appBorder),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _overtime,
-              dropdownColor: context.appCard,
-              items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
-                value: v,
-                child: Text(v, style: TextStyle(color: context.appText, fontSize: 15)),
-              )).toList(),
-              onChanged: (v) => setState(() => _overtime = v!),
-              icon: AppIcon(AppIcons.keyboardArrowDownRounded, color: context.appSubtext),
-              isExpanded: true,
-            ),
-          ),
-        ),
-      ])),
+      Expanded(child: HRNovaDropdown<String>(
+        label: 'Overtime Multiplier',
+        value: _overtime,
+        items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
+          value: v,
+          child: Text(v),
+        )).toList(),
+        onChanged: (v) => setState(() => _overtime = v!),
+      )),
     ]),
     const SizedBox(height: 14),
     Row(children: [
@@ -371,21 +358,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _deptsBody(bool canEdit) => AbsorbPointer(
     absorbing: !canEdit,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [
+    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
       Expanded(
-        child: TextField(
+        child: HRNovaTextField(
+          label: 'Department Name',
           controller: _deptCtrl,
-          style: TextStyle(color: context.appText, fontSize: 15),
-          onSubmitted: (_) => _addDept(),
-          decoration: InputDecoration(
-            hintText: 'Enter department name...',
-            hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-            filled: true, fillColor: Colors.transparent,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          ),
+          onFieldSubmitted: (_) => _addDept(),
+          hint: 'Enter department name...',
         ),
       ),
       const SizedBox(width: 10),
@@ -463,25 +442,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ── Shared widgets ────────────────────────────────────────────────────────
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl, keyboardType: type,
-          style: TextStyle(color: context.appText, fontSize: 15),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-            suffixText: suffix,
-            suffixStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-            filled: true, fillColor: Colors.transparent,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          ),
-        ),
-      ]);
+      HRNovaTextField(
+        label: label,
+        controller: ctrl,
+        keyboardType: type,
+        hint: hint,
+        suffixIcon: suffix == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  widthFactor: 1,
+                  child: Text(suffix, style: TextStyle(color: context.appSubtext, fontSize: 15)),
+                ),
+              ),
+      );
 
   Widget _timeField(String label, TimeOfDay t, VoidCallback onTap) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -607,20 +583,19 @@ class _CriterionRowState extends State<_CriterionRow> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Row(children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Expanded(flex: 5, child: Text(widget.criterion.name, style: TextStyle(color: widget.appText, fontSize: 15))),
-        Expanded(flex: 2, child: TextField(
+        Expanded(flex: 2, child: HRNovaTextField(
+          label: 'Weight',
           controller: _ctrl,
           keyboardType: TextInputType.number,
-          style: TextStyle(color: widget.appText, fontSize: 15),
-          decoration: InputDecoration(
-            suffixText: '%',
-            suffixStyle: TextStyle(color: widget.appSubtext),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            filled: true, fillColor: Colors.transparent,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: widget.appBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: widget.appBorder)),
-            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Align(
+              alignment: Alignment.centerRight,
+              widthFactor: 1,
+              child: Text('%', style: TextStyle(color: widget.appSubtext, fontSize: 15)),
+            ),
           ),
           onChanged: (v) {
             final w = double.tryParse(v);
@@ -663,34 +638,18 @@ class _AddCriterionRowState extends State<_AddCriterionRow> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Expanded(flex: 5, child: TextField(
+    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Expanded(flex: 5, child: HRNovaTextField(
+        label: 'Criterion Name',
         controller: _nameCtrl,
-        style: TextStyle(color: context.appText, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: 'New criterion name...',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          filled: true, fillColor: Colors.transparent,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-        ),
+        hint: 'New criterion name...',
       )),
       const SizedBox(width: 10),
-      Expanded(flex: 2, child: TextField(
+      Expanded(flex: 2, child: HRNovaTextField(
+        label: 'Weight',
         controller: _weightCtrl,
         keyboardType: TextInputType.number,
-        style: TextStyle(color: context.appText, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: 'Weight%',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          filled: true, fillColor: Colors.transparent,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-        ),
+        hint: 'Weight%',
       )),
       const SizedBox(width: 8),
       HRNovaButton(

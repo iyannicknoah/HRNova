@@ -5,6 +5,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../employees/providers/employees_provider.dart';
 import '../../leave/providers/leave_provider.dart';
@@ -606,29 +608,17 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
             ]),
           )
         else
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: context.appField,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: context.appBorder),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: _selectedEmployeeId,
-                hint: Text('Select HR admin…', style: TextStyle(color: context.appSubtext, fontSize: 15)),
-                style: TextStyle(fontSize: 15, color: context.appText),
-                icon: AppIcon(AppIcons.keyboardArrowDown, color: context.appSubtext, size: 18),
-                items: unassignedHrs.map((e) => DropdownMenuItem(
-                  value: e.id,
-                  child: Text('${e.fullName} · ${e.email}',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 14, color: context.appText)),
-                )).toList(),
-                onChanged: (v) => setState(() => _selectedEmployeeId = v),
-              ),
-            ),
+          HRNovaDropdown<String>(
+            label: 'HR Admin',
+            value: _selectedEmployeeId,
+            hint: 'Select HR admin…',
+            items: unassignedHrs.map((e) => DropdownMenuItem(
+              value: e.id,
+              child: Text('${e.fullName} · ${e.email}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: context.appText)),
+            )).toList(),
+            onChanged: (v) => setState(() => _selectedEmployeeId = v),
           ),
       ] else ...[
         _dlgField('First Name *', _hrFirstCtrl, hint: 'First name'),
@@ -637,29 +627,17 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
         const SizedBox(height: 12),
         _dlgField('Email *', _hrEmailCtrl, hint: 'hr@company.rw', type: TextInputType.emailAddress),
         const SizedBox(height: 12),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Password *', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _hrPassCtrl,
-            obscureText: _obscure,
-            style: TextStyle(color: context.appText, fontSize: 15),
-            decoration: InputDecoration(
-              hintText: 'Min 6 characters',
-              hintStyle: TextStyle(color: context.appSubtext),
-              filled: true, fillColor: context.appCard,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              suffixIcon: IconButton(
-                onPressed: () => setState(() => _obscure = !_obscure),
-                icon: AppIcon(_obscure ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,
-                    size: 18, color: context.appSubtext),
-              ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-            ),
+        HRNovaTextField(
+          label: 'Password *',
+          controller: _hrPassCtrl,
+          obscureText: _obscure,
+          hint: 'Min 6 characters',
+          suffixIcon: IconButton(
+            onPressed: () => setState(() => _obscure = !_obscure),
+            icon: AppIcon(_obscure ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,
+                size: 18, color: context.appSubtext),
           ),
-        ]),
+        ),
       ],
 
       _errorBox(),
@@ -726,21 +704,10 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
   }
 
   Widget _dlgField(String label, TextEditingController ctrl, {String? hint, TextInputType? type}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl, keyboardType: type,
-          style: TextStyle(color: context.appText, fontSize: 15),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: context.appSubtext),
-            filled: true, fillColor: context.appCard,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-            focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          ),
-        ),
-      ]);
+      HRNovaTextField(
+        label: label,
+        controller: ctrl,
+        keyboardType: type,
+        hint: hint,
+      );
 }

@@ -1,52 +1,40 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/theme_ext.dart';
 import 'app_icon.dart';
 
-class HRNovaTextField extends StatelessWidget {
-  const HRNovaTextField({
+/// Visual sibling of [HRNovaTextField] used for dropdown/select fields.
+///
+/// Matches the login-screen field design (label above, 16px radius, visible
+/// border in all states, blue focus border) but — deliberately — has no
+/// fill color, only a border, so dropdowns read distinctly from filled text
+/// inputs.
+class HRNovaDropdown<T> extends StatelessWidget {
+  const HRNovaDropdown({
     super.key,
     required this.label,
+    this.value,
+    required this.items,
+    required this.onChanged,
     this.hint,
-    this.controller,
-    this.obscureText = false,
-    this.keyboardType,
-    this.validator,
-    this.onChanged,
-    this.prefixIcon,
-    this.suffixIcon,
     this.enabled = true,
-    this.maxLines = 1,
-    this.minLines,
-    this.autofocus = false,
-    this.textInputAction,
-    this.onFieldSubmitted,
-    this.initialValue,
-    this.errorText,
-    this.readOnly = false,
-    this.onTap,
+    this.validator,
+    this.showLabel = true,
+    this.isExpanded = true,
   });
 
   final String label;
+  final T? value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?>? onChanged;
   final String? hint;
-  final TextEditingController? controller;
-  final bool obscureText;
-  final TextInputType? keyboardType;
-  final String? Function(String?)? validator;
-  final void Function(String)? onChanged;
-  final IconRef? prefixIcon;
-  final Widget? suffixIcon;
   final bool enabled;
-  final int maxLines;
-  final int? minLines;
-  final bool autofocus;
-  final TextInputAction? textInputAction;
-  final void Function(String)? onFieldSubmitted;
-  final String? initialValue;
-  final String? errorText;
-  final bool readOnly;
-  final VoidCallback? onTap;
+  final String? Function(T?)? validator;
+  final bool showLabel;
+  /// When false, the dropdown sizes to fit its content instead of
+  /// stretching to fill the available width.
+  final bool isExpanded;
 
   static const _radius = 16.0;
 
@@ -55,47 +43,36 @@ class HRNovaTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: context.appText,
-            letterSpacing: 0.2,
+        if (showLabel) ...[
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: context.appText,
+              letterSpacing: 0.2,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          initialValue: initialValue,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
+          const SizedBox(height: 6),
+        ],
+        DropdownButtonFormField<T>(
+          initialValue: value,
+          items: items,
+          onChanged: enabled ? onChanged : null,
           validator: validator,
-          onChanged: onChanged,
-          enabled: enabled,
-          readOnly: readOnly,
-          onTap: onTap,
-          maxLines: obscureText ? 1 : maxLines,
-          minLines: minLines,
-          autofocus: autofocus,
-          textInputAction: textInputAction,
-          onFieldSubmitted: onFieldSubmitted,
+          isExpanded: isExpanded,
+          icon: AppIcon(AppIcons.keyboardArrowDown, color: context.appSubtext, size: 18),
           style: TextStyle(
             fontSize: 16,
             color: context.appText,
             fontWeight: FontWeight.w400,
           ),
+          dropdownColor: context.appCard,
           decoration: InputDecoration(
-            errorText: errorText,
             hintText: hint,
             hintStyle: TextStyle(
                 color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-            prefixIcon: prefixIcon != null
-                ? AppIcon(prefixIcon!, color: context.appSubtext, size: 20)
-                : null,
-            suffixIcon: suffixIcon,
-            filled: true,
-            fillColor: enabled ? context.appCard : context.appTint,
+            filled: false,
             contentPadding:
                 const EdgeInsetsDirectional.fromSTEB(14, 15, 15, 15),
             border: OutlineInputBorder(

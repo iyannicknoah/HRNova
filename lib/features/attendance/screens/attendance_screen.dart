@@ -1402,7 +1402,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                   child: HRNovaButton(
                     label: 'Cancel',
                     onPressed: () => Navigator.pop(context),
-                    backgroundColor: context.appField,
+                    backgroundColor: context.isDark ? AppColors.darkCard : AppColors.backgroundBlue,
                     textColor: context.appText,
                   ),
                 ),

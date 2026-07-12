@@ -8,6 +8,8 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/app_table.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/models/branch_model.dart';
 import '../../branches/providers/branches_provider.dart';
@@ -762,34 +764,16 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
               const SizedBox(height: 14),
 
               // Leave type
-              Text('Leave Type',
-                  style: TextStyle(
-                      color: context.appSubtext,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.appBorder),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _leaveType,
-                    dropdownColor: context.appCard,
-                    style: TextStyle(color: context.appText, fontSize: 14),
-                    icon: AppIcon(AppIcons.expandMoreRounded, color: context.appSubtext),
-                    isExpanded: true,
-                    onChanged: (v) => setState(() => _leaveType = v!),
-                    items: _types
-                        .map((t) => DropdownMenuItem(
-                              value: t.$1,
-                              child: Text(t.$2),
-                            ))
-                        .toList(),
-                  ),
-                ),
+              HRNovaDropdown<String>(
+                label: 'Leave Type',
+                value: _leaveType,
+                onChanged: (v) => setState(() => _leaveType = v!),
+                items: _types
+                    .map((t) => DropdownMenuItem(
+                          value: t.$1,
+                          child: Text(t.$2),
+                        ))
+                    .toList(),
               ),
               const SizedBox(height: 14),
 
@@ -875,33 +859,11 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
               const SizedBox(height: 14),
 
               // Reason
-              Text('Reason / Notes',
-                  style: TextStyle(
-                      color: context.appSubtext,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              TextField(
+              HRNovaTextField(
+                label: 'Reason / Notes',
                 controller: _reasonCtrl,
                 maxLines: 2,
-                style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w400),
-                decoration: InputDecoration(
-                  hintText: 'E.g. Employee came in person to request leave...',
-                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-                  filled: true,
-                  fillColor: Colors.transparent,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: context.appBorder)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: context.appBorder)),
-                  focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(16)),
-                      borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-                ),
+                hint: 'E.g. Employee came in person to request leave...',
               ),
               const SizedBox(height: 20),
 
@@ -1329,37 +1291,12 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
                     style: TextStyle(
                         color: context.appSubtext, fontSize: 15)),
                 const SizedBox(height: 16),
-                Text('Reason for declining *',
-                    style: TextStyle(
-                        color: context.appSubtext,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400)),
-                const SizedBox(height: 6),
-                TextField(
+                HRNovaTextField(
+                  label: 'Reason for declining *',
                   controller: _ctrl,
                   maxLines: 3,
                   autofocus: true,
-                  style: TextStyle(color: context.appText, fontSize: 15),
-                  decoration: InputDecoration(
-                    hintText:
-                        'e.g. Critical deadline, insufficient notice…',
-                    hintStyle: TextStyle(color: context.appSubtext),
-                    filled: true,
-                    fillColor: context.appField,
-                    contentPadding: const EdgeInsets.all(14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: context.appBorder)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: context.appBorder)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: AppColors.errorRed, width: 1.5)),
-                  ),
+                  hint: 'e.g. Critical deadline, insufficient notice…',
                 ),
                 const SizedBox(height: 20),
                 Row(children: [
@@ -1683,17 +1620,11 @@ class _RequestRowState extends ConsumerState<_RequestRow> {
             Text('Override to ${newStatus == 'approved' ? 'Approved' : 'Rejected'}',
                 style: TextStyle(color: ctx.appText, fontSize: 16, fontWeight: FontWeight.w500)),
             const SizedBox(height: 14),
-            TextField(
+            HRNovaTextField(
+              label: 'Reason',
               controller: ctrl,
               autofocus: true,
-              style: TextStyle(color: ctx.appText),
-              decoration: InputDecoration(
-                hintText: 'Reason for override',
-                hintStyle: TextStyle(color: ctx.appSubtext),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: ctx.appBorder)),
-                focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue)),
-                filled: true, fillColor: ctx.appField,
-              ),
+              hint: 'Reason for override',
               maxLines: 2,
             ),
             const SizedBox(height: 20),

@@ -8,6 +8,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/application_model.dart';
@@ -235,47 +237,36 @@ class _JobFormState extends ConsumerState<_JobForm> {
                       children: [
                         // Basic Info
                         _Section(title: 'Basic Information', children: [
-                          _Field(
+                          HRNovaTextField(
                             label: 'Job Title',
-                            child: TextFormField(
-                              controller: _title,
-                              style: TextStyle(color: context.appText, fontSize: 14),
-                              decoration: _inputDec(context, 'e.g. Senior Accountant'),
-                              validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
-                            ),
+                            controller: _title,
+                            hint: 'e.g. Senior Accountant',
+                            validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
-                          _Field(
+                          HRNovaDropdown<String>(
                             label: 'Department',
-                            child: DropdownButtonFormField<String>(
-                              value: _department.isEmpty ? null : _department,
-                              decoration: _inputDec(context, 'Select department'),
-                              dropdownColor: context.appCard,
-                              style: TextStyle(color: context.appText, fontSize: 14),
-                              items: _departments.map((d) => DropdownMenuItem(
-                                value: d,
-                                child: Text(d),
-                              )).toList(),
-                              onChanged: (v) => setState(() => _department = v ?? ''),
-                            ),
+                            value: _department.isEmpty ? null : _department,
+                            hint: 'Select department',
+                            items: _departments.map((d) => DropdownMenuItem(
+                              value: d,
+                              child: Text(d),
+                            )).toList(),
+                            onChanged: (v) => setState(() => _department = v ?? ''),
                           ),
                           const SizedBox(height: 16),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: _Field(
+                                child: HRNovaDropdown<int>(
                                   label: 'Min. Years Experience',
-                                  child: DropdownButtonFormField<int>(
-                                    value: _minExperience,
-                                    decoration: _inputDec(context, ''),
-                                    dropdownColor: context.appCard,
-                                    style: TextStyle(color: context.appText, fontSize: 14),
-                                    items: List.generate(11, (i) => DropdownMenuItem(
-                                      value: i,
-                                      child: Text(i == 0 ? 'Any' : '$i+ years'),
-                                    )),
-                                    onChanged: (v) => setState(() => _minExperience = v ?? 0),
-                                  ),
+                                  value: _minExperience,
+                                  items: List.generate(11, (i) => DropdownMenuItem(
+                                    value: i,
+                                    child: Text(i == 0 ? 'Any' : '$i+ years'),
+                                  )),
+                                  onChanged: (v) => setState(() => _minExperience = v ?? 0),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -327,26 +318,20 @@ class _JobFormState extends ConsumerState<_JobForm> {
 
                         // Description & Requirements
                         _Section(title: 'Job Details', children: [
-                          _Field(
+                          HRNovaTextField(
                             label: 'Job Description',
-                            child: TextFormField(
-                              controller: _description,
-                              maxLines: 5,
-                              style: TextStyle(color: context.appText, fontSize: 14),
-                              decoration: _inputDec(context, 'Describe the role, responsibilities, and daily tasks...'),
-                              validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
-                            ),
+                            controller: _description,
+                            maxLines: 5,
+                            hint: 'Describe the role, responsibilities, and daily tasks...',
+                            validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
-                          _Field(
+                          HRNovaTextField(
                             label: 'Requirements',
-                            child: TextFormField(
-                              controller: _requirements,
-                              maxLines: 4,
-                              style: TextStyle(color: context.appText, fontSize: 14),
-                              decoration: _inputDec(context, 'Qualifications, certifications, education...'),
-                              validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
-                            ),
+                            controller: _requirements,
+                            maxLines: 4,
+                            hint: 'Qualifications, certifications, education...',
+                            validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
                           _Field(
@@ -368,13 +353,14 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                   ),
                                 if (_skills.isNotEmpty) const SizedBox(height: 8),
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Expanded(
-                                      child: TextField(
+                                      child: HRNovaTextField(
+                                        label: '',
                                         controller: _skillInput,
-                                        style: TextStyle(color: context.appText, fontSize: 14),
-                                        decoration: _inputDec(context, 'Type a skill and press Enter'),
-                                        onSubmitted: (_) => _addSkill(),
+                                        hint: 'Type a skill and press Enter',
+                                        onFieldSubmitted: (_) => _addSkill(),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -394,30 +380,41 @@ class _JobFormState extends ConsumerState<_JobForm> {
                         // Salary
                         _Section(title: 'Salary (Optional)', children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: _Field(
+                                child: HRNovaTextField(
                                   label: 'Min Salary (RWF)',
-                                  child: TextFormField(
-                                    controller: _salaryMin,
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    style: TextStyle(color: context.appText, fontSize: 14),
-                                    decoration: _inputDec(context, 'e.g. 200000'),
-                                  ),
+                                  controller: _salaryMin,
+                                  keyboardType: TextInputType.number,
+                                  hint: 'e.g. 200000',
+                                  onChanged: (v) {
+                                    final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
+                                    if (digits != v) {
+                                      _salaryMin.value = _salaryMin.value.copyWith(
+                                        text: digits,
+                                        selection: TextSelection.collapsed(offset: digits.length),
+                                      );
+                                    }
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
-                                child: _Field(
+                                child: HRNovaTextField(
                                   label: 'Max Salary (RWF)',
-                                  child: TextFormField(
-                                    controller: _salaryMax,
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    style: TextStyle(color: context.appText, fontSize: 14),
-                                    decoration: _inputDec(context, 'e.g. 350000'),
-                                  ),
+                                  controller: _salaryMax,
+                                  keyboardType: TextInputType.number,
+                                  hint: 'e.g. 350000',
+                                  onChanged: (v) {
+                                    final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
+                                    if (digits != v) {
+                                      _salaryMax.value = _salaryMax.value.copyWith(
+                                        text: digits,
+                                        selection: TextSelection.collapsed(offset: digits.length),
+                                      );
+                                    }
+                                  },
                                 ),
                               ),
                             ],
@@ -445,12 +442,12 @@ class _JobFormState extends ConsumerState<_JobForm> {
                             style: TextStyle(fontSize: 13, color: context.appSubtext, height: 1.5),
                           ),
                           const SizedBox(height: 12),
-                          TextFormField(
+                          HRNovaTextField(
+                            label: '',
                             controller: _aiCriteria,
                             maxLines: 4,
-                            style: TextStyle(color: context.appText, fontSize: 14),
-                            decoration: _inputDec(context,
-                                'e.g. Looking for someone with strong Excel skills, at least 3 years in a finance role, good communication, and experience with payroll systems...'),
+                            hint:
+                                'e.g. Looking for someone with strong Excel skills, at least 3 years in a finance role, good communication, and experience with payroll systems...',
                           ),
                         ]),
                         const SizedBox(height: 28),
@@ -508,25 +505,6 @@ class _JobFormState extends ConsumerState<_JobForm> {
     );
   }
 
-  InputDecoration _inputDec(BuildContext context, String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-        filled: true,
-        fillColor: context.appCard,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: context.alternate)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: context.alternate)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: context.tertiary, width: 1.5)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.errorRed)),
-      );
 }
 
 // ── Success view after publishing ─────────────────────────────────────────────

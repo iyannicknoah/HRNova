@@ -7,6 +7,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/metric_card.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../attendance/models/attendance_model.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -889,30 +890,11 @@ class _ScorePanelState extends State<_ScorePanel> {
           Divider(color: context.appBorder, height: 1),
           const SizedBox(height: 14),
           // Manager notes
-          Text('Manager Notes',
-              style: TextStyle(
-                  color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          TextField(
+          HRNovaTextField(
+            label: 'Manager Notes',
             controller: widget.notesCtrl,
             maxLines: 3,
-            style: TextStyle(color: context.appText, fontSize: 15),
-            decoration: InputDecoration(
-              hintText: 'Optional notes for this employee...',
-              hintStyle: TextStyle(color: context.appSubtext, fontSize: 14),
-              filled: true,
-              fillColor: context.appField,
-              contentPadding: const EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.alternate)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.alternate)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: context.tertiary, width: 1.5)),
-            ),
+            hint: 'Optional notes for this employee...',
           ),
           const SizedBox(height: 14),
           // AI Review section
@@ -940,25 +922,11 @@ class _ScorePanelState extends State<_ScorePanel> {
             )
           else if (widget.aiReview != null && widget.aiReview!.isNotEmpty)
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              TextField(
+              HRNovaTextField(
+                label: '',
                 controller: _aiCtrl,
                 maxLines: 5,
                 onChanged: widget.onAiTextChanged,
-                style: TextStyle(color: context.appText, fontSize: 15, height: 1.5),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: context.tertiary.withAlpha(8),
-                  contentPadding: const EdgeInsets.all(12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: context.tertiary.withAlpha(60))),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: context.tertiary.withAlpha(60))),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: const BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: context.tertiary, width: 1.5)),
-                ),
               ),
               const SizedBox(height: 6),
               TextButton.icon(

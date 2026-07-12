@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
@@ -360,32 +361,13 @@ class _DeptDialogState extends State<_DeptDialog> {
             const SizedBox(height: 20),
 
             // Field
-            Text('Department Name *',
-                style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-            const SizedBox(height: 6),
-            TextField(
+            HRNovaTextField(
+              label: 'Department Name *',
               controller: _ctrl,
               autofocus: true,
-              onSubmitted: (_) => _submit(),
-              style: TextStyle(color: context.appText, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: 'e.g. Human Resources',
-                hintStyle: TextStyle(color: context.appSubtext),
-                filled: true,
-                fillColor: context.appField,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: context.appBorder)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: context.appBorder)),
-                focusedBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-                errorText: _error,
-                errorStyle: const TextStyle(color: AppColors.errorRed),
-              ),
+              onFieldSubmitted: (_) => _submit(),
+              hint: 'e.g. Human Resources',
+              errorText: _error,
             ),
             const SizedBox(height: 20),
 

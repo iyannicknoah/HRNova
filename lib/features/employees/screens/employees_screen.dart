@@ -7,6 +7,8 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/app_table.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/providers/branches_provider.dart';
@@ -427,64 +429,66 @@ class _FilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 0, 24, 16),
-      child: Wrap(
-        spacing: 10, runSpacing: 10,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           SizedBox(
-            width: 260, height: 40,
-            child: TextField(
+            width: 260,
+            child: HRNovaTextField(
+              label: 'Search',
+              hint: 'Search name, ID or email…',
               controller: searchCtrl,
               onChanged: onSearch,
-              decoration: InputDecoration(
-                hintText: 'Search name, ID or email…',
-                hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-                prefixIcon: AppIcon(AppIcons.search, size: 18, color: context.appSubtext),
-                filled: true, fillColor: context.appCard,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.alternate)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.alternate)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.tertiary)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-              ),
+              prefixIcon: AppIcons.search,
             ),
           ),
-          _DropFilter(
-            value: deptFilter,
-            items: [
-              const DropdownMenuItem(value: 'all', child: Text('All Departments')),
-              ...departments.map((d) => DropdownMenuItem(value: d, child: Text(d))),
-            ],
-            onChanged: onDept,
-          ),
-          _DropFilter(
-            value: contractFilter,
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('All Contracts')),
-              DropdownMenuItem(value: 'permanent', child: Text('Permanent')),
-              DropdownMenuItem(value: 'fixed_term', child: Text('Fixed Term')),
-              DropdownMenuItem(value: 'probation', child: Text('Probation')),
-              DropdownMenuItem(value: 'part_time', child: Text('Part Time')),
-            ],
-            onChanged: onContract,
-          ),
-          _DropFilter(
-            value: statusFilter,
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('All Statuses')),
-              DropdownMenuItem(value: 'active', child: Text('Active')),
-              DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-            ],
-            onChanged: onStatus,
-          ),
-          if (showBranchFilter)
-            _DropFilter(
-              value: branchFilter ?? 'all',
-              items: [
-                const DropdownMenuItem(value: 'all', child: Text('All Branches')),
-                ...branches.map((b) => DropdownMenuItem(value: b.id as String, child: Text(b.name as String))),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Wrap(
+              spacing: 10, runSpacing: 10,
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                _DropFilter(
+                  value: deptFilter,
+                  items: [
+                    const DropdownMenuItem(value: 'all', child: Text('All Departments')),
+                    ...departments.map((d) => DropdownMenuItem(value: d, child: Text(d))),
+                  ],
+                  onChanged: onDept,
+                ),
+                _DropFilter(
+                  value: contractFilter,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Contracts')),
+                    DropdownMenuItem(value: 'permanent', child: Text('Permanent')),
+                    DropdownMenuItem(value: 'fixed_term', child: Text('Fixed Term')),
+                    DropdownMenuItem(value: 'probation', child: Text('Probation')),
+                    DropdownMenuItem(value: 'part_time', child: Text('Part Time')),
+                  ],
+                  onChanged: onContract,
+                ),
+                _DropFilter(
+                  value: statusFilter,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Statuses')),
+                    DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                  ],
+                  onChanged: onStatus,
+                ),
+                if (showBranchFilter)
+                  _DropFilter(
+                    value: branchFilter ?? 'all',
+                    items: [
+                      const DropdownMenuItem(value: 'all', child: Text('All Branches')),
+                      ...branches.map((b) => DropdownMenuItem(value: b.id as String, child: Text(b.name as String))),
+                    ],
+                    onChanged: (v) => onBranch(v == 'all' ? null : v),
+                  ),
               ],
-              onChanged: (v) => onBranch(v == 'all' ? null : v),
             ),
+          ),
         ],
       ),
     );
@@ -499,18 +503,14 @@ class _DropFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      constraints: const BoxConstraints(minWidth: 160),
-      decoration: BoxDecoration(color: context.appCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.alternate)),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value, items: items, onChanged: onChanged,
-          dropdownColor: context.appCard,
-          style: TextStyle(color: context.appText, fontSize: 15),
-          icon: AppIcon(AppIcons.keyboardArrowDown, size: 18, color: context.appSubtext),
-        ),
+    return IntrinsicWidth(
+      child: HRNovaDropdown<String>(
+        label: '',
+        showLabel: false,
+        isExpanded: false,
+        value: value,
+        items: items,
+        onChanged: onChanged,
       ),
     );
   }

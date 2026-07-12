@@ -16,6 +16,7 @@ class HRNovaButton extends StatelessWidget {
     this.outlined = false,
     this.isTextButton = false,
     this.height = 48,
+    this.borderWidth = 1.5,
   });
 
   /// Transparent, underlined text-only button — matches the studied
@@ -31,7 +32,8 @@ class HRNovaButton extends StatelessWidget {
         backgroundColor = null,
         icon = null,
         outlined = false,
-        isTextButton = true;
+        isTextButton = true,
+        borderWidth = 1.5;
 
   final String label;
   final VoidCallback? onPressed;
@@ -43,6 +45,7 @@ class HRNovaButton extends StatelessWidget {
   final bool outlined;
   final bool isTextButton;
   final double height;
+  final double borderWidth;
 
   static const _radius = 30.0;
 
@@ -87,7 +90,7 @@ class HRNovaButton extends StatelessWidget {
         child: OutlinedButton(
           onPressed: disabled ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            side: BorderSide(color: outlineColor, width: 1.5),
+            side: BorderSide(color: outlineColor, width: borderWidth),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius)),
             foregroundColor: outlineColor,

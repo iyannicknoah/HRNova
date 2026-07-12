@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../providers/settings_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
@@ -341,30 +343,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Row(children: [
         Expanded(child: _textField('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
         const SizedBox(width: 16),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Overtime Multiplier', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-            const SizedBox(height: 6),
-            Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _overtime,
-                  items: ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
-                    value: v,
-                    child: Text(v, style: TextStyle(color: context.appText, fontSize: 15)),
-                  )).toList(),
-                  onChanged: (v) => setState(() => _overtime = v!),
-                  dropdownColor: context.appCard,
-                  icon: AppIcon(AppIcons.keyboardArrowDownRounded, color: context.appSubtext),
-                  isExpanded: true,
-                ),
-              ),
-            ),
-          ],
+        Expanded(child: HRNovaDropdown<String>(
+          label: 'Overtime Multiplier',
+          value: _overtime,
+          items: ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
+            value: v,
+            child: Text(v),
+          )).toList(),
+          onChanged: (v) => setState(() => _overtime = v!),
         )),
       ]),
       const SizedBox(height: 20),
@@ -380,21 +366,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildDepartments() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Row(children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Expanded(
-          child: TextField(
+          child: HRNovaTextField(
+            label: 'Department',
             controller: _deptCtrl,
-            style: TextStyle(color: context.appText, fontSize: 15),
-            onSubmitted: (_) => _addDept(),
-            decoration: InputDecoration(
-              hintText: 'e.g. Finance, Operations, IT...',
-              hintStyle: TextStyle(color: context.appSubtext.withAlpha(150)),
-              filled: true, fillColor: context.appField,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: _blue, width: 1.5)),
-            ),
+            onFieldSubmitted: (_) => _addDept(),
+            hint: 'e.g. Finance, Operations, IT...',
           ),
         ),
         const SizedBox(width: 12),
@@ -494,27 +472,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   // ── Shared field widgets ──────────────────────────────────────────────────
   Widget _textField(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: ctrl, keyboardType: type,
-            style: TextStyle(color: context.appText, fontSize: 15),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: context.appSubtext.withAlpha(150)),
-              suffixText: suffix,
-              suffixStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-              filled: true, fillColor: context.appField,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-              focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: _blue, width: 1.5)),
-            ),
-          ),
-        ],
+      HRNovaTextField(
+        label: label,
+        controller: ctrl,
+        keyboardType: type,
+        hint: hint,
+        suffixIcon: suffix == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  widthFactor: 1,
+                  child: Text(suffix, style: TextStyle(color: context.appSubtext, fontSize: 15)),
+                ),
+              ),
       );
 
   Widget _timeField(String label, TimeOfDay t, VoidCallback onTap) =>

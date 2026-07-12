@@ -7,6 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/providers/branches_provider.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -150,6 +152,13 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       }
       // Password field shown for manager role in add mode; send it if filled
       final showsPassword = !isEdit && _role == AppConstants.roleManager;
+      if (showsPassword && _password.text.trim().isNotEmpty && _password.text.trim().length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Password must be at least 6 characters.')),
+        );
+        setState(() => _saving = false);
+        return;
+      }
 
       final data = <String, dynamic>{
         'firstName': _firstName.text.trim(),
@@ -193,9 +202,17 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         final (_, tempPassword) = await notifier.addEmployee(data: data);
         if (mounted) {
           final email = (data['email'] as String?) ?? '';
-          final shownPassword = (data['password'] as String?) ?? tempPassword;
-          if (shownPassword != null && email.isNotEmpty) {
-            await _showCredentialsDialog(email, shownPassword);
+          // tempPassword reflects what was actually set on the Firebase Auth
+          // account (null if account creation failed) — never fall back to
+          // the raw typed value here, or the dialog can show a password that
+          // was never actually applied.
+          if (tempPassword != null && email.isNotEmpty) {
+            await _showCredentialsDialog(email, tempPassword);
+          } else if (email.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Employee added, but the login account could not be created. Use "Edit" to retry setting a password.'),
+              backgroundColor: AppColors.warningAmber,
+            ));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Employee added successfully'),
@@ -501,115 +518,53 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     TextInputType? keyboard,
     int maxLines = 1,
   }) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      RichText(text: TextSpan(
-        text: label,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText),
-        children: required ? [TextSpan(text: ' *', style: const TextStyle(color: AppColors.errorRed))] : [],
-      )),
-      const SizedBox(height: 6),
-      TextFormField(
-        controller: ctrl,
-        keyboardType: keyboard,
-        maxLines: maxLines,
-        style: TextStyle(fontSize: 16, color: context.appText, fontWeight: FontWeight.w400),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-          filled: true, fillColor: Colors.transparent,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        ),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
-      ),
-    ]);
+    return HRNovaTextField(
+      label: required ? '$label *' : label,
+      hint: hint,
+      controller: ctrl,
+      keyboardType: keyboard,
+      maxLines: maxLines,
+      validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+    );
   }
 
   Widget _datefield(String label, TextEditingController ctrl, {bool required = false}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      RichText(text: TextSpan(
-        text: label,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText),
-        children: required ? [TextSpan(text: ' *', style: const TextStyle(color: AppColors.errorRed))] : [],
-      )),
-      const SizedBox(height: 6),
-      TextFormField(
-        controller: ctrl,
-        readOnly: true,
-        style: TextStyle(fontSize: 16, color: context.appText, fontWeight: FontWeight.w400),
-        onTap: () async {
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(1950),
-            lastDate: DateTime(2100),
-          );
-          if (picked != null) ctrl.text = EmployeeModel.fmtDate(picked);
-        },
-        decoration: InputDecoration(
-          hintText: 'Select date',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-          suffixIcon: AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
-          filled: true, fillColor: Colors.transparent,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        ),
-        validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
-      ),
-    ]);
+    return HRNovaTextField(
+      label: required ? '$label *' : label,
+      hint: 'Select date',
+      controller: ctrl,
+      readOnly: true,
+      suffixIcon: AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(1950),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) ctrl.text = EmployeeModel.fmtDate(picked);
+      },
+      validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
+    );
   }
 
   Widget _dropField(String label, String value, List<DropdownMenuItem<String>> items, ValueChanged<String?> onChanged) {
     final validValue = items.any((i) => i.value == value) ? value : null;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
-      const SizedBox(height: 6),
-      Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.appBorder),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: validValue,
-            items: items,
-            onChanged: onChanged,
-            isExpanded: true,
-            style: TextStyle(fontSize: 15, color: context.appText),
-            icon: AppIcon(AppIcons.keyboardArrowDown, size: 18, color: context.appSubtext),
-          ),
-        ),
-      ),
-    ]);
+    return HRNovaDropdown<String>(
+      label: label,
+      value: validValue,
+      items: items,
+      onChanged: onChanged,
+    );
   }
 
   Widget _dropFieldN(String label, String? value, List<DropdownMenuItem<String?>> items, ValueChanged<String?> onChanged) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
-      const SizedBox(height: 6),
-      Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.appBorder),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String?>(
-            value: value,
-            items: items,
-            onChanged: onChanged,
-            isExpanded: true,
-            style: TextStyle(fontSize: 15, color: context.appText),
-            icon: AppIcon(AppIcons.keyboardArrowDown, size: 18, color: context.appSubtext),
-          ),
-        ),
-      ),
-    ]);
+    return HRNovaDropdown<String?>(
+      label: label,
+      value: value,
+      items: items,
+      onChanged: onChanged,
+    );
   }
 
   List<Widget> _buildSystemAccessFields(bool isEdit) {
@@ -643,26 +598,15 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
 
   Widget _passwordField() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Login Password',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
-      const SizedBox(height: 6),
-      TextFormField(
+      HRNovaTextField(
+        label: 'Login Password',
+        hint: 'Leave blank to auto-generate',
         controller: _password,
         obscureText: _obscurePassword,
-        style: TextStyle(fontSize: 16, color: context.appText, fontWeight: FontWeight.w400),
-        decoration: InputDecoration(
-          hintText: 'Leave blank to auto-generate',
-          hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
-          filled: true, fillColor: Colors.transparent,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.appBorder)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          suffixIcon: IconButton(
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            icon: AppIcon(_obscurePassword ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,
-                size: 18, color: context.appSubtext),
-          ),
+        suffixIcon: IconButton(
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          icon: AppIcon(_obscurePassword ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,
+              size: 18, color: context.appSubtext),
         ),
       ),
       const SizedBox(height: 6),

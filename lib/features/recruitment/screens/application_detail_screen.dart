@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/application_model.dart';
 import '../providers/recruitment_provider.dart';
@@ -591,42 +592,18 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
+              HRNovaTextField(
+                label: '',
                 controller: _timeCtrl,
-                style: TextStyle(fontSize: 13, color: context.appText),
-                decoration: InputDecoration(
-                  hintText: 'Time (e.g. 10:00 AM)',
-                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-                  prefixIcon: AppIcon(AppIcons.accessTimeRounded, size: 16, color: context.appSubtext),
-                  filled: true,
-                  fillColor: context.appField,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: context.appBorder)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: context.appBorder)),
-                ),
+                hint: 'Time (e.g. 10:00 AM)',
+                prefixIcon: AppIcons.accessTimeRounded,
               ),
               const SizedBox(height: 8),
-              TextField(
+              HRNovaTextField(
+                label: '',
                 controller: _locationCtrl,
-                style: TextStyle(fontSize: 13, color: context.appText),
-                decoration: InputDecoration(
-                  hintText: 'Location or meeting link',
-                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13),
-                  prefixIcon: AppIcon(AppIcons.locationOnOutlined, size: 16, color: context.appSubtext),
-                  filled: true,
-                  fillColor: context.appField,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: context.appBorder)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: context.appBorder)),
-                ),
+                hint: 'Location or meeting link',
+                prefixIcon: AppIcons.locationOnOutlined,
               ),
             ],
             const SizedBox(height: 15),

@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../branches/providers/branches_provider.dart';
 import '../models/employee_model.dart';
@@ -382,24 +384,13 @@ class _PField extends StatelessWidget {
   final TextInputType? keyboardType;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-    const SizedBox(height: 5),
-    TextFormField(
-      controller: ctrl, keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-        filled: true, fillColor: AppColors.lightBlue50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-      validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
-    ),
-  ]);
+  Widget build(BuildContext context) => HRNovaTextField(
+    label: label,
+    hint: hint,
+    controller: ctrl,
+    keyboardType: keyboardType,
+    validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+  );
 }
 
 class _DatePField extends StatelessWidget {
@@ -409,33 +400,22 @@ class _DatePField extends StatelessWidget {
   final bool required;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-    const SizedBox(height: 5),
-    TextFormField(
-      controller: ctrl, readOnly: true,
-      style: const TextStyle(fontSize: 15),
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: DateTime.now(),
-          firstDate: DateTime(1950), lastDate: DateTime(2100),
-        );
-        if (picked != null) ctrl.text = EmployeeModel.fmtDate(picked);
-      },
-      decoration: InputDecoration(
-        hintText: 'Select date',
-        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-        suffixIcon: const AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: AppColors.textSecondary),
-        filled: true, fillColor: AppColors.lightBlue50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-      validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
-    ),
-  ]);
+  Widget build(BuildContext context) => HRNovaTextField(
+    label: label,
+    hint: 'Select date',
+    controller: ctrl,
+    readOnly: true,
+    suffixIcon: const AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: AppColors.textSecondary),
+    onTap: () async {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(1950), lastDate: DateTime(2100),
+      );
+      if (picked != null) ctrl.text = EmployeeModel.fmtDate(picked);
+    },
+    validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
+  );
 }
 
 class _DropPField extends StatelessWidget {
@@ -446,20 +426,10 @@ class _DropPField extends StatelessWidget {
   final ValueChanged<String?> onChanged;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-    const SizedBox(height: 5),
-    Container(
-      decoration: BoxDecoration(color: AppColors.lightBlue50, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.cardBorder)),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: items.any((i) => i.value == value) ? value : null,
-          items: items, onChanged: onChanged, isExpanded: true,
-          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-          icon: const AppIcon(AppIcons.keyboardArrowDown, size: 18, color: AppColors.textSecondary),
-        ),
-      ),
-    ),
-  ]);
+  Widget build(BuildContext context) => HRNovaDropdown<String>(
+    label: label,
+    value: items.any((i) => i.value == value) ? value : null,
+    items: items,
+    onChanged: onChanged,
+  );
 }

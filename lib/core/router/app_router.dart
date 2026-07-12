@@ -12,6 +12,7 @@ import '../../features/settings/providers/settings_provider.dart';
 
 import '../../features/mobile/screens/mobile_home_screen.dart';
 import '../../features/mobile/screens/mobile_onboarding_screen.dart';
+import '../../features/mobile/screens/mobile_splash_screen.dart';
 import '../../features/attendance/screens/guard_mode_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/suspension_screen.dart';
@@ -67,7 +68,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     });
 
     return GoRouter(
-      initialLocation: kIsWeb ? '/login' : '/mobile-onboarding',
+      initialLocation: kIsWeb ? '/login' : '/mobile-splash',
       redirect: _redirect,
       routes: _buildRoutes(),
       errorBuilder: (context, s) => _RouterErrorScreen(error: s.error),
@@ -78,6 +79,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     final path = routerState.uri.path;
 
     if (_isPublicRoute(path)) return null;
+    if (path == '/mobile-splash') return null;
 
     final authAsync = ref.read(authStateProvider);
     if (authAsync.hasError) return path == '/login' ? null : '/login';
@@ -147,8 +149,8 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       return _homeForRole(role);
     }
 
-    // On mobile, employee stays in /mobile-home
-    if (!kIsWeb && role == AppConstants.roleEmployee && path != '/mobile-home') {
+    // Employee stays in /mobile-home
+    if (role == AppConstants.roleEmployee && path != '/mobile-home') {
       return '/mobile-home';
     }
 
@@ -165,7 +167,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
 
   String _homeForRole(String? role) {
     if (role == AppConstants.roleSuperAdmin) return '/super-admin';
-    if (!kIsWeb && role == AppConstants.roleEmployee) return '/mobile-home';
+    if (role == AppConstants.roleEmployee) return '/mobile-home';
     if (!kIsWeb &&
         (role == AppConstants.roleHrAdmin ||
             role == AppConstants.roleBranchHrAdmin)) {
@@ -214,6 +216,10 @@ List<RouteBase> _buildRoutes() => [
       ),
 
       // ── Mobile-only routes (no sidebar) ─────────────────────────────────
+      GoRoute(
+        path: '/mobile-splash',
+        builder: (context, state) => const MobileSplashScreen(),
+      ),
       GoRoute(
         path: '/mobile-onboarding',
         builder: (context, state) => const MobileOnboardingScreen(),

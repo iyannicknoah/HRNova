@@ -193,6 +193,9 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
             'employeeId': docId,
             if (data['branchId'] != null) 'branchId': data['branchId'],
           });
+          // Persist the exact password that was actually set on the account,
+          // so it can be shown correctly later — never re-derive it.
+          await docRef.update({'initialPassword': tempPassword});
         } catch (_) {
           // Auth creation is non-fatal — employee doc is already saved
           tempPassword = null;

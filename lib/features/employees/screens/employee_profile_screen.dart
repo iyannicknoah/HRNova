@@ -14,6 +14,8 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../attendance/models/attendance_model.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -448,28 +450,48 @@ class _ProfileTab extends ConsumerWidget {
                         label: 'Email',
                         value: employee.email,
                       ),
-                      const SizedBox(height: 8),
-                      _CredRow(
-                        label: 'Initial Password',
-                        value: '${employee.companyId.length >= 4 ? employee.companyId.substring(0, 4) : employee.companyId}@${employee.id.length >= 6 ? employee.id.substring(0, 6) : employee.id}',
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.warningAmber.withAlpha(15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.warningAmber.withAlpha(50)),
+                      if (employee.initialPassword != null && employee.initialPassword!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _CredRow(
+                          label: 'Initial Password',
+                          value: employee.initialPassword!,
                         ),
-                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const AppIcon(AppIcons.infoOutlineRounded, size: 13, color: AppColors.warningAmber),
-                          const SizedBox(width: 8),
-                          const Expanded(child: Text(
-                            'This is the initial password. May be outdated if the employee already changed it.',
-                            style: TextStyle(fontSize: 13, color: AppColors.warningAmber),
-                          )),
-                        ]),
-                      ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.warningAmber.withAlpha(15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.warningAmber.withAlpha(50)),
+                          ),
+                          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const AppIcon(AppIcons.infoOutlineRounded, size: 13, color: AppColors.warningAmber),
+                            const SizedBox(width: 8),
+                            const Expanded(child: Text(
+                              'This is the initial password. May be outdated if the employee already changed it.',
+                              style: TextStyle(fontSize: 13, color: AppColors.warningAmber),
+                            )),
+                          ]),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: context.appTint,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: context.appBorder),
+                          ),
+                          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            AppIcon(AppIcons.infoOutlineRounded, size: 13, color: context.appSubtext),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(
+                              'Initial password not available — this account predates password tracking, or it was set before this fix.',
+                              style: TextStyle(fontSize: 13, color: context.appSubtext),
+                            )),
+                          ]),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -1813,9 +1835,9 @@ class _AdjustLeaveDialogState
           Text('Adjust Leave Balance',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
           const SizedBox(height: 15),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedType,
-            decoration: const InputDecoration(labelText: 'Leave Type'),
+          HRNovaDropdown<String>(
+            label: 'Leave Type',
+            value: _selectedType,
             items: types
                 .map((t) => DropdownMenuItem(
                     value: t.$1, child: Text(t.$2)))
@@ -1824,11 +1846,10 @@ class _AdjustLeaveDialogState
                 setState(() => _selectedType = v ?? 'annual'),
           ),
           const SizedBox(height: 16),
-          TextField(
+          HRNovaTextField(
+            label: 'New Balance (days)',
             controller: _valCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-                labelText: 'New Balance (days)'),
           ),
           const SizedBox(height: 15),
           Row(
@@ -2352,20 +2373,13 @@ class _DlgField extends StatelessWidget {
   final TextInputType? keyboard; final bool required;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.appText)),
-    const SizedBox(height: 5),
-    TextFormField(controller: ctrl, keyboardType: keyboard, style: TextStyle(fontSize: 15, color: context.appText),
-      decoration: InputDecoration(
-        hintText: hint, hintStyle: TextStyle(color: context.appSubtext, fontSize: 15),
-        filled: true, fillColor: context.appField,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.appBorder)),
-        focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: AppColors.primaryBlue)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-      validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
-  ]);
+  Widget build(BuildContext context) => HRNovaTextField(
+    label: label,
+    hint: hint,
+    controller: ctrl,
+    keyboardType: keyboard,
+    validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

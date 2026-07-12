@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../features/attendance/models/attendance_model.dart';
 import '../../../features/attendance/providers/attendance_provider.dart';
@@ -25,6 +26,8 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/month_nav.dart';
@@ -1307,8 +1310,6 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
               ),
             ],
             const SizedBox(height: 24),
-            _label(context, 'Leave Type'),
-            const SizedBox(height: 8),
             _typeDropdown(context),
             const SizedBox(height: 16),
             Row(
@@ -1383,30 +1384,11 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
               );
             }),
             const SizedBox(height: 16),
-            _label(context, 'Reason'),
-            const SizedBox(height: 8),
-            TextField(
+            HRNovaTextField(
+              label: 'Reason',
               controller: _reasonCtrl,
               maxLines: 3,
-              style: TextStyle(color: context.appText),
-              decoration: InputDecoration(
-                hintText: 'Describe the reason...',
-                hintStyle: TextStyle(color: context.appSubtext),
-                filled: true,
-                fillColor: context.appCard,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.appBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.alternate),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.tertiary),
-                ),
-              ),
+              hint: 'Describe the reason...',
             ),
             Builder(builder: (context) {
               final days = WorkingDaysService.calculate(
@@ -1463,36 +1445,17 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
       ('maternity', 'Maternity Leave'),
       ('paternity', 'Paternity Leave'),
     ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: context.appCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appBorder),
-      ),
-      child: _isExtension
-          ? Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(
-                types.firstWhere((t) => t.$1 == _leaveType, orElse: () => (_leaveType, _leaveType)).$2,
-                style: TextStyle(color: context.appSubtext, fontSize: 15),
-              ),
-            )
-          : DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _leaveType,
-                dropdownColor: context.appCard,
-                style: TextStyle(color: context.appText, fontSize: 15),
-                icon: AppIcon(AppIcons.expandMoreRounded, color: context.appSubtext),
-                onChanged: (v) => setState(() => _leaveType = v!),
-                items: types
-                    .map((t) => DropdownMenuItem(
-                          value: t.$1,
-                          child: Text(t.$2),
-                        ))
-                    .toList(),
-              ),
-            ),
+    return HRNovaDropdown<String>(
+      label: 'Leave Type',
+      value: _leaveType,
+      enabled: !_isExtension,
+      onChanged: (v) => setState(() => _leaveType = v!),
+      items: types
+          .map((t) => DropdownMenuItem(
+                value: t.$1,
+                child: Text(t.$2),
+              ))
+          .toList(),
     );
   }
 
@@ -2052,6 +2015,95 @@ class _ProfileContent extends ConsumerWidget {
   const _ProfileContent({required this.emp});
   final EmployeeModel emp;
 
+  void _showQrSheet(BuildContext context) {
+    final qrData = emp.qrCode ?? '${emp.companyId}_${emp.id}';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          decoration: BoxDecoration(
+            color: ctx.appCard,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: ctx.appBorder, borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(height: 20),
+              Text('My QR Code',
+                  style: TextStyle(
+                      color: ctx.appText, fontSize: 17, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [_blue, Color(0xFF2979E0)]),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('HRNovva',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15)),
+                    ),
+                    const SizedBox(height: 20),
+                    QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      size: 180,
+                      eyeStyle: const QrEyeStyle(
+                          eyeShape: QrEyeShape.square, color: AppColors.darkNavy),
+                      dataModuleStyle: const QrDataModuleStyle(
+                          dataModuleShape: QrDataModuleShape.square,
+                          color: AppColors.darkNavy),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('${emp.firstName} ${emp.lastName}',
+                        style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)),
+                    const SizedBox(height: 4),
+                    Text(
+                        '${emp.department} · ${emp.jobTitle.isEmpty ? "Employee" : emp.jobTitle}',
+                        style: const TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              HRNovaButton(label: 'Done', onPressed: () => Navigator.pop(ctx)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final joinDate = DateFormat('MMMM y').format(emp.startDate);
@@ -2060,184 +2112,219 @@ class _ProfileContent extends ConsumerWidget {
 
     return SafeArea(
       child: ListView(
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-            decoration: BoxDecoration(
-              color: context.appBg,
-              border: Border(
-                bottom: BorderSide(color: context.appBorder),
+          // Top bar: logo + QR action
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(7),
+                child: Image.asset(
+                  context.isDark
+                      ? 'assets/icon/icon_dark.png'
+                      : 'assets/icon/icon_light.png',
+                  width: 26,
+                  height: 26,
+                  fit: BoxFit.cover,
+                ),
               ),
+              const SizedBox(width: 7),
+              Text('HRNovva',
+                  style: TextStyle(
+                      color: context.appText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _showQrSheet(context),
+                child: SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Center(
+                    child: AppIcon(AppIcons.qrCodeScannerRounded,
+                        size: 20, color: context.appText),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Summary card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_blue, Color(0xFF2979E0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                    color: _blue.withOpacity(0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6)),
+              ],
             ),
-            child: Column(
+            child: Row(
               children: [
-                // Avatar with gradient ring
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: AppColors.gradientForName(emp.firstName),
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        color: context.appBg,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    _Avatar(emp: emp, radius: 40),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                      color: Colors.white24, shape: BoxShape.circle),
+                  child: _Avatar(emp: emp, radius: 22),
                 ),
-                const SizedBox(height: 14),
-                Text('${emp.firstName} ${emp.lastName}',
-                    style: TextStyle(
-                        color: context.appText,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 3),
-                Text(emp.jobTitle,
-                    style: TextStyle(color: context.appSubtext, fontSize: 15)),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _blue.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(emp.department,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${emp.firstName} ${emp.lastName}',
                           style: const TextStyle(
-                              color: _blue, fontSize: 13, fontWeight: FontWeight.w500)),
-                    ),
-                  ],
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(
+                          emp.jobTitle.isEmpty
+                              ? emp.department
+                              : '${emp.jobTitle} · ${emp.department}',
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.85), fontSize: 12.5),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text('Member since $joinDate',
-                    style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                GestureDetector(
+                  onTap: () => _showQrSheet(context),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const AppIcon(AppIcons.qrCodeScannerRounded,
+                        color: Colors.white, size: 19),
+                  ),
+                ),
               ],
             ),
           ),
+          const SizedBox(height: 6),
+          Center(
+            child: Text('Member since $joinDate',
+                style: TextStyle(color: context.appSubtext, fontSize: 12)),
+          ),
+          const SizedBox(height: 24),
 
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Account
+          Text('Account',
+              style: TextStyle(
+                  color: context.appText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500)),
+          const SizedBox(height: 12),
+          _LinkRow(
+              icon: AppIcons.qrCodeScannerRounded,
+              label: 'My QR Code',
+              onTap: () => _showQrSheet(context)),
+          const SizedBox(height: 24),
+
+          // Personal Info
+          Text('Personal Info',
+              style: TextStyle(
+                  color: context.appText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500)),
+          const SizedBox(height: 12),
+          if (emp.nationalId.isNotEmpty)
+            _InfoRow(
+                icon: AppIcons.badgeRounded,
+                label: 'National ID',
+                value: emp.nationalId),
+          if (emp.phone.isNotEmpty)
+            _InfoRow(
+                icon: AppIcons.phoneRounded, label: 'Phone', value: emp.phone),
+          if (emp.email.isNotEmpty)
+            _InfoRow(
+                icon: AppIcons.emailRounded, label: 'Email', value: emp.email),
+          _InfoRow(
+              icon: AppIcons.workRounded,
+              label: 'Contract',
+              value: emp.contractType),
+          const SizedBox(height: 24),
+
+          // Theme toggle
+          Text('Appearance',
+              style: TextStyle(
+                  color: context.appText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: context.cardDeco(),
+            child: Row(
               children: [
-                Text('Personal Info',
-                    style: TextStyle(
-                        color: context.appText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 12),
-                if (emp.nationalId.isNotEmpty)
-                  _InfoRow(
-                      icon: AppIcons.badgeRounded,
-                      label: 'National ID',
-                      value: emp.nationalId),
-                if (emp.phone.isNotEmpty)
-                  _InfoRow(
-                      icon: AppIcons.phoneRounded,
-                      label: 'Phone',
-                      value: emp.phone),
-                if (emp.email.isNotEmpty)
-                  _InfoRow(
-                      icon: AppIcons.emailRounded,
-                      label: 'Email',
-                      value: emp.email),
-                _InfoRow(
-                    icon: AppIcons.workRounded,
-                    label: 'Contract',
-                    value: emp.contractType),
-                const SizedBox(height: 24),
-
-                // Theme toggle
-                Text('Appearance',
-                    style: TextStyle(
-                        color: context.appText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: context.cardDeco(),
-                  child: Row(
+                AppIcon(
+                  isDark ? AppIcons.darkModeRounded : AppIcons.lightModeRounded,
+                  color: context.appText,
+                  size: 20,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: (isDark ? _blue : _amber).withOpacity(0.13),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: AppIcon(
-                          isDark ? AppIcons.darkModeRounded : AppIcons.lightModeRounded,
-                          color: isDark ? _blue : _amber,
-                          size: 20,
-                        ),
+                      Text(
+                        isDark ? 'Dark Mode' : 'Light Mode',
+                        style: TextStyle(
+                            color: context.appText,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isDark ? 'Dark Mode' : 'Light Mode',
-                              style: TextStyle(
-                                  color: context.appText,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w400),
-                            ),
-                            Text(
-                              isDark ? 'Tap to switch to light' : 'Tap to switch to dark',
-                              style: TextStyle(color: context.appSubtext, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: isDark,
-                        onChanged: (v) {
-                          ref.read(themeNotifierProvider.notifier).setMode(
-                              v ? ThemeMode.dark : ThemeMode.light);
-                        },
-                        activeThumbColor: _blue,
-                        activeTrackColor: _blue.withOpacity(0.3),
-                        inactiveThumbColor: _amber,
-                        inactiveTrackColor: _amber.withOpacity(0.25),
+                      Text(
+                        isDark ? 'Tap to switch to light' : 'Tap to switch to dark',
+                        style: TextStyle(color: context.appSubtext, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Sign out
-                HRNovaButton(
-                  label: 'Sign Out',
-                  icon: AppIcons.logoutRounded,
-                  outlined: true,
-                  backgroundColor: _red,
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                    if (context.mounted) context.go('/mobile-onboarding');
+                Switch(
+                  value: isDark,
+                  onChanged: (v) {
+                    ref.read(themeNotifierProvider.notifier).setMode(
+                        v ? ThemeMode.dark : ThemeMode.light);
                   },
+                  activeThumbColor: _blue,
+                  activeTrackColor: _blue.withOpacity(0.3),
+                  inactiveThumbColor: _amber,
+                  inactiveTrackColor: _amber.withOpacity(0.25),
+                  trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
                 ),
-                const SizedBox(height: 8),
               ],
             ),
           ),
+          const SizedBox(height: 20),
+
+          // Sign out
+          HRNovaButton(
+            label: 'Sign Out',
+            icon: AppIcons.logoutRounded,
+            outlined: true,
+            backgroundColor: _red,
+            borderWidth: 1,
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) context.go('/mobile-onboarding');
+            },
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -2259,14 +2346,7 @@ class _InfoRow extends StatelessWidget {
       decoration: context.cardDeco(),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: AppIcon(icon, color: _blue, size: 16),
-          ),
+          AppIcon(icon, color: context.appText, size: 18),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -2289,9 +2369,40 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NOTIFICATION BELL + SHEET
-// ─────────────────────────────────────────────────────────────────────────────
+class _LinkRow extends StatelessWidget {
+  const _LinkRow(
+      {required this.icon, required this.label, required this.onTap});
+  final IconRef icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: context.cardDeco(),
+        child: Row(
+          children: [
+            AppIcon(icon, color: context.appText, size: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      color: context.appText,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400)),
+            ),
+            AppIcon(AppIcons.chevronRightRounded,
+                size: 18, color: context.appSubtext),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _MobileNotificationBell extends ConsumerWidget {
   const _MobileNotificationBell();

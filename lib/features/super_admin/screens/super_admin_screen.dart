@@ -13,6 +13,8 @@ import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/hrnova_text_field.dart';
+import '../../../shared/widgets/hrnova_dropdown.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
@@ -1803,38 +1805,23 @@ class _AddCoPanelState extends State<_AddCoPanel> {
   Widget _field(String label, TextEditingController ctrl,
       {TextInputType type = TextInputType.text, String hint = '',
        bool isPassword = false}) {
-    final p = _P.of(context);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(
-        color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w500)),
-      const SizedBox(height: 6),
-      TextField(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: HRNovaTextField(
+        label: label,
         controller: ctrl,
+        hint: hint,
         keyboardType: type,
         obscureText: isPassword && _obscure,
-        style: TextStyle(color: p.text, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-          filled: true, fillColor: p.card,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          suffixIcon: isPassword
+        suffixIcon: isPassword
             ? IconButton(
                 icon: AppIcon(
                   _obscure ? AppIcons.visibilityOffRounded : AppIcons.visibilityRounded,
                   color: AppColors.textSecondary, size: 18),
                 onPressed: () => setState(() => _obscure = !_obscure))
             : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: p.border)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: p.border)),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-        )),
-      const SizedBox(height: 16),
-    ]);
+      ),
+    );
   }
 
   @override
@@ -1891,29 +1878,16 @@ class _AddCoPanelState extends State<_AddCoPanel> {
               const SizedBox(height: 16),
             ]),
 
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Industry', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 16, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              Container(
-                height: 50,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: p.card, borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: p.border)),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _industry,
-                    isExpanded: true,
-                    dropdownColor: p.card,
-                    style: TextStyle(color: p.text, fontSize: 15),
-                    icon: const AppIcon(AppIcons.keyboardArrowDownRounded,
-                      color: AppColors.textSecondary, size: 20),
-                    items: _industries.map((i) => DropdownMenuItem(
-                      value: i, child: Text(i))).toList(),
-                    onChanged: (v) => setState(() => _industry = v!)))),
-              const SizedBox(height: 16),
-            ]),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: HRNovaDropdown<String>(
+                label: 'Industry',
+                value: _industry,
+                items: _industries.map((i) => DropdownMenuItem(
+                  value: i, child: Text(i))).toList(),
+                onChanged: (v) => setState(() => _industry = v!),
+              ),
+            ),
 
             _field('Phone Number', _phone,
               type: TextInputType.phone, hint: '7XX XXX XXX'),
@@ -2148,25 +2122,11 @@ class _EditCoDialogState extends State<_EditCoDialog> {
       {TextInputType type = TextInputType.text}) =>
     Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(
-          color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl, keyboardType: type,
-          style: TextStyle(color: p.text, fontSize: 15),
-          decoration: InputDecoration(
-            filled: true, fillColor: p.fieldBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          )),
-      ]));
+      child: HRNovaTextField(
+        label: label,
+        controller: ctrl,
+        keyboardType: type,
+      ));
 }
 
 // ─── Add Payment Dialog ───────────────────────────────────────────────────────
@@ -2260,48 +2220,24 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
             Divider(height: 1, color: p.border),
             const SizedBox(height: 20),
             // Period
-            Row(children: [
-              Text('Period', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
-              const Spacer(),
-              Container(
-                height: 42,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: p.border)),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _date,
-                    dropdownColor: p.card,
-                    style: TextStyle(color: p.text, fontSize: 15),
-                    items: _buildMonthItems(),
-                    onChanged: (v) => setState(() => _date = v!)))),
-            ]),
+            HRNovaDropdown<String>(
+              label: 'Period',
+              value: _date,
+              items: _buildMonthItems(),
+              onChanged: (v) => setState(() => _date = v!),
+            ),
             const SizedBox(height: 14),
             // Amount
             _pField(p, 'Amount (RWF)', _amount, type: TextInputType.number),
             const SizedBox(height: 4),
             // Method
-            Row(children: [
-              Text('Method', style: TextStyle(
-                color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
-              const Spacer(),
-              Container(
-                height: 42,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: p.border)),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _method,
-                    dropdownColor: p.card,
-                    style: TextStyle(color: p.text, fontSize: 15),
-                    items: methods.map((m) =>
-                      DropdownMenuItem(value: m.$1, child: Text(m.$2))).toList(),
-                    onChanged: (v) => setState(() => _method = v!)))),
-            ]),
+            HRNovaDropdown<String>(
+              label: 'Method',
+              value: _method,
+              items: methods.map((m) =>
+                DropdownMenuItem(value: m.$1, child: Text(m.$2))).toList(),
+              onChanged: (v) => setState(() => _method = v!),
+            ),
             const SizedBox(height: 14),
             _pField(p, 'Reference (optional)', _ref, hint: 'BNK-2025-07-001'),
             const SizedBox(height: 20),
@@ -2334,27 +2270,12 @@ class _AddPaymentDialogState extends State<_AddPaymentDialog> {
 
   Widget _pField(_P p, String label, TextEditingController ctrl,
       {TextInputType type = TextInputType.text, String hint = ''}) =>
-    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(
-        color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
-      const SizedBox(height: 6),
-      TextField(
-        controller: ctrl, keyboardType: type,
-        style: TextStyle(color: p.text, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-          filled: false,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: p.border)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: p.border)),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-        )),
-    ]);
+    HRNovaTextField(
+      label: label,
+      controller: ctrl,
+      hint: hint,
+      keyboardType: type,
+    );
 }
 
 // ─── Add Branch Dialog ────────────────────────────────────────────────────────
@@ -2443,33 +2364,17 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                     color: p.text, fontSize: 15, fontWeight: FontWeight.w600))),
                 _bf(p, 'Admin Email', _adminEmail, type: TextInputType.emailAddress),
                 _bf(p, 'Admin Name', _adminName),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Admin Password', style: TextStyle(
-                    color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _adminPwd,
-                    obscureText: _obscure,
-                    style: TextStyle(color: p.text, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Min 8 characters',
-                      hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-                      filled: true, fillColor: p.fieldBg,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      suffixIcon: IconButton(
-                        icon: AppIcon(
-                          _obscure ? AppIcons.visibilityOffRounded : AppIcons.visibilityRounded,
-                          color: AppColors.textSecondary, size: 18),
-                        onPressed: () => setState(() => _obscure = !_obscure)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-                    )),
-                ]),
+                HRNovaTextField(
+                  label: 'Admin Password',
+                  controller: _adminPwd,
+                  hint: 'Min 8 characters',
+                  obscureText: _obscure,
+                  suffixIcon: IconButton(
+                    icon: AppIcon(
+                      _obscure ? AppIcons.visibilityOffRounded : AppIcons.visibilityRounded,
+                      color: AppColors.textSecondary, size: 18),
+                    onPressed: () => setState(() => _obscure = !_obscure)),
+                ),
               ]))),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -2492,25 +2397,10 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
       {TextInputType type = TextInputType.text, String hint = ''}) =>
     Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(
-          color: p.text.withAlpha(180), fontSize: 15, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl, keyboardType: type,
-          style: TextStyle(color: p.text, fontSize: 15),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-            filled: true, fillColor: p.fieldBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-          )),
-      ]));
+      child: HRNovaTextField(
+        label: label,
+        controller: ctrl,
+        hint: hint,
+        keyboardType: type,
+      ));
 }

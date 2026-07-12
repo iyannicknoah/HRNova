@@ -33,6 +33,7 @@ class EmployeeModel {
     this.loans = const [],
     this.notes,
     this.createdAt,
+    this.initialPassword,
   });
 
   final String id;
@@ -66,6 +67,7 @@ class EmployeeModel {
   final List<dynamic> loans;
   final String? notes;
   final DateTime? createdAt;
+  final String? initialPassword;
 
   String get fullName => '$firstName $lastName';
   bool get isActive => status == 'active';
@@ -113,6 +115,7 @@ class EmployeeModel {
       loans: (d['loans'] as List?) ?? const [],
       notes: d['notes'] as String?,
       createdAt: _toDate(d['createdAt']),
+      initialPassword: d['initialPassword'] as String?,
     );
   }
 
@@ -149,6 +152,7 @@ class EmployeeModel {
       loans: (d['loans'] as List?) ?? const [],
       notes: d['notes'] as String?,
       createdAt: _toDate(d['createdAt']),
+      initialPassword: d['initialPassword'] as String?,
     );
   }
 

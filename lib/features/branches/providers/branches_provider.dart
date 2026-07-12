@@ -136,7 +136,9 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
       });
       final uid = resp.data?['uid'] as String?;
       if (uid != null) {
-        await empRef.update({'uid': uid});
+        // Persist the exact password that was actually set on the account,
+        // so it can be shown correctly later — never re-derive it.
+        await empRef.update({'uid': uid, 'initialPassword': password});
         await FirebaseService.branchesRef(companyId).doc(branchId).update({
           'branchHrAdminEmail': email,
           'branchHrAdminUid': uid,
