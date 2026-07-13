@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/rwanda_banks.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
@@ -385,7 +386,7 @@ class _ProfileTab extends ConsumerWidget {
                     _Field('Role', _capitalize(employee.role)),
                     _Field('Start Date', EmployeeModel.fmtDate(employee.startDate)),
                     if (employee.endDate != null) _Field('End Date', EmployeeModel.fmtDate(employee.endDate)),
-                    _Field('RSSB Number', employee.rssbNumber.isEmpty ? '—' : employee.rssbNumber),
+                    _Field('Insurance Number', employee.rssbNumber.isEmpty ? '—' : employee.rssbNumber),
                   ],
                 ),
               ]),
@@ -409,7 +410,8 @@ class _ProfileTab extends ConsumerWidget {
                       if (employee.salaryType == 'hourly_rate') _Field('Hourly Rate', _fmtRwf(employee.hourlyRate)),
                       _Field('Transport Allowance', _fmtRwf(employee.transportAllowance)),
                       _Field('Housing Allowance', _fmtRwf(employee.housingAllowance)),
-                      _Field('Bank Account', employee.bankAccount.isEmpty ? '—' : employee.bankAccount),
+                      _Field('Bank', RwandaBanks.nameForCode(employee.bankCode).isEmpty ? '—' : RwandaBanks.nameForCode(employee.bankCode)),
+                      _Field('Bank Account Number', employee.bankAccount.isEmpty ? '—' : employee.bankAccount),
                     ],
                   ),
                   const SizedBox(height: 22),
@@ -992,10 +994,10 @@ class _QRTabState extends ConsumerState<_QRTab> {
         title: Text('Regenerate QR Code?', style: TextStyle(fontWeight: FontWeight.w600, color: ctx.appText)),
         content: const Text('The old QR code will stop working immediately. All printed badges will need to be reprinted.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.warningAmber, foregroundColor: Colors.white),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Regenerate'),
           ),
         ],
@@ -1280,14 +1282,14 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       final date = DateTime(_month.year, _month.month, d);
       if (date.isAfter(DateTime.now())) continue;
       final weekday = date.weekday;
-      final isWeekend = weekday == 6 || weekday == 7;
-      if (isWeekend) continue;
       final rec = recMap[d];
-      // Show leave days even when no attendance record exists
+      // Show any day with a real attendance record or an on-leave day —
+      // regardless of weekday, since a Saturday/Sunday can still carry a
+      // genuine record (e.g. companies that work 6 days a week).
       final statusOverride = statusMap[d];
       if (rec == null && statusOverride != 'on_leave') continue;
       final status = rec != null ? _statusFromRecord(rec) : 'on_leave';
-      final dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][weekday - 1];
+      final dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][weekday - 1];
       final dateLabel = DateFormat('MMM d').format(date);
       rows.add(Padding(
         padding:
@@ -1386,14 +1388,14 @@ class _CalendarGrid extends StatelessWidget {
               if (day < 1 || day > daysInMonth) {
                 return const Expanded(child: SizedBox(height: 36));
               }
-              final date = DateTime(month.year, month.month, day);
-              final isWeekend =
-                  date.weekday == 6 || date.weekday == 7;
               final status = data[day];
-              final cellColor = isWeekend || status == null
+              // A real attendance status always takes priority — only fall
+              // back to the neutral weekend/no-data look when this day has
+              // no record at all (e.g. a normal Saturday/Sunday off).
+              final cellColor = status == null
                   ? context.appBorder.withAlpha(80)
                   : _statusColor(status);
-              final textColor = isWeekend || status == null
+              final textColor = status == null
                   ? context.appSubtext
                   : Colors.white;
 
@@ -1410,7 +1412,7 @@ class _CalendarGrid extends StatelessWidget {
                       style: TextStyle(
                           color: textColor,
                           fontSize: 14,
-                          fontWeight: isWeekend || status == null
+                          fontWeight: status == null
                               ? FontWeight.w400
                               : FontWeight.w600)),
                 ),
@@ -1503,19 +1505,8 @@ class _LeaveProfileTab extends ConsumerWidget {
         SizedBox(
           width: 320,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Leave Balances',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.appText)),
-              TextButton.icon(
-                onPressed: () => _showAdjustDialog(context),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                ),
-                icon: const AppIcon(AppIcons.tuneRounded, size: 14),
-                label: const Text('Adjust', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              ),
-            ]),
+            Text('Leave Balances',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.appText)),
             const SizedBox(height: 10),
             ..._balances.map((t) {
               final total = t.$5;
@@ -1633,13 +1624,6 @@ class _LeaveProfileTab extends ConsumerWidget {
   Widget _hTxt(String t, BuildContext ctx) => Text(t,
       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ctx.appSubtext, letterSpacing: 0.5));
 
-  void _showAdjustDialog(BuildContext context) {
-    AppDialogShell.show(
-      context: context,
-      alignment: Alignment.center,
-      child: _AdjustLeaveDialog(employeeId: employee.id),
-    );
-  }
 }
 
 class _LeaveHistoryRow extends StatelessWidget {
@@ -1767,107 +1751,6 @@ class _LeaveHistoryRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AdjustLeaveDialog extends ConsumerStatefulWidget {
-  const _AdjustLeaveDialog({required this.employeeId});
-  final String employeeId;
-
-  @override
-  ConsumerState<_AdjustLeaveDialog> createState() =>
-      _AdjustLeaveDialogState();
-}
-
-class _AdjustLeaveDialogState
-    extends ConsumerState<_AdjustLeaveDialog> {
-  String _selectedType = 'annual';
-  final _valCtrl = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _valCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final val = int.tryParse(_valCtrl.text.trim());
-    if (val == null || val < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter a valid number')));
-      return;
-    }
-    setState(() => _saving = true);
-    try {
-      await ref.read(leaveNotifierProvider.notifier).adjustLeaveBalance(
-            employeeId: widget.employeeId,
-            leaveType: _selectedType,
-            newBalance: val,
-          );
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const types = [
-      ('annual', 'Annual Leave'),
-      ('sick', 'Sick Leave'),
-      ('maternity', 'Maternity Leave'),
-      ('paternity', 'Paternity Leave'),
-    ];
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Adjust Leave Balance',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
-          const SizedBox(height: 15),
-          HRNovaDropdown<String>(
-            label: 'Leave Type',
-            value: _selectedType,
-            items: types
-                .map((t) => DropdownMenuItem(
-                    value: t.$1, child: Text(t.$2)))
-                .toList(),
-            onChanged: (v) =>
-                setState(() => _selectedType = v ?? 'annual'),
-          ),
-          const SizedBox(height: 16),
-          HRNovaTextField(
-            label: 'New Balance (days)',
-            controller: _valCtrl,
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              HRNovaButton.text(
-                label: 'Cancel',
-                onPressed: () => Navigator.pop(context),
-              ),
-              HRNovaButton(
-                label: 'Save',
-                isFullWidth: false,
-                isLoading: _saving,
-                onPressed: _saving ? null : _save,
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

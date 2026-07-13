@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
@@ -35,6 +39,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _endTime   = const TimeOfDay(hour: 17, minute: 0);
   final _graceCtrl     = TextEditingController(text: '10');
+  final _minHoursCtrl  = TextEditingController(text: '0');
   Set<String> _days    = {'Mon', 'Tue', 'Wed', 'Thu', 'Fri'};
 
   // Leave
@@ -71,9 +76,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   };
   static const _allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _hydrationSub;
+
   @override
   void dispose() {
-    _graceCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
+    _hydrationSub?.cancel();
+    _graceCtrl.dispose(); _minHoursCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
     _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
     _mgrEmail.dispose(); _hrEmail.dispose();
@@ -86,6 +94,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _startTime = _parseTime(s.workStartTime);
     _endTime   = _parseTime(s.workEndTime);
     _graceCtrl.text  = s.gracePeriodMinutes.toString();
+    _minHoursCtrl.text = s.minimumHoursBeforeCheckout == 0
+        ? '0'
+        : (s.minimumHoursBeforeCheckout % 1 == 0
+            ? s.minimumHoursBeforeCheckout.toStringAsFixed(0)
+            : s.minimumHoursBeforeCheckout.toString());
     _annualCtrl.text = s.annualLeaveDays.toString();
     _sickCtrl.text   = s.sickLeaveDays.toString();
     _payDayCtrl.text = s.salaryPaymentDay.toString();
@@ -130,6 +143,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (t != null && mounted) setState(() => isStart ? _startTime = t : _endTime = t);
   }
 
+  /// Builds the save payload via [buildData] and saves it — but if building
+  /// throws (a numeric field has non-empty text that isn't a valid number),
+  /// shows that error instead of silently saving a fallback default. Without
+  /// this, an unparseable value in a field like "Minimum Hours Before
+  /// Checkout" would silently write 0 while still showing "saved
+  /// successfully", so the real problem never surfaces to the user.
+  Future<void> _trySave(String section, Map<String, dynamic> Function() buildData) async {
+    final Map<String, dynamic> data;
+    try {
+      data = buildData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    }
+    await _save(section, data);
+  }
+
+  /// Parses [ctrl]'s text for saving. An empty field means "use the
+  /// default" (returns [fallback]); a non-empty field that fails to parse
+  /// throws instead of silently falling back, so invalid input is never
+  /// saved as if it were the default.
+  num _reqNum(TextEditingController ctrl, num fallback, {bool decimal = false}) {
+    final t = ctrl.text.trim();
+    if (t.isEmpty) return fallback;
+    final v = decimal ? double.tryParse(t) : int.tryParse(t);
+    if (v == null) throw Exception('"${ctrl.text}" is not a valid number.');
+    return v;
+  }
+
   Future<void> _save(String section, Map<String, dynamic> data) async {
     try {
       await ref.read(settingsNotifierProvider.notifier).updateSettings(data);
@@ -153,14 +201,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  /// Populates the form fields from the first snapshot confirmed by the
+  /// server (`!metadata.isFromCache`), not just whatever the live
+  /// `companySettingsProvider` stream happens to emit first. A locally
+  /// cached snapshot can be stale — harmless for live display, but wrong
+  /// to lock a one-shot form hydration onto, since it can make a
+  /// just-saved value appear to have reverted when navigating back to
+  /// this screen. Uses the same `.snapshots()` API the rest of the app
+  /// already relies on everywhere (unlike `GetOptions(source: server)`,
+  /// which has inconsistent support across platforms, notably web).
+  void _hydrateFromServer(String companyId) {
+    debugPrint('[Settings] Hydrating form for companies/$companyId/settings/config...');
+    _hydrationSub = FirebaseService.settingsRef(companyId)
+        .snapshots(includeMetadataChanges: true)
+        .listen((doc) {
+      if (doc.metadata.isFromCache) {
+        debugPrint('[Settings] Ignoring cached snapshot, waiting for server-confirmed one.');
+        return;
+      }
+      _hydrationSub?.cancel();
+      if (!mounted) return;
+      try {
+        if (doc.exists && doc.data() != null) {
+          debugPrint('[Settings] Server-confirmed data received, populating form: ${doc.data()}');
+          setState(() => _populate(CompanySettingsModel.fromMap(companyId, doc.data()!)));
+        } else {
+          debugPrint('[Settings] No settings doc exists yet for companies/$companyId/settings/config — leaving form defaults.');
+        }
+      } catch (e) {
+        debugPrint('[Settings] Failed to parse/populate settings doc: $e');
+      }
+    }, onError: (e) => debugPrint('[Settings] Hydration stream error: $e'));
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<CompanySettingsModel?>>(companySettingsProvider, (_, next) {
-      if (!_initialized && next.value != null) {
+      if (!_initialized && next.hasValue) {
+        final companyId = ref.read(currentCompanyIdProvider);
+        if (companyId == null) return;
         _initialized = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _populate(next.value!));
-        });
+        _hydrateFromServer(companyId);
       }
     });
 
@@ -272,6 +353,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     const SizedBox(height: 16),
     _field('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
     const SizedBox(height: 16),
+    _field('Minimum Hours Before Checkout', _minHoursCtrl, hint: '0 = no minimum', suffix: 'hours', type: TextInputType.number, allowDecimal: true),
+    const SizedBox(height: 16),
     Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
     const SizedBox(height: 10),
     Wrap(spacing: 8, runSpacing: 8, children: _allDays.map((d) {
@@ -291,10 +374,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }).toList()),
     const SizedBox(height: 20),
-    if (canEdit) _saveBtn(() => _save('Work Schedule', {
+    if (canEdit) _saveBtn(() => _trySave('Work Schedule', () => {
       'workStartTime': _fmtTime(_startTime),
       'workEndTime': _fmtTime(_endTime),
-      'gracePeriodMinutes': int.tryParse(_graceCtrl.text) ?? 10,
+      'gracePeriodMinutes': _reqNum(_graceCtrl, 10),
+      'minimumHoursBeforeCheckout': _reqNum(_minHoursCtrl, 0, decimal: true),
       'workingDays': _days.map((d) => _shortToLong[d] ?? d.toLowerCase()).toList(),
     })),
   ]));
@@ -318,9 +402,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ]),
     ),
     const SizedBox(height: 16),
-    if (canEdit) _saveBtn(() => _save('Leave Policy', {
-      'annualLeaveDays': int.tryParse(_annualCtrl.text) ?? 18,
-      'sickLeaveDays': int.tryParse(_sickCtrl.text) ?? 10,
+    if (canEdit) _saveBtn(() => _trySave('Leave Policy', () => {
+      'annualLeaveDays': _reqNum(_annualCtrl, 18),
+      'sickLeaveDays': _reqNum(_sickCtrl, 10),
     })),
   ]));
 
@@ -347,11 +431,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(child: _field('Max Late Before Warning', _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
     ]),
     const SizedBox(height: 16),
-    if (canEdit) _saveBtn(() => _save('Payroll Rules', {
-      'salaryPaymentDay': int.tryParse(_payDayCtrl.text) ?? 28,
+    if (canEdit) _saveBtn(() => _trySave('Payroll Rules', () => {
+      'salaryPaymentDay': _reqNum(_payDayCtrl, 28),
       'overtimeMultiplier': _parseMultiplier(_overtime),
-      'lateDeductionPerHourRwf': int.tryParse(_lateCtrl.text) ?? 500,
-      'maxLateBeforeWarning': int.tryParse(_maxLateCtrl.text) ?? 3,
+      'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
+      'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
     })),
   ]));
 
@@ -441,11 +525,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ]));
 
   // ── Shared widgets ────────────────────────────────────────────────────────
-  Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
+  Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type, bool allowDecimal = false}) =>
       HRNovaTextField(
         label: label,
         controller: ctrl,
         keyboardType: type,
+        inputFormatters: type == TextInputType.number
+            ? [FilteringTextInputFormatter.allow(RegExp(allowDecimal ? r'[\d.]' : r'\d'))]
+            : null,
         hint: hint,
         suffixIcon: suffix == null
             ? null

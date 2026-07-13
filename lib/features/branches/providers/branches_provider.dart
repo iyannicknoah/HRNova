@@ -90,7 +90,12 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Creates a new HR admin employee and assigns them to the branch.
-  Future<void> addNewHrToBranch(String branchId, {
+  /// Returns the new employee doc ID. Uses the same doc shape/defaults as
+  /// [EmployeesNotifier.addEmployee] (qrCode formula, leaveBalances, etc.)
+  /// so this admin is a real employee record like anyone else, and marks
+  /// `profileComplete: false` so the UI can prompt for the remaining
+  /// fields (bank info, RSSB number, etc.) via the same employee form.
+  Future<String> addNewHrToBranch(String branchId, {
     required String firstName,
     required String lastName,
     required String email,
@@ -101,24 +106,34 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
 
     final empRef = FirebaseService.employeesRef(companyId).doc();
     final empId = empRef.id;
+    final qrCode = '${companyId}_$empId';
 
     await empRef.set({
       'firstName': firstName,
       'lastName': lastName,
       'email': email,
+      'phone': '',
       'role': 'branch_hr_admin',
       'branchId': branchId,
       'companyId': companyId,
+      'qrCode': qrCode,
       'department': 'Administration',
       'jobTitle': 'HR Admin',
+      'nationalId': '',
+      'emergencyContact': '',
       'contractType': 'permanent',
+      'startDate': DateTime.now().toIso8601String(),
+      'rssbNumber': '',
       'salaryType': 'fixed_monthly',
       'salaryAmount': 0,
       'dailyRate': 0,
       'hourlyRate': 0,
       'transportAllowance': 0,
       'housingAllowance': 0,
+      'bankAccount': '',
+      'bankCode': '',
       'status': 'active',
+      'profileComplete': false,
       'loans': [],
       'leaveBalances': {'annual': 18, 'sick': 10, 'maternity': 84, 'paternity': 4},
       'createdAt': FieldValue.serverTimestamp(),
@@ -151,6 +166,8 @@ class BranchesNotifier extends StateNotifier<AsyncValue<void>> {
       });
       rethrow;
     }
+
+    return empId;
   }
 
   Future<void> setActive(String branchId, {required bool isActive}) async {

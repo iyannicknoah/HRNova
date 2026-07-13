@@ -123,8 +123,9 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       }
     }
 
-    // Onboarding check — hr_admin only
-    if (role == AppConstants.roleHrAdmin) {
+    // Onboarding check — top-level company admins only (hr_admin for
+    // single-branch, group_hr_admin for multi-branch)
+    if (role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin) {
       final localDone = ref.read(onboardingCompleteOverrideProvider);
       if (localDone) {
         if (path == '/onboarding') return '/dashboard';

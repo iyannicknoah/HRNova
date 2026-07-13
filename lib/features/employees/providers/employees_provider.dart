@@ -117,14 +117,18 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
 
   String? get _companyId => _ref.read(currentCompanyIdProvider);
 
-  /// Returns (docId, tempPassword). tempPassword is null if no email was provided.
-  Future<(String, String?)> addEmployee({
+  /// Returns (docId, tempPassword, authError). tempPassword is null if no
+  /// email was provided, or if account creation failed — in which case
+  /// authError carries the actual reason (e.g. "That email is already
+  /// registered") so the caller can show it instead of failing silently.
+  Future<(String, String?, String?)> addEmployee({
     required Map<String, dynamic> data,
     Uint8List? photoBytes,
+    String? companyIdOverride,
   }) async {
     state = const AsyncValue.loading();
     try {
-      final companyId = _companyId;
+      final companyId = companyIdOverride ?? _companyId;
       if (companyId == null) throw Exception('Not authenticated.');
 
       // Check company-wide employee limit before adding
@@ -143,6 +147,36 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
           throw Exception(
               'Employee limit reached ($currentCount / $maxAllowed). '
               'Contact your administrator to increase the limit.');
+        }
+      }
+
+      // Catch duplicate emails before creating a second employee record for
+      // the same address — otherwise the new doc gets created but the auth
+      // account creation below fails with "email already exists" (silently,
+      // if not for the fix further down), leaving an employee with no
+      // working login.
+      final requestedEmail = data['email'] as String?;
+      if (requestedEmail != null && requestedEmail.isNotEmpty) {
+        // Single-field equality query — deliberately not combined with a
+        // second `where` here, since that could require a composite index
+        // that may not exist. Filter out deleted records client-side instead.
+        final dupSnap = await FirebaseService.employeesRef(companyId)
+            .where('email', isEqualTo: requestedEmail)
+            .get();
+        if (dupSnap.docs.any((d) => d.data()['status'] != 'deleted')) {
+          throw Exception('An employee with this email already exists.');
+        }
+      }
+
+      // National ID must be unique within the company (the same ID can
+      // still belong to different employees at two different companies).
+      final requestedNationalId = data['nationalId'] as String?;
+      if (requestedNationalId != null && requestedNationalId.isNotEmpty) {
+        final dupIdSnap = await FirebaseService.employeesRef(companyId)
+            .where('nationalId', isEqualTo: requestedNationalId)
+            .get();
+        if (dupIdSnap.docs.any((d) => d.data()['status'] != 'deleted')) {
+          throw Exception('An employee with this National ID already exists.');
         }
       }
 
@@ -179,6 +213,7 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
       final email = data['email'] as String?;
       final customPassword = data['password'] as String?;
       String? tempPassword;
+      String? authError;
       if (email != null && email.isNotEmpty) {
         tempPassword = customPassword != null && customPassword.isNotEmpty
             ? customPassword
@@ -196,25 +231,39 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
           // Persist the exact password that was actually set on the account,
           // so it can be shown correctly later — never re-derive it.
           await docRef.update({'initialPassword': tempPassword});
-        } catch (_) {
-          // Auth creation is non-fatal — employee doc is already saved
+        } catch (e) {
+          // Auth creation is non-fatal to the employee record — it's
+          // already saved — but the caller needs the real reason so the
+          // admin can actually see and fix why no account was created,
+          // instead of it failing invisibly.
           tempPassword = null;
+          authError = e.toString().replaceFirst('Exception: ', '');
         }
       }
 
       state = const AsyncValue.data(null);
-      return (docId, tempPassword);
+      return (docId, tempPassword, authError);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;
     }
   }
 
-  Future<void> updateEmployee(String employeeId, Map<String, dynamic> data, {Uint8List? photoBytes}) async {
+  Future<void> updateEmployee(String employeeId, Map<String, dynamic> data, {Uint8List? photoBytes, String? companyIdOverride}) async {
     state = const AsyncValue.loading();
     try {
-      final companyId = _companyId;
+      final companyId = companyIdOverride ?? _companyId;
       if (companyId == null) throw Exception('Not authenticated.');
+
+      final requestedNationalId = data['nationalId'] as String?;
+      if (requestedNationalId != null && requestedNationalId.isNotEmpty) {
+        final dupIdSnap = await FirebaseService.employeesRef(companyId)
+            .where('nationalId', isEqualTo: requestedNationalId)
+            .get();
+        if (dupIdSnap.docs.any((d) => d.id != employeeId && d.data()['status'] != 'deleted')) {
+          throw Exception('An employee with this National ID already exists.');
+        }
+      }
 
       if (photoBytes != null) {
         final url = await _uploadPhoto(companyId, employeeId, photoBytes);

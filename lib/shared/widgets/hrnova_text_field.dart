@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/theme_ext.dart';
@@ -26,6 +27,7 @@ class HRNovaTextField extends StatelessWidget {
     this.errorText,
     this.readOnly = false,
     this.onTap,
+    this.inputFormatters,
   });
 
   final String label;
@@ -47,6 +49,7 @@ class HRNovaTextField extends StatelessWidget {
   final String? errorText;
   final bool readOnly;
   final VoidCallback? onTap;
+  final List<TextInputFormatter>? inputFormatters;
 
   static const _radius = 16.0;
 
@@ -70,6 +73,7 @@ class HRNovaTextField extends StatelessWidget {
           initialValue: initialValue,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           validator: validator,
           onChanged: onChanged,
           enabled: enabled,

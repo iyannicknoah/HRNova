@@ -127,13 +127,15 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
       final workStart = DateTime(now.year, now.month, now.day, sh, sm);
       final workEnd   = DateTime(now.year, now.month, now.day, eh, em);
 
-      // Check-in AFTER work hours end → mark as absent
+      // Check-in AFTER work hours end → still record the actual attempt
+      // time, but mark as absent
       if (now.isAfter(workEnd)) {
         final data = <String, dynamic>{
           'companyId': companyId,
           'employeeId': employeeId,
           if (branchId != null) 'branchId': branchId,
           'date': dateStr,
+          'checkInTime': now.toIso8601String(),
           'verificationType': isManual ? 'manual' : 'qr_scan',
           'isLate': false,
           'lateMinutes': 0,
@@ -204,6 +206,14 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
           workingHours =
               double.parse((now.difference(ci).inMinutes / 60).toStringAsFixed(2));
         }
+      }
+
+      final minimumHours = _ref.read(companySettingsProvider).value?.minimumHoursBeforeCheckout ?? 0;
+      if (minimumHours > 0 && workingHours != null && workingHours < minimumHours) {
+        final remaining = minimumHours - workingHours;
+        throw Exception(
+            'Cannot check out yet — at least $minimumHours hour(s) must be worked '
+            '(${remaining.toStringAsFixed(1)} hour(s) remaining).');
       }
 
       await FirebaseService.attendanceRef(companyId).doc(docId).update({

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/services/firebase_service.dart';
@@ -15,13 +16,22 @@ class SettingsNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       final companyId = _ref.read(currentCompanyIdProvider);
-      if (companyId == null) throw Exception('No company ID found.');
+      if (companyId == null) {
+        // Loud on purpose — this only happens if the logged-in user's
+        // token is missing a companyId claim, which should never be
+        // silent since every save in the app depends on it.
+        debugPrint('[Settings] updateSettings aborted: no companyId on token. data=$data');
+        throw Exception('No company ID found.');
+      }
+      debugPrint('[Settings] Saving to companies/$companyId/settings/config: $data');
       await FirebaseService.settingsRef(companyId).set(
         {'companyId': companyId, ...data},
         SetOptions(merge: true),
       );
+      debugPrint('[Settings] Save confirmed by server for companies/$companyId/settings/config');
       state = const AsyncValue.data(null);
     } catch (e, st) {
+      debugPrint('[Settings] Save FAILED: $e');
       state = AsyncValue.error(e, st);
       rethrow;
     }
@@ -60,13 +70,15 @@ final companyStatusProvider = StreamProvider.autoDispose<String?>((ref) {
 // ── Local override — set to true when wizard completes (design-only bypass) ──
 final onboardingCompleteOverrideProvider = StateProvider<bool>((ref) => false);
 
-// ── Onboarding complete check (hr_admin only) ─────────────────────────────
+// ── Onboarding complete check (top-level company admins only) ─────────────
 final isOnboardingCompleteProvider = StreamProvider.autoDispose<bool>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   final role = ref.watch(currentUserRoleProvider);
 
   if (companyId == null) return Stream.value(true);
-  if (role != AppConstants.roleHrAdmin) return Stream.value(true);
+  if (role != AppConstants.roleHrAdmin && role != AppConstants.roleGroupHrAdmin) {
+    return Stream.value(true);
+  }
 
   return FirebaseService.settingsRef(companyId)
       .snapshots()

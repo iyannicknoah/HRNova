@@ -35,6 +35,7 @@ class CompanySettingsModel {
     this.workEndTime = '17:00',
     this.gracePeriodMinutes = 10,
     this.lateThresholdMinutes = 15,
+    this.minimumHoursBeforeCheckout = 0,
     this.workingDays = const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     this.workingDaysPerWeek = 5,
     this.annualLeaveDays = 18,
@@ -87,6 +88,9 @@ class CompanySettingsModel {
   final String workEndTime;
   final int gracePeriodMinutes;
   final int lateThresholdMinutes;
+  /// Minimum hours an employee must work after checking in before they're
+  /// allowed to check out. 0 disables the restriction.
+  final double minimumHoursBeforeCheckout;
   final List<String> workingDays;
   final int workingDaysPerWeek;
 
@@ -150,6 +154,7 @@ class CompanySettingsModel {
       workEndTime: map['workEndTime'] as String? ?? '17:00',
       gracePeriodMinutes: map['gracePeriodMinutes'] as int? ?? 10,
       lateThresholdMinutes: map['lateThresholdMinutes'] as int? ?? 15,
+      minimumHoursBeforeCheckout: (map['minimumHoursBeforeCheckout'] as num?)?.toDouble() ?? 0,
       workingDays: (map['workingDays'] as List?)?.cast<String>() ??
           const ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
       workingDaysPerWeek: map['workingDaysPerWeek'] as int? ?? 5,
@@ -209,6 +214,7 @@ class CompanySettingsModel {
     'workEndTime': workEndTime,
     'gracePeriodMinutes': gracePeriodMinutes,
     'lateThresholdMinutes': lateThresholdMinutes,
+    'minimumHoursBeforeCheckout': minimumHoursBeforeCheckout,
     'workingDays': workingDays,
     'workingDaysPerWeek': workingDaysPerWeek,
     'annualLeaveDays': annualLeaveDays,

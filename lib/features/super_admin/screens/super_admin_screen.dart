@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../branches/models/branch_model.dart' as emp_branch;
+import '../../employees/models/employee_model.dart';
+import '../../employees/widgets/employee_form_panel.dart';
 import '../models/branch_model.dart';
 import '../models/company_model.dart';
 import '../providers/super_admin_provider.dart';
@@ -15,6 +19,7 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
+import '../../../shared/widgets/hrnova_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
@@ -566,7 +571,7 @@ class _TopBar extends ConsumerWidget {
       _View.companies => 'Companies',
       _View.billing   => 'Billing',
     };
-    final showSearch = view != _View.billing;
+    const showSearch = true;
     return Container(
       color: p.bg,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -703,7 +708,7 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
           child: _page(p)),
 
         if (_selectedBranch != null && selectedCo != null)
-          Positioned(left: 220, top: 0, right: 0, bottom: 0,
+          Positioned(left: 0, top: 0, right: 0, bottom: 0,
             child: Row(children: [
               Expanded(child: GestureDetector(
                 onTap: _closeDetail,
@@ -717,7 +722,7 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
             ])),
 
         if (_selectedBranch == null && selectedCo != null)
-          Positioned(left: 220, top: 0, right: 0, bottom: 0,
+          Positioned(left: 0, top: 0, right: 0, bottom: 0,
             child: Row(children: [
               Expanded(child: GestureDetector(
                 onTap: _closeDetail,
@@ -754,7 +759,7 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
         onAdd:    _openAddCompany,
         onDetail: _openDetail,
       ),
-    _View.billing => const _BillingView(),
+    _View.billing => _BillingView(searchQuery: _searchQ),
   };
 }
 
@@ -1121,6 +1126,8 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
     final brsAsync  = ref.watch(branchesProvider(co.id));
     final paysAsync = ref.watch(paymentsProvider(co.id));
     final brs = brsAsync.valueOrNull ?? [];
+    final incompleteAdmins = ref.watch(incompleteAdminsProvider(co.id)).valueOrNull ?? [];
+    final empBranches = brs.map((b) => emp_branch.BranchModel(id: b.id, companyId: b.companyId, name: b.name)).toList();
 
     return Container(
       width: 500,
@@ -1185,6 +1192,49 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
               _IRow('Name',  co.contactPerson.isEmpty ? '—' : co.contactPerson),
               _IRow('Email', co.hrAdminEmail),
               _IRow('Phone', co.hrAdminPhone.isEmpty ? '—' : co.hrAdminPhone),
+
+              if (incompleteAdmins.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.warningAmber.withAlpha(20),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.warningAmber.withAlpha(60)),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      const AppIcon(AppIcons.errorOutlineRounded, color: AppColors.warningAmber, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(
+                        '${incompleteAdmins.length} admin profile${incompleteAdmins.length == 1 ? '' : 's'} incomplete',
+                        style: const TextStyle(color: AppColors.warningAmber, fontSize: 15, fontWeight: FontWeight.w600))),
+                    ]),
+                    ...incompleteAdmins.map((emp) => Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(children: [
+                        Expanded(child: Text(
+                          emp.fullName.trim().isEmpty ? emp.email : emp.fullName,
+                          style: TextStyle(color: p.text, fontSize: 14))),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _openCompletionForm(
+                              context,
+                              companyId: co.id,
+                              employeeId: emp.id,
+                              isMultiBranch: co.isMulti,
+                              branches: empBranches,
+                            ),
+                            child: const Text('Complete Setup', style: TextStyle(
+                              color: AppColors.primaryBlue, fontSize: 14, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ]),
+                    )),
+                  ]),
+                ),
+              ],
 
               _SDivider('Financial'),
               _IRow('Monthly Price',   _fmt(co.monthlyPrice)),
@@ -1303,23 +1353,43 @@ class _CoDetailPanelState extends ConsumerState<_CoDetailPanel> {
         Container(
           padding: const EdgeInsets.all(20),
           color: p.card,
-          child: Row(children: [
-            Expanded(child: _Btn(
-              label: _suspending
-                ? 'Please wait…'
-                : (co.isActive ? 'Suspend' : 'Activate'),
-              color: co.isActive ? AppColors.errorRed : AppColors.successGreen,
-              outline: true, fullWidth: true,
-              onTap: _suspending ? null : _toggleStatus)),
-            const SizedBox(width: 12),
-            Expanded(child: _Btn(
-              label: 'Edit Company',
-              fullWidth: true,
-              onTap: () => AppDialogShell.show<void>(
-                context: context,
-                alignment: Alignment.center,
-                child: _EditCoDialog(co: co)))),
-          ])),
+          child: Column(children: [
+            Row(children: [
+              Expanded(child: _Btn(
+                label: _suspending
+                  ? 'Please wait…'
+                  : (co.isActive ? 'Suspend' : 'Activate'),
+                color: co.isActive ? AppColors.errorRed : AppColors.successGreen,
+                outline: true, fullWidth: true,
+                onTap: _suspending ? null : _toggleStatus)),
+              const SizedBox(width: 12),
+              Expanded(child: _Btn(
+                label: 'Edit Company',
+                fullWidth: true,
+                onTap: () => AppDialogShell.show<void>(
+                  context: context,
+                  alignment: Alignment.center,
+                  child: _EditCoDialog(co: co)))),
+            ]),
+            const SizedBox(height: 14),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => AppDialogShell.show<void>(
+                  context: context,
+                  alignment: Alignment.center,
+                  barrierDismissible: false,
+                  child: _DeleteCompanyDialog(co: co, onDeleted: widget.onClose)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const AppIcon(AppIcons.deleteOutlineRounded, color: AppColors.errorRed, size: 15),
+                  const SizedBox(width: 6),
+                  const Text('Delete Company', style: TextStyle(
+                    color: AppColors.errorRed, fontSize: 14, fontWeight: FontWeight.w500)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
       ]),
     );
   }
@@ -1499,15 +1569,34 @@ class _AttendanceStat extends StatelessWidget {
 // BILLING VIEW
 // ─────────────────────────────────────────────────────────────────────────────
 class _BillingView extends ConsumerStatefulWidget {
-  const _BillingView();
+  final String searchQuery;
+  const _BillingView({required this.searchQuery});
   @override
   ConsumerState<_BillingView> createState() => _BillingViewState();
 }
 
 class _BillingViewState extends ConsumerState<_BillingView> {
   final Map<String, _PayStatus> _status = {};
+  String _chip = 'all';
 
   _PayStatus _getStatus(String id) => _status[id] ?? _PayStatus.pending;
+
+  List<CompanyModel> _filtered(List<CompanyModel> all) {
+    return all.where((c) {
+      final q = widget.searchQuery.toLowerCase();
+      final matchQ = q.isEmpty ||
+        c.name.toLowerCase().contains(q) ||
+        c.industry.toLowerCase().contains(q);
+      final ps = _getStatus(c.id);
+      final matchChip = _chip == 'all' ||
+        (_chip == 'paid'     && ps == _PayStatus.paid) ||
+        (_chip == 'pending'  && ps == _PayStatus.pending) ||
+        (_chip == 'not_paid' && ps == _PayStatus.notPaid) ||
+        (_chip == 'active'   &&  c.isActive) ||
+        (_chip == 'inactive' && !c.isActive);
+      return matchQ && matchChip;
+    }).toList();
+  }
 
   Future<void> _onStatusChange(CompanyModel co, _PayStatus newStatus) async {
     if (newStatus == _PayStatus.paid) {
@@ -1588,7 +1677,19 @@ class _BillingViewState extends ConsumerState<_BillingView> {
             ]),
             const SizedBox(height: 12),
 
-            Container(
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              _FilterChip('All',      'all',      _chip, (v) => setState(() => _chip = v)),
+              _FilterChip('Paid',     'paid',     _chip, (v) => setState(() => _chip = v)),
+              _FilterChip('Pending',  'pending',  _chip, (v) => setState(() => _chip = v)),
+              _FilterChip('Not Paid', 'not_paid', _chip, (v) => setState(() => _chip = v)),
+              _FilterChip('Active',   'active',   _chip, (v) => setState(() => _chip = v)),
+              _FilterChip('Inactive', 'inactive', _chip, (v) => setState(() => _chip = v)),
+            ]),
+            const SizedBox(height: 16),
+
+            Builder(builder: (context) {
+              final filtered = _filtered(companies);
+              return Container(
               decoration: p.card16,
               child: Column(children: [
                 Padding(
@@ -1601,13 +1702,14 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                     Expanded(flex: 2, child: _TH('Payment Status')),
                   ])),
                 Divider(height: 1, color: p.border),
-                if (companies.isEmpty)
+                if (filtered.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(32),
-                    child: Center(child: Text('No companies yet.',
+                    child: Center(child: Text(
+                      companies.isEmpty ? 'No companies yet.' : 'No companies match this filter.',
                       style: TextStyle(color: p.subText, fontSize: 15))))
                 else
-                  ...companies.map((co) {
+                  ...filtered.map((co) {
                     final ps = _getStatus(co.id);
                     return Padding(
                       padding: const EdgeInsets.symmetric(
@@ -1644,7 +1746,8 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                     const SizedBox(width: 16),
                     _LegendDot(AppColors.errorRed, 'Not Paid'),
                   ])),
-              ])),
+              ]));
+            }),
           ]),
         );
       },
@@ -1708,6 +1811,44 @@ class _PayStatusPicker extends StatelessWidget {
         Text(label, style: TextStyle(
           color: color, fontSize: 16, fontWeight: FontWeight.w500)),
       ]));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPLETE ADMIN PROFILE — shared follow-up step for Add Company / Add Branch
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Opens the same full employee form used by Add Employee, pre-bound to a
+/// just-created HR admin / branch HR admin's stub employee doc so the
+/// super admin can fill in department, salary, branch, bank info, etc.
+/// Dismissible — if closed without saving, the record stays
+/// `profileComplete: false` and is resumable from the company detail panel.
+Future<void> _openCompletionForm(
+  BuildContext context, {
+  required String companyId,
+  required String employeeId,
+  required bool isMultiBranch,
+  required List<emp_branch.BranchModel> branches,
+}) async {
+  final doc = await FirebaseService.employeesRef(companyId).doc(employeeId).get();
+  if (!doc.exists || !context.mounted) return;
+  final employee = EmployeeModel.fromDoc(doc);
+  await AppDialogShell.show<void>(
+    context: context,
+    alignment: Alignment.center,
+    maxWidth: 640,
+    child: SizedBox(
+      height: MediaQuery.of(context).size.height * 0.85,
+      child: EmployeeFormPanel(
+        initial: employee,
+        departments: const [],
+        companyId: companyId,
+        isMultiBranchOverride: isMultiBranch,
+        branchesOverride: branches,
+        onClose: () => Navigator.of(context).pop(),
+        onSaved: () => Navigator.of(context).pop(),
+      ),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1779,10 +1920,33 @@ class _AddCoPanelState extends State<_AddCoPanel> {
         firstBranchCode:     _bCode.text.trim().isEmpty  ? null : _bCode.text.trim(),
       );
       if (!mounted) return;
+      final companyId    = result['companyId'] as String;
       final companyName  = result['companyName'] as String? ?? 'Company';
       final adminEmail   = result['hrAdminEmail'] as String? ?? '';
+      final employeeId   = result['employeeId'] as String?;
+      final branchResult = result['branch'] as Map<String, dynamic>?;
       final tempPassword = _password.text;
       widget.onClose();
+
+      // Force the follow-up step: complete the HR admin's employee profile
+      // (department, salary, bank info, etc.) before the wizard is "done".
+      if (employeeId != null) {
+        await _openCompletionForm(
+          context,
+          companyId: companyId,
+          employeeId: employeeId,
+          isMultiBranch: _type == 'multi_branch',
+          branches: branchResult != null
+              ? [emp_branch.BranchModel(
+                  id: branchResult['branchId'] as String,
+                  companyId: companyId,
+                  name: branchResult['name'] as String? ?? '',
+                )]
+              : const [],
+        );
+      }
+
+      if (!mounted) return;
       await _showSuccessDialog(context, '$companyName Added Successfully!');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -2129,6 +2293,122 @@ class _EditCoDialogState extends State<_EditCoDialog> {
       ));
 }
 
+// ─── Delete Company Dialog (type-to-confirm) ─────────────────────────────────
+class _DeleteCompanyDialog extends StatefulWidget {
+  final CompanyModel co;
+  final VoidCallback onDeleted;
+  const _DeleteCompanyDialog({required this.co, required this.onDeleted});
+  @override
+  State<_DeleteCompanyDialog> createState() => _DeleteCompanyDialogState();
+}
+
+class _DeleteCompanyDialogState extends State<_DeleteCompanyDialog> {
+  final _confirmCtrl = TextEditingController();
+  bool _deleting = false;
+  bool _matches = false;
+
+  @override
+  void dispose() {
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _delete() async {
+    setState(() => _deleting = true);
+    try {
+      await SuperAdminService().deleteCompany(widget.co.id);
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onDeleted();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('"${widget.co.name}" and all its data have been permanently deleted.'),
+        backgroundColor: AppColors.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    } catch (e) {
+      if (mounted) _showErrorSnackbar(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _P.of(context);
+    return SizedBox(
+      width: 460,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(color: AppColors.errorRed.withAlpha(15), borderRadius: BorderRadius.circular(10)),
+              child: const AppIcon(AppIcons.deleteOutlineRounded, color: AppColors.errorRed, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text('Delete Company?', style: TextStyle(
+              color: p.text, fontSize: 17, fontWeight: FontWeight.w600))),
+          ]),
+          const SizedBox(height: 15),
+          Text.rich(TextSpan(children: [
+            const TextSpan(text: 'This will permanently delete '),
+            TextSpan(text: widget.co.name, style: TextStyle(fontWeight: FontWeight.w600, color: p.text)),
+            TextSpan(text: ' — its ${widget.co.employeeCount} employee record(s), branches, payroll, attendance, leave history, and every login account (HR admins, managers, employees). This cannot be undone.'),
+          ], style: TextStyle(color: p.subText, fontSize: 15, height: 1.4))),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.errorRed.withAlpha(10),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.errorRed.withAlpha(40)),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const AppIcon(AppIcons.warningAmberRounded, size: 15, color: AppColors.errorRed),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                'Every employee, manager, and HR admin account in this company will immediately lose access.',
+                style: TextStyle(fontSize: 13, color: p.text),
+              )),
+            ]),
+          ),
+          const SizedBox(height: 18),
+          Text.rich(TextSpan(children: [
+            const TextSpan(text: 'Type '),
+            TextSpan(text: widget.co.name, style: TextStyle(fontWeight: FontWeight.w700, color: p.text)),
+            const TextSpan(text: ' to confirm.'),
+          ], style: TextStyle(color: p.subText, fontSize: 14))),
+          const SizedBox(height: 8),
+          HRNovaTextField(
+            label: 'Company Name',
+            hint: widget.co.name,
+            controller: _confirmCtrl,
+            onChanged: (v) => setState(() => _matches = v == widget.co.name),
+          ),
+          const SizedBox(height: 18),
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            HRNovaButton.text(
+              label: 'Cancel',
+              onPressed: _deleting ? null : () => Navigator.pop(context),
+              textColor: p.subText,
+            ),
+            const SizedBox(width: 4),
+            HRNovaButton(
+              label: _deleting ? 'Deleting…' : 'Delete Permanently',
+              isFullWidth: false,
+              backgroundColor: AppColors.errorRed,
+              isLoading: _deleting,
+              onPressed: (_matches && !_deleting) ? _delete : null,
+            ),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
 // ─── Add Payment Dialog ───────────────────────────────────────────────────────
 class _AddPaymentDialog extends StatefulWidget {
   final CompanyModel co;
@@ -2310,7 +2590,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
     }
     setState(() => _loading = true);
     try {
-      await SuperAdminService().addBranch(
+      final result = await SuperAdminService().addBranch(
         companyId:           widget.companyId,
         name:                _name.text.trim(),
         location:            _location.text.trim(),
@@ -2320,7 +2600,27 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
         branchAdminName:     _adminName.text.trim().isEmpty ? null : _adminName.text.trim(),
       );
       if (!mounted) return;
+      final branchId  = result['branchId'] as String;
+      final admin     = result['admin'] as Map<String, dynamic>?;
+      final employeeId = admin?['employeeId'] as String?;
       Navigator.pop(context);
+
+      // Force the follow-up step for the new branch admin, same as Add Company.
+      if (employeeId != null) {
+        await _openCompletionForm(
+          context,
+          companyId: widget.companyId,
+          employeeId: employeeId,
+          isMultiBranch: true,
+          branches: [emp_branch.BranchModel(
+            id: branchId,
+            companyId: widget.companyId,
+            name: _name.text.trim(),
+          )],
+        );
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Branch added successfully.'),
         behavior: SnackBarBehavior.floating,

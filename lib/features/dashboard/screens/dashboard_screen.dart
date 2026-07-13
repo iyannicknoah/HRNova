@@ -236,7 +236,13 @@ class _AttendanceTable extends ConsumerWidget {
           final r = recMap[e.id]!;
           final isLate = r.isLate;
           final isOut = r.checkOutTime != null;
-          final status = r.isOnLeave ? 'On Leave' : isLate ? 'Late' : 'On Time';
+          final status = r.isOnLeave
+              ? 'On Leave'
+              : r.isAbsent
+                  ? 'Absent'
+                  : isLate
+                      ? 'Late'
+                      : 'On Time';
           final timeStr = r.checkInTime != null
               ? '${r.checkInTime!.hour.toString().padLeft(2, '0')}:${r.checkInTime!.minute.toString().padLeft(2, '0')}'
               : '—';

@@ -3,7 +3,7 @@ const router = express.Router();
 const { getFirestore } = require('firebase-admin/firestore');
 const { getApp } = require('firebase-admin/app');
 const { verifyToken, requireRole } = require('../middleware/verifyToken');
-const { generateRRAPayeExport, generateRSSBExport } = require('../services/rraExportService');
+const { generateRRAPayeExport, generateRSSBExport, generatePayrollBankExport } = require('../services/rraExportService');
 const { sendPayslipEmail } = require('../services/emailService');
 
 const db = () => getFirestore(getApp(), 'default');
@@ -47,6 +47,24 @@ router.get('/rssb/:companyId/:month', ALLOWED, async (req, res) => {
     res.send(buffer);
   } catch (err) {
     console.error('[Exports] RSSB export error:', err);
+    res.status(500).json({ error: err.message || 'Export failed' });
+  }
+});
+
+// ── GET /api/exports/payroll/:companyId/:month ─────────────────────────────────
+// Bank payment file — all employees, their bank + account number, and the
+// exact net salary to pay. This is what Finance hands to the bank.
+router.get('/payroll/:companyId/:month', ALLOWED, async (req, res) => {
+  try {
+    const { companyId, month } = req.params;
+    if (!_guardCompany(req, res, companyId)) return;
+
+    const buffer = await generatePayrollBankExport(companyId, month);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="Payroll_Bank_Payment_${month}.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('[Exports] Payroll bank export error:', err);
     res.status(500).json({ error: err.message || 'Export failed' });
   }
 });

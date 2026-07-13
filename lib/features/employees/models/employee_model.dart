@@ -26,6 +26,7 @@ class EmployeeModel {
     this.transportAllowance = 0,
     this.housingAllowance = 0,
     this.bankAccount = '',
+    this.bankCode = '',
     this.rssbNumber = '',
     this.profilePhotoUrl,
     this.qrCode,
@@ -34,6 +35,7 @@ class EmployeeModel {
     this.notes,
     this.createdAt,
     this.initialPassword,
+    this.profileComplete = true,
   });
 
   final String id;
@@ -60,6 +62,7 @@ class EmployeeModel {
   final double transportAllowance;
   final double housingAllowance;
   final String bankAccount;
+  final String bankCode;
   final String rssbNumber;
   final String? profilePhotoUrl;
   final String? qrCode;
@@ -68,6 +71,7 @@ class EmployeeModel {
   final String? notes;
   final DateTime? createdAt;
   final String? initialPassword;
+  final bool profileComplete;
 
   String get fullName => '$firstName $lastName';
   bool get isActive => status == 'active';
@@ -108,6 +112,7 @@ class EmployeeModel {
       transportAllowance: (d['transportAllowance'] as num?)?.toDouble() ?? 0,
       housingAllowance: (d['housingAllowance'] as num?)?.toDouble() ?? 0,
       bankAccount: d['bankAccount'] as String? ?? d['bankAccountNumber'] as String? ?? '',
+      bankCode: d['bankCode'] as String? ?? '',
       rssbNumber: d['rssbNumber'] as String? ?? '',
       profilePhotoUrl: d['profilePhotoUrl'] as String?,
       qrCode: d['qrCode'] as String?,
@@ -116,6 +121,7 @@ class EmployeeModel {
       notes: d['notes'] as String?,
       createdAt: _toDate(d['createdAt']),
       initialPassword: d['initialPassword'] as String?,
+      profileComplete: d['profileComplete'] as bool? ?? true,
     );
   }
 
@@ -145,6 +151,7 @@ class EmployeeModel {
       transportAllowance: (d['transportAllowance'] as num?)?.toDouble() ?? 0,
       housingAllowance: (d['housingAllowance'] as num?)?.toDouble() ?? 0,
       bankAccount: d['bankAccount'] as String? ?? d['bankAccountNumber'] as String? ?? '',
+      bankCode: d['bankCode'] as String? ?? '',
       rssbNumber: d['rssbNumber'] as String? ?? '',
       profilePhotoUrl: d['profilePhotoUrl'] as String?,
       qrCode: d['qrCode'] as String?,
@@ -153,6 +160,7 @@ class EmployeeModel {
       notes: d['notes'] as String?,
       createdAt: _toDate(d['createdAt']),
       initialPassword: d['initialPassword'] as String?,
+      profileComplete: d['profileComplete'] as bool? ?? true,
     );
   }
 
@@ -180,12 +188,14 @@ class EmployeeModel {
     'transportAllowance': transportAllowance,
     'housingAllowance': housingAllowance,
     'bankAccount': bankAccount,
+    'bankCode': bankCode,
     'rssbNumber': rssbNumber,
     if (profilePhotoUrl != null) 'profilePhotoUrl': profilePhotoUrl,
     if (qrCode != null) 'qrCode': qrCode,
     'leaveBalances': leaveBalances,
     'loans': loans,
     if (notes != null) 'notes': notes,
+    'profileComplete': profileComplete,
   };
 
   EmployeeModel copyWith({
@@ -195,8 +205,9 @@ class EmployeeModel {
     DateTime? dateOfBirth, DateTime? endDate, String? branchId, String? role,
     double? salaryAmount, double? dailyRate, double? hourlyRate,
     double? transportAllowance, double? housingAllowance, String? bankAccount,
-    String? rssbNumber, String? profilePhotoUrl, String? qrCode,
+    String? bankCode, String? rssbNumber, String? profilePhotoUrl, String? qrCode,
     Map<String, dynamic>? leaveBalances, List<dynamic>? loans, String? notes,
+    bool? profileComplete,
   }) =>
       EmployeeModel(
         id: id, companyId: companyId,
@@ -222,6 +233,7 @@ class EmployeeModel {
         transportAllowance: transportAllowance ?? this.transportAllowance,
         housingAllowance: housingAllowance ?? this.housingAllowance,
         bankAccount: bankAccount ?? this.bankAccount,
+        bankCode: bankCode ?? this.bankCode,
         rssbNumber: rssbNumber ?? this.rssbNumber,
         profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
         qrCode: qrCode ?? this.qrCode,
@@ -229,6 +241,7 @@ class EmployeeModel {
         loans: loans ?? this.loans,
         notes: notes ?? this.notes,
         createdAt: createdAt,
+        profileComplete: profileComplete ?? this.profileComplete,
       );
 
   static DateTime? _toDate(dynamic v) {

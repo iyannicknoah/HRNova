@@ -753,6 +753,11 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
                   else dotColor = _green;
                 } else if (leaveDayNums.contains(dayNum)) {
                   dotColor = _blue;
+                } else if (!isWeekend) {
+                  // No attendance record at all for a past working day means
+                  // the employee never checked in — still absent, even
+                  // though no AttendanceModel doc exists to carry that flag.
+                  dotColor = _red;
                 }
               }
 

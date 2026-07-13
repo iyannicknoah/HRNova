@@ -613,27 +613,6 @@ class LeaveNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  // ── Manual balance adjustment (HR) ──────────────────────────────────────────
-  Future<void> adjustLeaveBalance({
-    required String employeeId,
-    required String leaveType,
-    required int newBalance,
-  }) async {
-    state = const AsyncValue.loading();
-    try {
-      final companyId = _companyId;
-      if (companyId == null) throw Exception('Not authenticated.');
-      final key = _balanceKey(leaveType) ?? leaveType;
-      await FirebaseService.employeesRef(companyId)
-          .doc(employeeId)
-          .update({'leaveBalances.$key': newBalance});
-      state = const AsyncValue.data(null);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
-    }
-  }
-
   // ── HR: mark employee on leave directly (source = hr_manual) ──────────────
   Future<void> hrMarkOnLeave({
     required String employeeId,

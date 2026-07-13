@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
@@ -26,6 +27,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 17, minute: 0);
   final _graceCtrl = TextEditingController(text: '10');
+  final _minHoursCtrl = TextEditingController(text: '0');
   final Set<String> _days = {'Mon', 'Tue', 'Wed', 'Thu', 'Fri'};
 
   // Step 2 — Leave Policy
@@ -62,7 +64,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   void dispose() {
-    _graceCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
+    _graceCtrl.dispose(); _minHoursCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
     _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
     _mgrEmail.dispose(); _hrEmail.dispose();
@@ -96,6 +98,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (t != null && mounted) setState(() => isStart ? _startTime = t : _endTime = t);
   }
 
+  /// Parses [ctrl]'s text for saving. An empty field means "use the
+  /// default" (returns [fallback]); a non-empty field that fails to parse
+  /// throws instead of silently falling back, so a typo is never saved as
+  /// if it were the intended value.
+  num _reqNum(TextEditingController ctrl, num fallback, {bool decimal = false}) {
+    final t = ctrl.text.trim();
+    if (t.isEmpty) return fallback;
+    final v = decimal ? double.tryParse(t) : int.tryParse(t);
+    if (v == null) throw Exception('"${ctrl.text}" is not a valid number.');
+    return v;
+  }
+
   Future<void> _next() async {
     if (_step == 3 && _depts.isEmpty) return;
     if (_step < _total - 1) {
@@ -108,14 +122,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await ref.read(settingsNotifierProvider.notifier).updateSettings({
         'workStartTime': _fmtTime(_startTime),
         'workEndTime': _fmtTime(_endTime),
-        'gracePeriodMinutes': int.tryParse(_graceCtrl.text.trim()) ?? 10,
+        'gracePeriodMinutes': _reqNum(_graceCtrl, 10),
+        'minimumHoursBeforeCheckout': _reqNum(_minHoursCtrl, 0, decimal: true),
         'workingDays': _days.map((d) => _toFirestore[d]!).toList(),
-        'annualLeaveDays': int.tryParse(_annualCtrl.text.trim()) ?? 18,
-        'sickLeaveDays': int.tryParse(_sickCtrl.text.trim()) ?? 10,
-        'salaryPaymentDay': int.tryParse(_payDayCtrl.text.trim()) ?? 28,
+        'annualLeaveDays': _reqNum(_annualCtrl, 18),
+        'sickLeaveDays': _reqNum(_sickCtrl, 10),
+        'salaryPaymentDay': _reqNum(_payDayCtrl, 28),
         'overtimeMultiplier': _parseMultiplier(_overtime),
-        'lateDeductionPerHourRwf': int.tryParse(_lateCtrl.text.trim()) ?? 500,
-        'maxLateBeforeWarning': int.tryParse(_maxLateCtrl.text.trim()) ?? 3,
+        'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
+        'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
         'departments': _depts,
         'managerPhone': _mgrPhone.text.trim(),
         'hrAdminPhone': _hrPhone.text.trim(),
@@ -133,7 +148,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString()),
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
           backgroundColor: AppColors.errorRed,
           behavior: SnackBarBehavior.floating,
         ));
@@ -278,6 +293,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ]),
       const SizedBox(height: 20),
       _textField('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
+      const SizedBox(height: 20),
+      _textField('Minimum Hours Before Checkout', _minHoursCtrl, hint: '0 = no minimum', suffix: 'hours', type: TextInputType.number, allowDecimal: true),
       const SizedBox(height: 20),
       Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
       const SizedBox(height: 10),
@@ -471,11 +488,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   );
 
   // ── Shared field widgets ──────────────────────────────────────────────────
-  Widget _textField(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type}) =>
+  Widget _textField(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type, bool allowDecimal = false}) =>
       HRNovaTextField(
         label: label,
         controller: ctrl,
         keyboardType: type,
+        inputFormatters: type == TextInputType.number
+            ? [FilteringTextInputFormatter.allow(RegExp(allowDecimal ? r'[\d.]' : r'\d'))]
+            : null,
         hint: hint,
         suffixIcon: suffix == null
             ? null

@@ -8,8 +8,13 @@ import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../attendance/providers/attendance_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../employees/models/employee_model.dart';
 import '../../employees/providers/employees_provider.dart';
+import '../../employees/widgets/employee_form_panel.dart';
 import '../../leave/providers/leave_provider.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../../../core/services/firebase_service.dart';
 import '../models/branch_model.dart';
 import '../providers/branches_provider.dart';
 import '../../../core/theme/app_icons.dart';
@@ -440,9 +445,10 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
   final _hrEmailCtrl  = TextEditingController();
   final _hrPassCtrl   = TextEditingController();
 
-  int _step = 1;           // 1 = branch info, 2 = HR assignment
+  int _step = 1;           // 1 = branch info, 2 = HR assignment, 3 = complete new HR's profile
   String? _createdBranchId;
   String? _createdBranchName;
+  EmployeeModel? _createdEmployee;
 
   bool _useExisting = true; // true = select existing HR, false = add new
   String? _selectedEmployeeId;
@@ -481,6 +487,16 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
     }
   }
 
+  void _finish() {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('"$_createdBranchName" branch set up successfully'),
+      backgroundColor: AppColors.successGreen,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
+  }
+
   Future<void> _assignHr() async {
     setState(() { _saving = true; _error = null; });
     try {
@@ -498,27 +514,28 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
           employeeEmail: emp.email,
           existingBranchId: emp.branchId,
         );
+        if (mounted) _finish();
       } else {
         if (_hrFirstCtrl.text.trim().isEmpty || _hrEmailCtrl.text.trim().isEmpty || _hrPassCtrl.text.trim().isEmpty) {
           setState(() { _saving = false; _error = 'First name, email and password are required.'; });
           return;
         }
-        await widget.notifier.addNewHrToBranch(
+        final empId = await widget.notifier.addNewHrToBranch(
           _createdBranchId!,
           firstName: _hrFirstCtrl.text.trim(),
           lastName: _hrLastCtrl.text.trim(),
           email: _hrEmailCtrl.text.trim(),
           password: _hrPassCtrl.text.trim(),
         );
-      }
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('"$_createdBranchName" branch set up successfully'),
-          backgroundColor: AppColors.successGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ));
+        final companyId = ref.read(currentCompanyIdProvider);
+        final doc = await FirebaseService.employeesRef(companyId!).doc(empId).get();
+        if (mounted) {
+          setState(() {
+            _createdEmployee = EmployeeModel.fromDoc(doc);
+            _step = 3;
+            _saving = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) setState(() { _saving = false; _error = e.toString().replaceFirst('Exception: ', ''); });
@@ -537,6 +554,18 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_step == 3) {
+      return SizedBox(
+        width: 560,
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: EmployeeFormPanel(
+          initial: _createdEmployee,
+          departments: ref.watch(companySettingsProvider).value?.departments ?? const [],
+          onClose: _finish,
+          onSaved: _finish,
+        ),
+      );
+    }
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 500),
       child: SingleChildScrollView(

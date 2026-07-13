@@ -1,6 +1,7 @@
 ﻿import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import '../../../core/constants/rwanda_banks.dart';
 import '../models/payroll_model.dart';
 
 class PayslipPdfService {
@@ -69,7 +70,9 @@ class PayslipPdfService {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       _infoRow('National ID', ps.nationalId.isEmpty ? '—' : ps.nationalId),
-                      _infoRow('RSSB No.', ps.rssbNumber.isEmpty ? '—' : ps.rssbNumber),
+                      _infoRow('Insurance No.', ps.rssbNumber.isEmpty ? '—' : ps.rssbNumber),
+                      _infoRow('Bank',
+                          RwandaBanks.nameForCode(ps.bankCode).isEmpty ? '—' : RwandaBanks.nameForCode(ps.bankCode)),
                       _infoRow('Bank Account',
                           ps.bankAccountNumber.isEmpty ? '—' : ps.bankAccountNumber),
                     ]),
@@ -214,6 +217,102 @@ class PayslipPdfService {
           ]),
         ],
       ),
+    ));
+
+    return doc;
+  }
+
+  /// Bank payment summary — every employee's identity, bank, account number,
+  /// and net salary to pay, in one printable sheet. This is the document
+  /// Finance hands to the bank to run the payroll transfer batch, so bank
+  /// name and account number are shown explicitly rather than left for
+  /// someone to retype from memory.
+  static Future<pw.Document> generatePayrollBankSummary(
+      List<PayslipModel> payslips, String companyName, String month) async {
+    final doc = pw.Document();
+    final monthLabel = DateFormat('MMMM yyyy').format(DateTime.parse('$month-01'));
+    final totalNet = payslips.fold<double>(0, (sum, ps) => sum + ps.netSalary);
+    final missing = payslips.where((ps) =>
+        RwandaBanks.nameForCode(ps.bankCode).isEmpty || ps.bankAccountNumber.isEmpty).length;
+
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text(companyName,
+                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 2),
+              pw.Text('PAYROLL BANK PAYMENT FILE — $monthLabel',
+                  style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey700)),
+            ]),
+            pw.Text('HRNovva',
+                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _blue)),
+          ],
+        ),
+        pw.Divider(thickness: 1.5, color: _blue),
+        pw.SizedBox(height: 10),
+        pw.TableHelper.fromTextArray(
+          headers: ['No.', 'Employee', 'National ID', 'Department', 'Job Title', 'Bank', 'Account Number', 'Net Salary (RWF)'],
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.white),
+          headerDecoration: pw.BoxDecoration(color: _blue),
+          cellStyle: const pw.TextStyle(fontSize: 9.5),
+          rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+          oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+          cellAlignments: const {7: pw.Alignment.centerRight},
+          data: payslips.asMap().entries.map((e) {
+            final i = e.key;
+            final ps = e.value;
+            final bankName = RwandaBanks.nameForCode(ps.bankCode);
+            return [
+              '${i + 1}',
+              ps.fullName,
+              ps.nationalId.isEmpty ? '—' : ps.nationalId,
+              ps.department,
+              ps.position,
+              bankName.isEmpty ? 'MISSING' : bankName,
+              ps.bankAccountNumber.isEmpty ? 'MISSING' : ps.bankAccountNumber,
+              _rwf(ps.netSalary),
+            ];
+          }).toList(),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: pw.BoxDecoration(color: _blueLight, borderRadius: pw.BorderRadius.circular(4)),
+          child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Text('Total Employees: ${payslips.length}',
+                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+            pw.Text('TOTAL TO PAY: ${_rwf(totalNet)}',
+                style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: _blue)),
+          ]),
+        ),
+        if (missing > 0) ...[
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFFFF8E1),
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Text(
+              '⚠ $missing employee(s) have missing or incomplete bank details — verify before submitting to the bank.',
+              style: const pw.TextStyle(fontSize: 9, color: PdfColors.orange800),
+            ),
+          ),
+        ],
+        pw.SizedBox(height: 10),
+        pw.Text(
+          'Verify all bank names and account numbers before submitting to the bank — HRNovva cannot confirm account ownership.',
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text('Generated by HRNovva · ${DateFormat('d MMM yyyy, HH:mm').format(DateTime.now())}',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+      ],
     ));
 
     return doc;

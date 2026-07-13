@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/rwanda_banks.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
@@ -55,6 +56,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   String _salaryType = AppConstants.salaryTypeFixedMonthly;
   String _role = AppConstants.roleEmployee;
   String? _branchId;
+  String? _bankCode;
   bool _obscurePassword = true;
 
   bool get isEdit => widget.editId != null;
@@ -121,6 +123,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     _salaryType      = e.salaryType;
     _role            = e.role;
     _branchId        = e.branchId;
+    _bankCode        = e.bankCode.isNotEmpty ? e.bankCode : null;
   }
 
   void _initForAdd(List<String> departments, {String? autoBranchId, String defaultRole = AppConstants.roleEmployee}) {
@@ -132,7 +135,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please fill all required information.')),
+      );
+      return;
+    }
     if (_dept.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please select a department. Add departments in Settings first.')),
@@ -179,6 +187,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         'transportAllowance': double.tryParse(_transport.text.trim()) ?? 0,
         'housingAllowance': double.tryParse(_housing.text.trim()) ?? 0,
         'bankAccount': _bank.text.trim(),
+        'bankCode': _bankCode ?? '',
         'role': _role,
         if (showsPassword && _password.text.trim().isNotEmpty) 'password': _password.text.trim(),
       };
@@ -199,7 +208,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
           context.pop();
         }
       } else {
-        final (_, tempPassword) = await notifier.addEmployee(data: data);
+        final (_, tempPassword, authError) = await notifier.addEmployee(data: data);
         if (mounted) {
           final email = (data['email'] as String?) ?? '';
           // tempPassword reflects what was actually set on the Firebase Auth
@@ -209,9 +218,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
           if (tempPassword != null && email.isNotEmpty) {
             await _showCredentialsDialog(email, tempPassword);
           } else if (email.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Employee added, but the login account could not be created. Use "Edit" to retry setting a password.'),
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(authError != null
+                  ? 'Employee added, but the login account could not be created: $authError'
+                  : 'Employee added, but the login account could not be created. Use "Edit" to retry setting a password.'),
               backgroundColor: AppColors.warningAmber,
+              duration: const Duration(seconds: 6),
             ));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -340,8 +352,15 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                         _field('Last Name', _lastName, required: true),
                       ),
                       _row2(
-                        _field('National ID', _nationalId),
-                        _field('Phone (+250)', _phone),
+                        _field('National ID', _nationalId,
+                            required: true,
+                            keyboard: TextInputType.number,
+                            hint: '16 digits',
+                            validator: _validateNationalId),
+                        _field('Phone (+250)', _phone,
+                            keyboard: TextInputType.number,
+                            hint: '07XXXXXXXX',
+                            validator: _validatePhone),
                       ),
                       _field('Email Address', _email, hint: 'employee@company.com'),
                       _row2(
@@ -370,7 +389,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                         _datefield('Start Date', _startDate, required: true),
                       ),
                       if (_contract == 'fixed_term') _datefield('End Date', _endDate),
-                      _field('RSSB Number', _rssb),
+                      _field('Insurance Number', _rssb),
                     ]),
                     const SizedBox(height: 24),
                     _buildSection('Salary & Allowances', [
@@ -387,7 +406,21 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                         _field('Transport Allowance (RWF)', _transport, hint: '0', keyboard: TextInputType.number),
                         _field('Housing Allowance (RWF)', _housing, hint: '0', keyboard: TextInputType.number),
                       ),
-                      _field('Bank Account Number', _bank),
+                      _row2(
+                        HRNovaDropdown<String?>(
+                          label: 'Bank',
+                          value: _bankCode,
+                          hint: 'Select bank',
+                          items: RwandaBanks.all
+                              .map((b) => DropdownMenuItem(value: b.code, child: Text(b.name, overflow: TextOverflow.ellipsis)))
+                              .toList(),
+                          onChanged: (v) => setState(() => _bankCode = v),
+                        ),
+                        _field('Bank Account Number', _bank,
+                            hint: 'Account number',
+                            keyboard: TextInputType.number,
+                            validator: _validateBankAccount),
+                      ),
                     ]),
                     const SizedBox(height: 24),
                     _buildSection('System Access', _buildSystemAccessFields(isEdit)),
@@ -517,6 +550,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     bool required = false,
     TextInputType? keyboard,
     int maxLines = 1,
+    String? Function(String?)? validator,
   }) {
     return HRNovaTextField(
       label: required ? '$label *' : label,
@@ -524,8 +558,53 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       controller: ctrl,
       keyboardType: keyboard,
       maxLines: maxLines,
-      validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+      validator: validator ??
+          (required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
     );
+  }
+
+  /// Validates a Rwandan National ID (Indangamuntu): exactly 16 digits,
+  /// where digits 2–5 are a plausible birth year and digit 6 is the gender
+  /// marker (7 = female, 8 = male). Digit 1 (citizen/refugee/foreigner) and
+  /// the trailing birth-order/reissuance/security digits aren't publicly
+  /// documented with a checkable rule, so only the parts that are actually
+  /// verifiable are enforced here.
+  String? _validateNationalId(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return 'National ID is required';
+    if (!RegExp(r'^\d{16}$').hasMatch(value)) {
+      return 'National ID must be exactly 16 digits';
+    }
+    final birthYear = int.tryParse(value.substring(1, 5));
+    final currentYear = DateTime.now().year;
+    if (birthYear == null || birthYear < 1900 || birthYear > currentYear) {
+      return 'Invalid National ID — the year segment (digits 2–5) is not a valid birth year';
+    }
+    final genderDigit = value[5];
+    if (genderDigit != '7' && genderDigit != '8') {
+      return 'Invalid National ID — the 6th digit must be 7 or 8';
+    }
+    return null;
+  }
+
+  /// Phone must start with "07" and be exactly 10 digits, digits only.
+  String? _validatePhone(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^07\d{8}$').hasMatch(value)) {
+      return 'Phone must start with 07 and be exactly 10 digits';
+    }
+    return null;
+  }
+
+  /// Bank account number must contain digits only.
+  String? _validateBankAccount(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^\d+$').hasMatch(value)) {
+      return 'Bank account number must contain digits only';
+    }
+    return null;
   }
 
   Widget _datefield(String label, TextEditingController ctrl, {bool required = false}) {

@@ -106,7 +106,7 @@ class HRNovaButton extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(_radius),
-          color: disabled ? AppColors.textSecondary.withAlpha(80) : AppColors.primaryBlue,
+          color: disabled ? AppColors.textSecondary.withAlpha(80) : bg,
         ),
         child: ElevatedButton(
           onPressed: disabled ? null : onPressed,

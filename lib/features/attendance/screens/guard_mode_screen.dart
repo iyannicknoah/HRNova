@@ -19,6 +19,7 @@ enum _ScanState {
   checkOutSuccess,
   alreadyDone,
   afterHours,
+  tooEarly,
 }
 
 // ── Scan result payload ───────────────────────────────────────────────────────
@@ -31,8 +32,9 @@ class _ScanResult {
     this.lateMinutes = 0,
     this.hoursWorked = 0.0,
     this.checkInTimeStr = '',
+    this.message = '',
   });
-  final String name, jobTitle, department, checkInTimeStr;
+  final String name, jobTitle, department, checkInTimeStr, message;
   final String? photoUrl;
   final int lateMinutes;
   final double hoursWorked;
@@ -124,15 +126,32 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
       }
 
       if (todayRecord != null && todayRecord.checkInTime != null) {
-        await ref
-            .read(attendanceNotifierProvider.notifier)
-            .checkOut(employeeId: employee.id);
-
         final ciStr = _p(todayRecord.checkInTime!.hour) +
             ':' +
             _p(todayRecord.checkInTime!.minute);
         final now = DateTime.now();
         final worked = now.difference(todayRecord.checkInTime!).inMinutes / 60;
+
+        try {
+          await ref
+              .read(attendanceNotifierProvider.notifier)
+              .checkOut(employeeId: employee.id);
+        } catch (e) {
+          setState(() {
+            _result = _ScanResult(
+              name: employee.fullName,
+              jobTitle: employee.jobTitle,
+              department: employee.department,
+              photoUrl: employee.profilePhotoUrl,
+              hoursWorked: worked,
+              checkInTimeStr: ciStr,
+              message: e.toString().replaceFirst('Exception: ', ''),
+            );
+            _state = _ScanState.tooEarly;
+          });
+          _scheduleReset();
+          return;
+        }
 
         setState(() {
           _result = _ScanResult(
@@ -230,6 +249,9 @@ class _GuardModeScreenState extends ConsumerState<GuardModeScreen> {
       _ScanState.afterHours => _result == null
           ? const SizedBox.shrink()
           : _AfterHoursOverlay(result: _result!, key: const ValueKey('ah')),
+      _ScanState.tooEarly => _result == null
+          ? const SizedBox.shrink()
+          : _TooEarlyOverlay(result: _result!, key: const ValueKey('te')),
     };
   }
 
@@ -716,6 +738,69 @@ class _AfterHoursOverlay extends StatelessWidget {
             const SizedBox(height: 8),
             const Text('Check-in is no longer accepted for today',
                 style: TextStyle(color: Colors.white54, fontSize: 15)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Too-early checkout overlay ────────────────────────────────────────────────
+class _TooEarlyOverlay extends StatelessWidget {
+  const _TooEarlyOverlay({super.key, required this.result});
+  final _ScanResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFF7B1010),
+      child: Stack(children: [
+        Positioned.fill(
+          child: Center(
+            child: AppIcon(AppIcons.hourglassEmptyRounded,
+                size: 380, color: Colors.white.withAlpha(15)),
+          ),
+        ),
+        Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _GuardAvatar(
+                name: result.name, photoUrl: result.photoUrl, size: 100),
+            const SizedBox(height: 20),
+            Text(result.name,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text('${result.jobTitle}  ·  ${result.department}',
+                style: const TextStyle(color: Colors.white70, fontSize: 17)),
+            const SizedBox(height: 22),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(25),
+                  borderRadius: BorderRadius.circular(100)),
+              child: const Text('TOO EARLY TO CHECK OUT',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2)),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(result.message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500)),
+            ),
+            const SizedBox(height: 8),
+            Text('Checked in at ${result.checkInTimeStr}',
+                style: const TextStyle(color: Colors.white54, fontSize: 15)),
           ]),
         ),
       ]),

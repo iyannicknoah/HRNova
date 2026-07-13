@@ -101,6 +101,9 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         sendTotal:    _sendTotal,
                         onExportRra:  () => _export(month, 'rra-paye'),
                         onExportRssb: () => _export(month, 'rssb'),
+                        onExportPayroll: () => _export(month, 'payroll'),
+                        onExportPayrollPdf: () => _exportPayrollPdf(
+                            month, calcState.payslips, settings?.companyName ?? 'Company'),
                         settings:     settings,
                         onRecalculate: null,
                       );
@@ -118,6 +121,9 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                       sendTotal:     _sendTotal,
                       onExportRra:   () => _export(month, 'rra-paye'),
                       onExportRssb:  () => _export(month, 'rssb'),
+                      onExportPayroll: () => _export(month, 'payroll'),
+                      onExportPayrollPdf: () => _exportPayrollPdf(
+                          month, payslipsAsync.value ?? [], settings?.companyName ?? 'Company'),
                       settings:      settings,
                       onRecalculate: run?.status == 'draft'
                           ? () => _deleteDraftAndRecalc(month)
@@ -197,11 +203,30 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     if (companyId == null) return;
     try {
       final bytes = await ApiService().getBytes('/api/exports/$type/$companyId/$month');
-      final label = type == 'rra-paye' ? 'RRA_PAYE' : 'RSSB';
+      final label = switch (type) {
+        'rra-paye' => 'RRA_PAYE',
+        'rssb' => 'RSSB',
+        'payroll' => 'Payroll_Bank_Payment',
+        _ => type,
+      };
       downloadBytes(bytes, 'HRNovva_${label}_$month.xlsx',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     } catch (e) {
       if (mounted) _snack('Export failed: $e', AppColors.errorRed);
+    }
+  }
+
+  Future<void> _exportPayrollPdf(String month, List<PayslipModel> payslips, String companyName) async {
+    if (payslips.isEmpty) {
+      _snack('No payroll data to export', AppColors.warningAmber);
+      return;
+    }
+    try {
+      final doc = await PayslipPdfService.generatePayrollBankSummary(payslips, companyName, month);
+      final bytes = await doc.save();
+      downloadBytes(bytes, 'HRNovva_Payroll_Bank_Payment_$month.pdf', 'application/pdf');
+    } catch (e) {
+      if (mounted) _snack('PDF export failed: $e', AppColors.errorRed);
     }
   }
 
@@ -652,6 +677,8 @@ class _ResultLayout extends ConsumerWidget {
     required this.sendTotal,
     required this.onExportRra,
     required this.onExportRssb,
+    required this.onExportPayroll,
+    required this.onExportPayrollPdf,
     required this.settings,
     this.onRecalculate,
   });
@@ -665,7 +692,7 @@ class _ResultLayout extends ConsumerWidget {
   final VoidCallback? onSend;
   final bool sending;
   final int sendProgress, sendTotal;
-  final VoidCallback onExportRra, onExportRssb;
+  final VoidCallback onExportRra, onExportRssb, onExportPayroll, onExportPayrollPdf;
   final dynamic settings;
   final VoidCallback? onRecalculate;
 
@@ -765,6 +792,16 @@ class _ResultLayout extends ConsumerWidget {
             const SizedBox(width: 8),
             _OutBtn(icon: AppIcons.downloadRounded, label: 'RSSB',
                 onTap: canExport ? onExportRssb : null,
+                tooltip: canExport ? null : noPermissionMsg),
+            const SizedBox(width: 8),
+            _OutBtn(icon: AppIcons.accountBalanceRounded, label: 'Bank Payment (Excel)',
+                onTap: canExport ? onExportPayroll : null,
+                color: AppColors.successGreen,
+                tooltip: canExport ? null : noPermissionMsg),
+            const SizedBox(width: 8),
+            _OutBtn(icon: AppIcons.pictureAsPdfRounded, label: 'Bank Payment (PDF)',
+                onTap: canExport ? onExportPayrollPdf : null,
+                color: AppColors.successGreen,
                 tooltip: canExport ? null : noPermissionMsg),
           ],
         ]),

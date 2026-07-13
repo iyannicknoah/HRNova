@@ -50,6 +50,10 @@ class SuperAdminService {
     await _api.put('/api/companies/$id/status', data: {'status': status});
   }
 
+  Future<void> deleteCompany(String id) async {
+    await _api.delete('/api/companies/$id');
+  }
+
   Future<void> addPayment({
     required String companyId,
     required String date,
@@ -63,7 +67,7 @@ class SuperAdminService {
     });
   }
 
-  Future<void> addBranch({
+  Future<Map<String, dynamic>> addBranch({
     required String companyId,
     required String name,
     String location          = '',
@@ -72,7 +76,7 @@ class SuperAdminService {
     String? branchAdminPassword,
     String? branchAdminName,
   }) async {
-    await _api.post('/api/companies/$companyId/branches', data: {
+    final res = await _api.post('/api/companies/$companyId/branches', data: {
       'name': name,
       'location': location,
       'code': code,
@@ -80,5 +84,6 @@ class SuperAdminService {
       if (branchAdminPassword != null) 'branchAdminPassword': branchAdminPassword,
       if (branchAdminName     != null) 'branchAdminName':     branchAdminName,
     });
+    return res.data as Map<String, dynamic>;
   }
 }

@@ -35,11 +35,14 @@ router.post('/create', async (req, res) => {
   const store = db();
   const isMulti = companyType === 'multi_branch';
 
-  // Reserve a company ID locally (no write yet) so the Auth user's custom
-  // claims can reference it before the Firestore document is created.
-  const coRef = store.collection('companies').doc();
+  // Reserve a company ID and an employee-doc ID locally (no write yet) so
+  // the Auth user's custom claims can reference both before anything is
+  // written to Firestore.
+  const coRef  = store.collection('companies').doc();
+  const empRef = coRef.collection('employees').doc();
   const role        = isMulti ? 'group_hr_admin' : 'hr_admin';
   const displayName = contactPerson || `${name} HR Admin`;
+  const qrCode = `${coRef.id}_${empRef.id}`;
 
   let hrUser;
   try {
@@ -50,6 +53,7 @@ router.post('/create', async (req, res) => {
     await getAuth().setCustomUserClaims(hrUser.uid, {
       role, companyId: coRef.id, companyName: name,
       companyType: isMulti ? 'multi_branch' : 'single', displayName,
+      employeeId: empRef.id,
     });
     await getAuth().revokeRefreshTokens(hrUser.uid);
   } catch (e) {
@@ -92,12 +96,50 @@ router.post('/create', async (req, res) => {
       branchResult = { branchId: brRef.id, name: firstBranchName };
     }
 
+    // 4. Employee doc for the HR admin — same shape/defaults as a normal
+    //    employee created via the Add Employee flow, but only pre-filled
+    //    with what's known at this point. `profileComplete: false` marks
+    //    it as needing the follow-up completion step in the UI.
+    const [empFirstName, ...empLastNameParts] = displayName.trim().split(/\s+/);
+    await empRef.set({
+      firstName: empFirstName || '',
+      lastName: empLastNameParts.join(' '),
+      email: hrAdminEmail,
+      phone: hrAdminPhone || '',
+      role,
+      companyId: coRef.id,
+      qrCode,
+      department: '',
+      jobTitle: '',
+      nationalId: '',
+      emergencyContact: '',
+      contractType: 'permanent',
+      startDate: new Date().toISOString(),
+      rssbNumber: '',
+      salaryType: 'fixed_monthly',
+      salaryAmount: 0,
+      dailyRate: 0,
+      hourlyRate: 0,
+      transportAllowance: 0,
+      housingAllowance: 0,
+      bankAccount: '',
+      bankCode: '',
+      leaveBalances: { annual: 18, sick: 10, maternity: 84, paternity: 4 },
+      loans: [],
+      status: 'active',
+      profileComplete: false,
+      uid: hrUser.uid,
+      initialPassword: tempPassword,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
     res.json({
       success: true,
       companyId:    coRef.id,
       companyName:  name,
       hrAdminUid:   hrUser.uid,
       hrAdminEmail,
+      employeeId:   empRef.id,
       role,
       branch: branchResult,
     });
@@ -131,6 +173,57 @@ router.put('/:id', async (req, res) => {
     await db().collection('companies').doc(req.params.id).update(patch);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Delete company (cascades: all Auth accounts + all Firestore data) ─────────
+router.delete('/:id', async (req, res) => {
+  const store = db();
+  const companyId = req.params.id;
+  try {
+    const coDoc = await store.collection('companies').doc(companyId).get();
+    if (!coDoc.exists) return res.status(404).json({ error: 'Company not found' });
+    const co = coDoc.data();
+
+    // 1. Collect and delete every Firebase Auth account tied to this company:
+    //    the company's own HR admin, every employee (incl. managers/branch HR
+    //    admins added as employees), and every branch's HR admin.
+    const uidsToDelete = new Set();
+    const emailsToDelete = new Set();
+
+    if (co.hrAdminEmail) emailsToDelete.add(co.hrAdminEmail);
+
+    const empSnap = await store.collection('companies').doc(companyId).collection('employees').get();
+    empSnap.docs.forEach(d => {
+      const emp = d.data();
+      if (emp.uid) uidsToDelete.add(emp.uid);
+      else if (emp.email) emailsToDelete.add(emp.email);
+    });
+
+    const branchSnap = await store.collection('companies').doc(companyId).collection('branches').get();
+    branchSnap.docs.forEach(d => {
+      const br = d.data();
+      if (br.branchHrAdminUid) uidsToDelete.add(br.branchHrAdminUid);
+      else if (br.branchHrAdminEmail) emailsToDelete.add(br.branchHrAdminEmail);
+    });
+
+    for (const email of emailsToDelete) {
+      try {
+        const user = await getAuth().getUserByEmail(email.trim().toLowerCase());
+        uidsToDelete.add(user.uid);
+      } catch (_) { /* already gone / never existed — fine */ }
+    }
+    await Promise.allSettled([...uidsToDelete].map(uid => getAuth().deleteUser(uid)));
+
+    // 2. Recursively delete the company document and every subcollection
+    //    (employees, branches, payments, payroll, attendance, leave, etc.)
+    await store.recursiveDelete(store.collection('companies').doc(companyId));
+
+    console.log(`[Companies] Deleted company ${companyId} (${co.name}) — ${uidsToDelete.size} auth accounts removed`);
+    res.json({ success: true, authAccountsDeleted: uidsToDelete.size });
+  } catch (e) {
+    console.error('Delete company:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── Activate / Suspend ────────────────────────────────────────────────────────
@@ -210,16 +303,65 @@ router.post('/:id/branches', async (req, res) => {
     let adminResult = null;
     if (branchAdminEmail && branchAdminPassword) {
       const dName = branchAdminName || `${name} HR Admin`;
-      const brUser = await getAuth().createUser({
-        email: branchAdminEmail, password: branchAdminPassword, displayName: dName,
-      });
-      await getAuth().setCustomUserClaims(brUser.uid, {
-        role: 'branch_hr_admin',
-        companyId: req.params.id, branchId: brRef.id,
-        companyName: co.name, companyType: 'multi_branch', displayName: dName,
-      });
-      await getAuth().revokeRefreshTokens(brUser.uid);
-      adminResult = { uid: brUser.uid, email: branchAdminEmail };
+      // Reserve the employee-doc ID before creating the Auth user so its
+      // custom claims can reference it, same pattern as company creation.
+      const empRef = store.collection('companies').doc(req.params.id).collection('employees').doc();
+      const qrCode = `${req.params.id}_${empRef.id}`;
+      let brUser;
+      try {
+        brUser = await getAuth().createUser({
+          email: branchAdminEmail, password: branchAdminPassword, displayName: dName,
+        });
+        await getAuth().setCustomUserClaims(brUser.uid, {
+          role: 'branch_hr_admin',
+          companyId: req.params.id, branchId: brRef.id,
+          companyName: co.name, companyType: 'multi_branch', displayName: dName,
+          employeeId: empRef.id,
+        });
+        await getAuth().revokeRefreshTokens(brUser.uid);
+
+        // Employee doc for the branch HR admin — same shape/defaults as a
+        // normal employee, pre-filled with what's known here.
+        const [empFirstName, ...empLastNameParts] = dName.trim().split(/\s+/);
+        await empRef.set({
+          firstName: empFirstName || '',
+          lastName: empLastNameParts.join(' '),
+          email: branchAdminEmail,
+          phone: '',
+          role: 'branch_hr_admin',
+          companyId: req.params.id,
+          branchId: brRef.id,
+          qrCode,
+          department: '',
+          jobTitle: '',
+          nationalId: '',
+          emergencyContact: '',
+          contractType: 'permanent',
+          startDate: new Date().toISOString(),
+          rssbNumber: '',
+          salaryType: 'fixed_monthly',
+          salaryAmount: 0,
+          dailyRate: 0,
+          hourlyRate: 0,
+          transportAllowance: 0,
+          housingAllowance: 0,
+          bankAccount: '',
+          bankCode: '',
+          leaveBalances: { annual: 18, sick: 10, maternity: 84, paternity: 4 },
+          loans: [],
+          status: 'active',
+          profileComplete: false,
+          uid: brUser.uid,
+          initialPassword: branchAdminPassword,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        // Roll back the Auth user if it was created but the employee doc
+        // write (or claims) failed, mirroring company creation's safety net.
+        if (brUser) await getAuth().deleteUser(brUser.uid).catch(() => {});
+        throw e;
+      }
+      adminResult = { uid: brUser.uid, email: branchAdminEmail, employeeId: empRef.id };
     }
 
     res.json({ success: true, branchId: brRef.id, admin: adminResult });

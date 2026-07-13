@@ -1275,8 +1275,9 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: context.appField,
-                  borderRadius: BorderRadius.circular(12),
+                  color: context.appCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.appBorder),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<EmployeeModel>(
@@ -1378,20 +1379,20 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 style: TextStyle(color: context.appText, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'e.g. System was down, forgot to scan...',
-                  hintStyle: TextStyle(color: context.appSubtext),
+                  hintStyle: TextStyle(color: context.appSubtext, fontSize: 13, fontWeight: FontWeight.w300),
                   filled: true,
-                  fillColor: context.appField,
+                  fillColor: context.appCard,
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide:
                           BorderSide(color: context.appBorder)),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide:
                           BorderSide(color: context.appBorder)),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: const BorderSide(
                           color: AppColors.primaryBlue, width: 1.5)),
                 ),
@@ -1433,8 +1434,9 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
           padding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            color: context.appField,
-            borderRadius: BorderRadius.circular(12),
+            color: context.appCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.appBorder),
           ),
           child: Row(children: [
             AppIcon(icon, size: 16, color: context.appSubtext),

@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
-import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/app_table.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
@@ -154,122 +154,59 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
     );
   }
 
-  void _confirmDeactivate(BuildContext context, EmployeeModel e) {
-    AppDialogShell.show<void>(
-      context: context,
-      alignment: Alignment.center,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Deactivate Employee?', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18, color: context.appText)),
-            const SizedBox(height: 12),
-            Text('${e.fullName} will be marked inactive. This does not delete their data.', style: TextStyle(color: context.appSubtext)),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                HRNovaButton.text(
-                  label: 'Cancel',
-                  onPressed: () => Navigator.pop(context),
-                  textColor: context.appSubtext,
-                ),
-                HRNovaButton.text(
-                  label: 'Deactivate',
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    try {
-                      await ref.read(employeesNotifierProvider.notifier).deactivate(e.id);
-                    } catch (err) {
-                      if (mounted) _showErr(err.toString());
-                    }
-                  },
-                  textColor: AppColors.errorRed,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+  Future<void> _confirmDeactivate(BuildContext context, EmployeeModel e) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Deactivate Employee?',
+      message: '${e.fullName} will be marked inactive. This does not delete their data.',
+      confirmLabel: 'Deactivate',
+      danger: true,
     );
+    if (confirmed != true) return;
+    try {
+      await ref.read(employeesNotifierProvider.notifier).deactivate(e.id);
+    } catch (err) {
+      if (mounted) _showErr(err.toString());
+    }
   }
 
-  void _confirmDelete(BuildContext context, EmployeeModel e) {
-    AppDialogShell.show<void>(
-      context: context,
-      alignment: Alignment.center,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(color: AppColors.errorRed.withAlpha(15), borderRadius: BorderRadius.circular(10)),
-                child: const AppIcon(AppIcons.deleteOutlineRounded, color: AppColors.errorRed, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('Delete Employee?', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: context.appText)),
-              ),
-            ]),
-            const SizedBox(height: 15),
-            Text.rich(TextSpan(children: [
-              TextSpan(text: '${e.fullName}', style: TextStyle(fontWeight: FontWeight.w600, color: context.appText)),
-              TextSpan(text: ' will be permanently removed from the employee list.', style: TextStyle(color: context.appSubtext)),
-            ])),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.errorRed.withAlpha(10),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.errorRed.withAlpha(40)),
-              ),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const AppIcon(AppIcons.warningAmberRounded, size: 15, color: AppColors.errorRed),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('This action cannot be undone. Attendance and leave records are preserved.',
-                      style: TextStyle(fontSize: 14, color: context.appText)),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                HRNovaButton.text(
-                  label: 'Cancel',
-                  onPressed: () => Navigator.pop(context),
-                  textColor: context.appSubtext,
-                ),
-                HRNovaButton.text(
-                  label: 'Delete',
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      await ref.read(employeesNotifierProvider.notifier).deleteEmployee(e.id, email: e.email.isNotEmpty ? e.email : null);
-                      if (mounted) messenger.showSnackBar(
-                        SnackBar(content: Text('${e.fullName} deleted'), backgroundColor: AppColors.successGreen),
-                      );
-                    } catch (err) {
-                      if (mounted) _showErr(err.toString());
-                    }
-                  },
-                  textColor: AppColors.errorRed,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+  Future<void> _confirmDelete(BuildContext context, EmployeeModel e) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Delete Employee?',
+      message: '${e.fullName} will be permanently removed from the employee list and lose access immediately. '
+          'This cannot be undone — attendance and leave records are preserved.',
+      confirmLabel: 'Delete',
+      danger: true,
     );
+    if (confirmed != true) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Row(children: [
+        SizedBox(
+          width: 16, height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+        ),
+        SizedBox(width: 12),
+        Text('Deleting employee…'),
+      ]),
+      duration: Duration(seconds: 30),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      await ref.read(employeesNotifierProvider.notifier)
+          .deleteEmployee(e.id, email: e.email.isNotEmpty ? e.email : null);
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${e.fullName} deleted'), backgroundColor: AppColors.successGreen),
+        );
+      }
+    } catch (err) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _showErr(err.toString());
+      }
+    }
   }
 
   void _showErr(String msg) {

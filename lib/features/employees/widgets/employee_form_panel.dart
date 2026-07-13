@@ -1,13 +1,14 @@
-﻿import 'dart:typed_data';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/rwanda_banks.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../branches/models/branch_model.dart';
 import '../../branches/providers/branches_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
@@ -21,12 +22,26 @@ class EmployeeFormPanel extends ConsumerStatefulWidget {
     required this.departments,
     required this.onClose,
     required this.onSaved,
+    this.companyId,
+    this.branchesOverride,
+    this.isMultiBranchOverride,
   });
 
   final EmployeeModel? initial;
   final List<String> departments;
   final VoidCallback onClose;
   final VoidCallback onSaved;
+
+  /// When set, targets this company instead of the logged-in user's own
+  /// company — used when a super admin completes another company's HR
+  /// admin profile, who has no `currentCompanyIdProvider` of their own.
+  final String? companyId;
+  /// Branch list to use instead of watching `branchesStreamProvider`
+  /// (which is scoped to the logged-in user's own company). Required
+  /// alongside [companyId] for a super admin acting cross-company.
+  final List<BranchModel>? branchesOverride;
+  /// Same idea as [branchesOverride], for `currentCompanyTypeProvider`.
+  final bool? isMultiBranchOverride;
 
   @override
   ConsumerState<EmployeeFormPanel> createState() => _EmployeeFormPanelState();
@@ -35,7 +50,6 @@ class EmployeeFormPanel extends ConsumerStatefulWidget {
 class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
-  Uint8List? _photoBytes;
 
   late final TextEditingController _firstName;
   late final TextEditingController _lastName;
@@ -60,6 +74,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
   String _salaryType = AppConstants.salaryTypeFixedMonthly;
   String _role = AppConstants.roleEmployee;
   String? _branchId;
+  String? _bankCode;
 
   @override
   void initState() {
@@ -86,6 +101,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     _contract   = e?.contractType ?? AppConstants.contractTypePermanent;
     _salaryType = e?.salaryType ?? AppConstants.salaryTypeFixedMonthly;
     _role       = e?.role ?? AppConstants.roleEmployee;
+    _bankCode   = (e?.bankCode.isNotEmpty ?? false) ? e!.bankCode : null;
     _branchId   = e?.branchId;
   }
 
@@ -99,13 +115,13 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     super.dispose();
   }
 
-  Future<void> _pickPhoto() async {
-    final bytes = await pickPhoto();
-    if (bytes != null && mounted) setState(() => _photoBytes = bytes);
-  }
-
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please fill all required information.')),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       final data = {
@@ -129,13 +145,15 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
         'transportAllowance': double.tryParse(_transport.text.trim()) ?? 0,
         'housingAllowance': double.tryParse(_housing.text.trim()) ?? 0,
         'bankAccount': _bank.text.trim(),
+        'bankCode': _bankCode ?? '',
         'role': _role,
+        'profileComplete': true,
       };
       final notifier = ref.read(employeesNotifierProvider.notifier);
       if (widget.initial == null) {
-        await notifier.addEmployee(data: data, photoBytes: _photoBytes);
+        await notifier.addEmployee(data: data, companyIdOverride: widget.companyId);
       } else {
-        await notifier.updateEmployee(widget.initial!.id, data, photoBytes: _photoBytes);
+        await notifier.updateEmployee(widget.initial!.id, data, companyIdOverride: widget.companyId);
       }
       if (mounted) widget.onSaved();
     } catch (e) {
@@ -150,11 +168,56 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     }
   }
 
+  /// Phone must start with "07" and be exactly 10 digits, digits only.
+  String? _validatePhone(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^07\d{8}$').hasMatch(value)) {
+      return 'Phone must start with 07 and be exactly 10 digits';
+    }
+    return null;
+  }
+
+  /// Bank account number must contain digits only.
+  String? _validateBankAccount(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^\d+$').hasMatch(value)) {
+      return 'Bank account number must contain digits only';
+    }
+    return null;
+  }
+
+  /// Validates a Rwandan National ID (Indangamuntu): exactly 16 digits,
+  /// where digits 2–5 are a plausible birth year and digit 6 is the gender
+  /// marker (7 = female, 8 = male). Digit 1 (citizen/refugee/foreigner) and
+  /// the trailing birth-order/reissuance/security digits aren't publicly
+  /// documented with a checkable rule, so only the parts that are actually
+  /// verifiable are enforced here.
+  String? _validateNationalId(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return 'National ID is required';
+    if (!RegExp(r'^\d{16}$').hasMatch(value)) {
+      return 'National ID must be exactly 16 digits';
+    }
+    final birthYear = int.tryParse(value.substring(1, 5));
+    final currentYear = DateTime.now().year;
+    if (birthYear == null || birthYear < 1900 || birthYear > currentYear) {
+      return 'Invalid National ID — the year segment (digits 2–5) is not a valid birth year';
+    }
+    final genderDigit = value[5];
+    if (genderDigit != '7' && genderDigit != '8') {
+      return 'Invalid National ID — the 6th digit must be 7 or 8';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.initial != null;
-    final branchesAsync = ref.watch(branchesStreamProvider);
-    final isMultiBranch = ref.watch(currentCompanyTypeProvider) == AppConstants.companyMultiBranch;
+    final branches = widget.branchesOverride ?? (ref.watch(branchesStreamProvider).value ?? []);
+    final isMultiBranch = widget.isMultiBranchOverride ??
+        (ref.watch(currentCompanyTypeProvider) == AppConstants.companyMultiBranch);
 
     return Container(
       decoration: BoxDecoration(
@@ -199,8 +262,15 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                 ),
                 const SizedBox(height: 12),
                 _Row2(
-                  left: _PField('National ID', _nationalId),
-                  right: _PField('Phone (+250)', _phone),
+                  left: _PField('National ID', _nationalId,
+                      required: true,
+                      keyboardType: TextInputType.number,
+                      hint: '16 digits',
+                      validator: _validateNationalId),
+                  right: _PField('Phone (+250)', _phone,
+                      hint: '07XXXXXXXX',
+                      keyboardType: TextInputType.number,
+                      validator: _validatePhone),
                 ),
                 const SizedBox(height: 12),
                 _PField('Email Address', _email, hint: 'employee@company.com'),
@@ -225,7 +295,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                 if (isMultiBranch) ...[
                   _DropPField('Branch', _branchId, [
                     const DropdownMenuItem(value: null, child: Text('Select branch…')),
-                    ...?branchesAsync.value?.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))),
+                    ...branches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))),
                   ], (v) => setState(() => _branchId = v)),
                   const SizedBox(height: 12),
                 ],
@@ -240,38 +310,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                   _DatePField('End Date', _endDate),
                 ],
                 const SizedBox(height: 12),
-                _PField('RSSB Number', _rssb),
-                const SizedBox(height: 20),
-
-                // Photo
-                _SecTitle('Profile Photo'),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Container(
-                    width: 72, height: 72,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.lightBlue50,
-                      border: Border.all(color: AppColors.cardBorder, width: 2)),
-                    clipBehavior: Clip.antiAlias,
-                    child: _photoBytes != null
-                        ? Image.memory(_photoBytes!, fit: BoxFit.cover)
-                        : widget.initial?.profilePhotoUrl != null
-                            ? Image.network(widget.initial!.profilePhotoUrl!, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const AppIcon(AppIcons.personOutline, size: 32, color: AppColors.textSecondary))
-                            : const AppIcon(AppIcons.personOutline, size: 32, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue), foregroundColor: AppColors.primaryBlue),
-                      onPressed: _pickPhoto,
-                      icon: const AppIcon(AppIcons.uploadOutlined, size: 16),
-                      label: const Text('Upload Photo'),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(_photoBytes != null ? 'Photo selected' : 'JPEG or PNG, max 5 MB',
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-                  ]),
-                ]),
+                _PField('Insurance Number', _rssb),
                 const SizedBox(height: 20),
 
                 // Salary
@@ -293,7 +332,21 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                   right: _PField('Housing Allowance (RWF)', _housing, keyboardType: TextInputType.number),
                 ),
                 const SizedBox(height: 12),
-                _PField('Bank Account Number', _bank),
+                _Row2(
+                  left: HRNovaDropdown<String?>(
+                    label: 'Bank',
+                    value: _bankCode,
+                    hint: 'Select bank',
+                    items: RwandaBanks.all
+                        .map((b) => DropdownMenuItem(value: b.code, child: Text(b.name, overflow: TextOverflow.ellipsis)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _bankCode = v),
+                  ),
+                  right: _PField('Bank Account Number', _bank,
+                      hint: 'Account number',
+                      keyboardType: TextInputType.number,
+                      validator: _validateBankAccount),
+                ),
                 const SizedBox(height: 20),
 
                 // System Access
@@ -376,12 +429,13 @@ class _Row2 extends StatelessWidget {
 }
 
 class _PField extends StatelessWidget {
-  const _PField(this.label, this.ctrl, {this.hint, this.required = false, this.keyboardType});
+  const _PField(this.label, this.ctrl, {this.hint, this.required = false, this.keyboardType, this.validator});
   final String label;
   final TextEditingController ctrl;
   final String? hint;
   final bool required;
   final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) => HRNovaTextField(
@@ -389,7 +443,8 @@ class _PField extends StatelessWidget {
     hint: hint,
     controller: ctrl,
     keyboardType: keyboardType,
-    validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+    validator: validator ??
+        (required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
   );
 }
 
