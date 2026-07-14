@@ -24,12 +24,37 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _initialized = false;
+  bool _hydrationStarted = false;
+  bool _saving = false;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _hydrationSub;
 
-  // Expansion state
+  @override
+  void initState() {
+    super.initState();
+    _maybeStartHydration();
+  }
+
+  /// Starts form hydration exactly once, as soon as the companyId claim is
+  /// available. Deliberately NOT triggered from a `ref.listen` on
+  /// `companySettingsProvider`: that provider is watched by half the app
+  /// (dashboard, attendance, payroll, ...), so it is usually already alive
+  /// with data before this screen mounts — meaning a listen callback would
+  /// never fire and the form would silently stay on its built-in defaults.
+  /// That was the root cause of the "settings look unsaved / revert to 0"
+  /// bug: the save always worked, the form just never loaded the saved
+  /// values back.
+  void _maybeStartHydration() {
+    if (_hydrationStarted) return;
+    final companyId = ref.read(currentCompanyIdProvider);
+    if (companyId == null) return; // claims not loaded yet — retried in build
+    _hydrationStarted = true;
+    _hydrateFromServer(companyId);
+  }
+
+  // Expansion state (visual grouping only — one Save button for everything)
   final Map<String, bool> _expanded = {
     'schedule': true, 'leave': false, 'payroll': false,
-    'departments': false, 'notifications': false, 'performance': false,
+    'notifications': false, 'performance': false,
   };
 
   // Performance criteria
@@ -52,10 +77,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _lateCtrl    = TextEditingController(text: '500');
   final _maxLateCtrl = TextEditingController(text: '3');
 
-  // Departments
-  List<String> _depts = [];
-  final _deptCtrl = TextEditingController();
-
   // Notifications
   final _mgrPhone       = TextEditingController();
   final _hrPhone        = TextEditingController();
@@ -64,7 +85,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _directorEmail  = TextEditingController();
   final _directorPhone  = TextEditingController();
   final _tinCtrl        = TextEditingController();
-  String _notif     = 'email';
+  final String _notif   = 'email';
 
   static const _shortToLong = {
     'Mon': 'monday', 'Tue': 'tuesday', 'Wed': 'wednesday',
@@ -76,14 +97,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   };
   static const _allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _hydrationSub;
-
   @override
   void dispose() {
     _hydrationSub?.cancel();
     _graceCtrl.dispose(); _minHoursCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
-    _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
+    _mgrPhone.dispose(); _hrPhone.dispose();
     _mgrEmail.dispose(); _hrEmail.dispose();
     _directorEmail.dispose(); _directorPhone.dispose();
     _tinCtrl.dispose();
@@ -99,109 +118,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         : (s.minimumHoursBeforeCheckout % 1 == 0
             ? s.minimumHoursBeforeCheckout.toStringAsFixed(0)
             : s.minimumHoursBeforeCheckout.toString());
+    _days = s.workingDays.map((d) => _longToShort[d] ?? d).toSet();
     _annualCtrl.text = s.annualLeaveDays.toString();
     _sickCtrl.text   = s.sickLeaveDays.toString();
     _payDayCtrl.text = s.salaryPaymentDay.toString();
-    _lateCtrl.text   = s.lateDeductionPerHourRwf.toString();
+    _overtime = switch (s.overtimeMultiplier) {
+      1.0 => '1x', 2.0 => '2x', _ => '1.5x',
+    };
+    _lateCtrl.text    = s.lateDeductionPerHourRwf.toString();
     _maxLateCtrl.text = s.maxLateBeforeWarning.toString();
-    _mgrPhone.text   = s.managerPhone.isEmpty ? '+250' : s.managerPhone;
-    _hrPhone.text    = s.hrAdminPhone.isEmpty ? '+250' : s.hrAdminPhone;
-    _mgrEmail.text       = s.managerEmail;
-    _hrEmail.text        = s.hrAdminEmail;
-    _directorEmail.text  = s.directorEmail;
-    _directorPhone.text  = s.directorPhone.isEmpty ? '' : s.directorPhone;
-    _tinCtrl.text        = s.rraTinNumber ?? '';
-    _days  = Set.from(s.workingDays.map((d) => _longToShort[d] ?? d).where((d) => d.isNotEmpty));
-    _depts = List.from(s.departments);
-    _notif = s.notificationMethod;
-    _criteria = s.performanceCriteria.isEmpty ? List.from(PerformanceCriterion.defaults) : List.from(s.performanceCriteria);
-    _overtime = _fmtMultiplier(s.overtimeMultiplier);
+    _mgrPhone.text        = s.managerPhone.isEmpty ? '+250' : s.managerPhone;
+    _hrPhone.text         = s.hrAdminPhone.isEmpty ? '+250' : s.hrAdminPhone;
+    _mgrEmail.text        = s.managerEmail;
+    _hrEmail.text         = s.hrAdminEmail;
+    _directorEmail.text   = s.directorEmail;
+    _directorPhone.text   = s.directorPhone;
+    _tinCtrl.text         = s.rraTinNumber ?? '';
+    _criteria = s.performanceCriteria.isEmpty
+        ? PerformanceCriterion.defaults
+        : s.performanceCriteria;
   }
 
-  TimeOfDay _parseTime(String s) {
-    final parts = s.split(':');
-    if (parts.length != 2) return const TimeOfDay(hour: 8, minute: 0);
-    return TimeOfDay(hour: int.tryParse(parts[0]) ?? 8, minute: int.tryParse(parts[1]) ?? 0);
+  TimeOfDay _parseTime(String hhmm) {
+    final parts = hhmm.split(':');
+    final h = parts.isNotEmpty ? int.tryParse(parts[0]) : null;
+    final m = parts.length > 1 ? int.tryParse(parts[1]) : null;
+    return TimeOfDay(hour: h ?? 8, minute: m ?? 0);
   }
 
-  String _fmtMultiplier(double v) => v == 1.0 ? '1x' : v == 2.0 ? '2x' : '1.5x';
-  double _parseMultiplier(String v) => switch (v) { '1x' => 1.0, '2x' => 2.0, _ => 1.5 };
   String _fmtTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  void _toggle(String key) => setState(() => _expanded[key] = !(_expanded[key] ?? false));
-
-  void _addDept() {
-    final v = _deptCtrl.text.trim();
-    if (v.isNotEmpty && !_depts.contains(v)) {
-      setState(() { _depts.add(v); _deptCtrl.clear(); });
-    }
-  }
-
   Future<void> _pickTime(bool isStart) async {
-    final t = await showTimePicker(context: context, initialTime: isStart ? _startTime : _endTime);
+    final t = await showTimePicker(
+      context: context,
+      initialTime: isStart ? _startTime : _endTime,
+    );
     if (t != null && mounted) setState(() => isStart ? _startTime = t : _endTime = t);
   }
 
-  /// Builds the save payload via [buildData] and saves it — but if building
-  /// throws (a numeric field has non-empty text that isn't a valid number),
-  /// shows that error instead of silently saving a fallback default. Without
-  /// this, an unparseable value in a field like "Minimum Hours Before
-  /// Checkout" would silently write 0 while still showing "saved
-  /// successfully", so the real problem never surfaces to the user.
-  Future<void> _trySave(String section, Map<String, dynamic> Function() buildData) async {
-    final Map<String, dynamic> data;
-    try {
-      data = buildData();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.errorRed,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-      return;
-    }
-    await _save(section, data);
-  }
-
-  /// Parses [ctrl]'s text for saving. An empty field means "use the
-  /// default" (returns [fallback]); a non-empty field that fails to parse
-  /// throws instead of silently falling back, so invalid input is never
-  /// saved as if it were the default.
-  num _reqNum(TextEditingController ctrl, num fallback, {bool decimal = false}) {
-    final t = ctrl.text.trim();
-    if (t.isEmpty) return fallback;
-    final v = decimal ? double.tryParse(t) : int.tryParse(t);
-    if (v == null) throw Exception('"${ctrl.text}" is not a valid number.');
-    return v;
-  }
-
-  Future<void> _save(String section, Map<String, dynamic> data) async {
-    try {
-      await ref.read(settingsNotifierProvider.notifier).updateSettings(data);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$section saved successfully'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.successGreen,
-          duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString()),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.errorRed,
-        ));
-      }
-    }
-  }
-
-  /// Populates the form fields from the first snapshot confirmed by the
+  /// Populates the form once from the first snapshot confirmed by the
   /// server (`!metadata.isFromCache`), not just whatever the live
   /// `companySettingsProvider` stream happens to emit first. A locally
   /// cached snapshot can be stale — harmless for live display, but wrong
@@ -234,20 +190,98 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }, onError: (e) => debugPrint('[Settings] Hydration stream error: $e'));
   }
 
+  /// Parses [ctrl]'s text for saving. An empty field means "use the
+  /// default" (returns [fallback]); a non-empty field that fails to parse
+  /// throws instead of silently falling back, so invalid input is never
+  /// saved as if it were the default.
+  num _reqNum(TextEditingController ctrl, num fallback, {bool decimal = false}) {
+    final t = ctrl.text.trim();
+    if (t.isEmpty) return fallback;
+    final v = decimal ? double.tryParse(t) : int.tryParse(t);
+    if (v == null) throw Exception('"${ctrl.text}" is not a valid number.');
+    return v;
+  }
+
+  double _parseMultiplier(String val) => switch (val) {
+    '1x' => 1.0, '2x' => 2.0, _ => 1.5,
+  };
+
+  Future<void> _save() async {
+    final Map<String, dynamic> data;
+    try {
+      if (_criteria.isEmpty) {
+        throw Exception('Add at least one performance criterion.');
+      }
+      final totalWeight = _criteria.fold<double>(0, (s, c) => s + c.weight);
+      if ((totalWeight - 100).abs() > 0.5) {
+        throw Exception('Performance criteria weights must total 100% (currently ${totalWeight.toStringAsFixed(0)}%).');
+      }
+      data = {
+        'workStartTime': _fmtTime(_startTime),
+        'workEndTime': _fmtTime(_endTime),
+        'gracePeriodMinutes': _reqNum(_graceCtrl, 10),
+        'minimumHoursBeforeCheckout': _reqNum(_minHoursCtrl, 0, decimal: true),
+        'workingDays': _days.map((d) => _shortToLong[d] ?? d.toLowerCase()).toList(),
+        'annualLeaveDays': _reqNum(_annualCtrl, 18),
+        'sickLeaveDays': _reqNum(_sickCtrl, 10),
+        'salaryPaymentDay': _reqNum(_payDayCtrl, 28),
+        'overtimeMultiplier': _parseMultiplier(_overtime),
+        'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
+        'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
+        'managerPhone': _mgrPhone.text.trim(),
+        'hrAdminPhone': _hrPhone.text.trim(),
+        'managerEmail': _mgrEmail.text.trim(),
+        'hrAdminEmail': _hrEmail.text.trim(),
+        'directorEmail': _directorEmail.text.trim(),
+        'directorPhone': _directorPhone.text.trim(),
+        'notificationMethod': _notif,
+        'rraTinNumber': _tinCtrl.text.trim(),
+        'performanceCriteria': _criteria.map((c) => c.toMap()).toList(),
+      };
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(settingsNotifierProvider.notifier).updateSettings(data);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Settings saved successfully'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.successGreen,
+          duration: Duration(seconds: 2),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.errorRed,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<CompanySettingsModel?>>(companySettingsProvider, (_, next) {
-      if (!_initialized && next.hasValue) {
-        final companyId = ref.read(currentCompanyIdProvider);
-        if (companyId == null) return;
-        _initialized = true;
-        _hydrateFromServer(companyId);
-      }
-    });
-
     final settingsAsync = ref.watch(companySettingsProvider);
     final role     = ref.watch(currentUserRoleProvider);
     final canEdit  = role != AppConstants.roleBranchHrAdmin;
+
+    // Retry in case the companyId claim wasn't loaded yet at initState —
+    // guarded by _hydrationStarted, so this runs at most once.
+    _maybeStartHydration();
 
     return Scaffold(
       backgroundColor: context.appBg,
@@ -277,23 +311,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(width: 10),
                     Expanded(child: Text(
                       'Settings can only be changed by the company HR Admin. Contact them to update policies.',
-                      style: const TextStyle(color: AppColors.warningAmber, fontSize: 14, height: 1.4),
+                      style: TextStyle(color: context.appSubtext, fontSize: 14),
                     )),
                   ]),
                 ),
               ],
               const SizedBox(height: 24),
-              _section('schedule', AppIcons.scheduleRounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody(canEdit)),
+              _section('schedule', AppIcons.scheduleRounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody()),
               const SizedBox(height: 14),
-              _section('leave', AppIcons.beachAccessRounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody(canEdit)),
+              _section('leave', AppIcons.beachAccessRounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody()),
               const SizedBox(height: 14),
-              _section('payroll', AppIcons.paymentsRounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody(canEdit)),
+              _section('payroll', AppIcons.accountBalanceWalletRounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody()),
               const SizedBox(height: 14),
-              _section('departments', AppIcons.accountTreeRounded, 'Departments', 'Manage company departments', _deptsBody(canEdit)),
+              _section('notifications', AppIcons.notificationsRounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notificationsBody()),
               const SizedBox(height: 14),
-              _section('notifications', AppIcons.notificationsRounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notifBody(canEdit)),
-              const SizedBox(height: 14),
-              _section('performance', AppIcons.trendingUpRounded, 'Performance Criteria', 'Scoring criteria and weights — must total 100%', _criteriaBody(canEdit)),
+              _section('performance', AppIcons.trendingUpRounded, 'Performance Criteria', 'Weighted criteria used for performance reviews', _performanceBody()),
+              const SizedBox(height: 28),
+              if (canEdit)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 220,
+                    child: HRNovaButton(
+                      label: _saving ? 'Saving...' : 'Save Changes',
+                      isLoading: _saving,
+                      onPressed: _saving ? null : _save,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -302,49 +347,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _section(String key, IconRef icon, String title, String subtitle, Widget body) {
-    final open = _expanded[key] ?? false;
+    final expanded = _expanded[key] ?? false;
     return Container(
       decoration: BoxDecoration(
         color: context.appCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.appBorder),
       ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => _toggle(key),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  Container(width: 40, height: 40,
-                    decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(12)),
-                    child: AppIcon(icon, color: AppColors.primaryBlue, size: 20)),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 14)),
-                  ])),
-                  AppIcon(open ? AppIcons.keyboardArrowUpRounded : AppIcons.keyboardArrowDownRounded, color: context.appSubtext),
-                ],
+      child: Column(children: [
+        GestureDetector(
+          onTap: () => setState(() => _expanded[key] = !expanded),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(10)),
+                child: AppIcon(icon, color: AppColors.primaryBlue, size: 20),
               ),
-            ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: TextStyle(color: context.appSubtext, fontSize: 14)),
+              ])),
+              AppIcon(expanded ? AppIcons.keyboardArrowUpRounded : AppIcons.keyboardArrowDownRounded, color: context.appSubtext, size: 22),
+            ]),
           ),
-          if (open) ...[
-            Divider(color: context.appBorder, height: 1),
-            Padding(padding: const EdgeInsets.all(20), child: body),
-          ],
-        ],
-      ),
+        ),
+        if (expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+            child: body,
+          ),
+      ]),
     );
   }
 
-  // ── Section bodies ────────────────────────────────────────────────────────
-
-  Widget _scheduleBody(bool canEdit) => AbsorbPointer(
-    absorbing: !canEdit,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _scheduleBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: _timeField('Work Start', _startTime, () => _pickTime(true))),
       const SizedBox(width: 16),
@@ -373,19 +413,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       );
     }).toList()),
-    const SizedBox(height: 20),
-    if (canEdit) _saveBtn(() => _trySave('Work Schedule', () => {
-      'workStartTime': _fmtTime(_startTime),
-      'workEndTime': _fmtTime(_endTime),
-      'gracePeriodMinutes': _reqNum(_graceCtrl, 10),
-      'minimumHoursBeforeCheckout': _reqNum(_minHoursCtrl, 0, decimal: true),
-      'workingDays': _days.map((d) => _shortToLong[d] ?? d.toLowerCase()).toList(),
-    })),
-  ]));
+  ]);
 
-  Widget _leaveBody(bool canEdit) => AbsorbPointer(
-    absorbing: !canEdit,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _leaveBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: _field('Annual Leave Days', _annualCtrl, hint: '18', suffix: 'days', type: TextInputType.number)),
       const SizedBox(width: 16),
@@ -401,16 +431,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Expanded(child: Text('Maternity: 84 days  •  Paternity: 4 days — Fixed by Rwanda Law', style: TextStyle(color: AppColors.primaryBlue, fontSize: 14, height: 1.4))),
       ]),
     ),
-    const SizedBox(height: 16),
-    if (canEdit) _saveBtn(() => _trySave('Leave Policy', () => {
-      'annualLeaveDays': _reqNum(_annualCtrl, 18),
-      'sickLeaveDays': _reqNum(_sickCtrl, 10),
-    })),
-  ]));
+  ]);
 
-  Widget _payrollBody(bool canEdit) => AbsorbPointer(
-    absorbing: !canEdit,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _payrollBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
@@ -430,101 +453,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       const SizedBox(width: 16),
       Expanded(child: _field('Max Late Before Warning', _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
     ]),
-    const SizedBox(height: 16),
-    if (canEdit) _saveBtn(() => _trySave('Payroll Rules', () => {
-      'salaryPaymentDay': _reqNum(_payDayCtrl, 28),
-      'overtimeMultiplier': _parseMultiplier(_overtime),
-      'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
-      'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
-    })),
-  ]));
+  ]);
 
-  Widget _deptsBody(bool canEdit) => AbsorbPointer(
-    absorbing: !canEdit,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      Expanded(
-        child: HRNovaTextField(
-          label: 'Department Name',
-          controller: _deptCtrl,
-          onFieldSubmitted: (_) => _addDept(),
-          hint: 'Enter department name...',
-        ),
-      ),
-      const SizedBox(width: 10),
-      HRNovaButton(
-        label: 'Add',
-        icon: AppIcons.addRounded,
-        isFullWidth: false,
-        height: 46,
-        onPressed: _addDept,
-      ),
+  Widget _notificationsBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Row(children: [
+      Expanded(child: _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000')),
+      const SizedBox(width: 16),
+      Expanded(child: _field('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001')),
     ]),
-    if (_depts.isNotEmpty) ...[
-      const SizedBox(height: 14),
-      Wrap(spacing: 8, runSpacing: 8, children: _depts.map((d) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(d, style: const TextStyle(color: AppColors.primaryBlue, fontSize: 15, fontWeight: FontWeight.w400)),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => setState(() => _depts.remove(d)),
-            child: const AppIcon(AppIcons.closeRounded, size: 13, color: AppColors.primaryBlue),
-          ),
-        ]),
-      )).toList()),
-    ],
-    const SizedBox(height: 16),
-    if (canEdit) _saveBtn(() => _save('Departments', {'departments': _depts})),
-  ]));
-
-  Widget _notifBody(bool canEdit) => AbsorbPointer(
-    absorbing: !canEdit,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
     const SizedBox(height: 14),
-    _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
-    const SizedBox(height: 12),
-    _field('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001'),
-    const SizedBox(height: 12),
     Row(children: [
       Expanded(child: _field('Manager Email', _mgrEmail, hint: 'manager@company.com', type: TextInputType.emailAddress)),
-      const SizedBox(width: 14),
+      const SizedBox(width: 16),
       Expanded(child: _field('HR Admin Email', _hrEmail, hint: 'hr@company.com', type: TextInputType.emailAddress)),
     ]),
-    const SizedBox(height: 12),
+    const SizedBox(height: 14),
     Row(children: [
       Expanded(child: _field('Director Email', _directorEmail, hint: 'director@company.rw', type: TextInputType.emailAddress)),
-      const SizedBox(width: 14),
+      const SizedBox(width: 16),
       Expanded(child: _field('Director Phone', _directorPhone, hint: '+250 7XX XXX XXX')),
     ]),
-    const SizedBox(height: 8),
-    Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.primaryBlue.withAlpha(50))),
-      child: const Row(children: [
-        AppIcon(AppIcons.infoOutlineRounded, color: AppColors.primaryBlue, size: 14),
-        SizedBox(width: 8),
-        Expanded(child: Text('Director receives weekly and monthly HR reports automatically.', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13))),
-      ]),
-    ),
-    const SizedBox(height: 16),
-    _field('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX'),
-    const SizedBox(height: 16),
-    if (canEdit) _saveBtn(() => _save('Notifications & Contacts', {
-      'managerPhone': _mgrPhone.text.trim(),
-      'hrAdminPhone': _hrPhone.text.trim(),
-      'managerEmail': _mgrEmail.text.trim(),
-      'hrAdminEmail': _hrEmail.text.trim(),
-      'directorEmail': _directorEmail.text.trim(),
-      'directorPhone': _directorPhone.text.trim(),
-      'notificationMethod': _notif,
-      'rraTinNumber': _tinCtrl.text.trim(),
-    })),
-  ]));
+    const SizedBox(height: 14),
+    _field('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX (for RRA payroll export)'),
+  ]);
 
-  // ── Shared widgets ────────────────────────────────────────────────────────
+  Widget _performanceBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text('Weights must total 100%.', style: TextStyle(color: context.appSubtext, fontSize: 14)),
+    const SizedBox(height: 12),
+    ..._criteria.asMap().entries.map((e) => _CriterionRow(
+      criterion: e.value,
+      appText: context.appText,
+      appSubtext: context.appSubtext,
+      onWeightChanged: (w) => setState(() => _criteria[e.key] = PerformanceCriterion(name: e.value.name, weight: w)),
+      onRemove: () => setState(() => _criteria.removeAt(e.key)),
+    )),
+    const SizedBox(height: 8),
+    _AddCriterionRow(onAdd: (name, weight) => setState(() => _criteria = [..._criteria, PerformanceCriterion(name: name, weight: weight)])),
+  ]);
+
   Widget _field(String label, TextEditingController ctrl, {String? hint, String? suffix, TextInputType? type, bool allowDecimal = false}) =>
       HRNovaTextField(
         label: label,
@@ -553,11 +519,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         GestureDetector(
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: context.appBorder),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(color: context.appField, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.appBorder)),
             child: Row(children: [
               AppIcon(AppIcons.accessTimeRounded, color: context.appSubtext, size: 18),
               const SizedBox(width: 10),
@@ -566,102 +529,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
       ]);
-
-  Widget _saveBtn(VoidCallback? onTap) => Align(
-    alignment: Alignment.centerRight,
-    child: HRNovaButton(
-      label: 'Save Changes',
-      icon: AppIcons.checkRounded,
-      isFullWidth: false,
-      height: 46,
-      onPressed: onTap,
-    ),
-  );
-
-  Widget _criteriaBody(bool canEdit) {
-    final total = _criteria.fold(0.0, (s, c) => s + c.weight);
-    final isValid = (total - 100).abs() < 0.01;
-    return AbsorbPointer(
-      absorbing: !canEdit,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Expanded(flex: 5, child: Text('Criterion Name', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500))),
-        Expanded(flex: 2, child: Text('Weight %', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w500))),
-        const SizedBox(width: 40),
-      ]),
-      const SizedBox(height: 10),
-      ...List.generate(_criteria.length, (i) {
-        final c = _criteria[i];
-        return _CriterionRow(
-          key: ValueKey('criterion_$i'),
-          criterion: c,
-          onWeightChanged: (w) => setState(() => _criteria[i] = PerformanceCriterion(name: c.name, weight: w)),
-          onRemove: () => setState(() => _criteria.removeAt(i)),
-          appText: context.appText,
-          appSubtext: context.appSubtext,
-          appField: context.appField,
-          appBorder: context.appBorder,
-        );
-      }),
-      const SizedBox(height: 8),
-      _AddCriterionRow(onAdd: (name, weight) {
-        setState(() => _criteria.add(PerformanceCriterion(name: name, weight: weight)));
-      }),
-      const SizedBox(height: 16),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isValid ? context.pillGreenBg : context.pillRedBg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isValid ? AppColors.successGreen.withAlpha(80) : AppColors.errorRed.withAlpha(80)),
-        ),
-        child: Row(children: [
-          AppIcon(isValid ? AppIcons.checkCircleRounded : AppIcons.errorRounded,
-              color: isValid ? AppColors.successGreen : AppColors.errorRed, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            isValid ? 'Total: 100% ✓' : 'Total: ${total.toStringAsFixed(1)}% — must equal 100%',
-            style: TextStyle(color: isValid ? AppColors.successGreen : AppColors.errorRed, fontSize: 15, fontWeight: FontWeight.w500),
-          ),
-        ]),
-      ),
-      const SizedBox(height: 16),
-      if (canEdit) _saveBtn(isValid ? () => _save('Performance Criteria', {
-        'performanceCriteria': _criteria.map((c) => c.toMap()).toList(),
-      }) : null),
-    ]));
-  }
 }
 
-// ── Criterion row — owns its TextEditingController ────────────────────────────
+// ── Performance criterion row ─────────────────────────────────────────────────
 class _CriterionRow extends StatefulWidget {
   const _CriterionRow({
-    super.key,
     required this.criterion,
-    required this.onWeightChanged,
-    required this.onRemove,
     required this.appText,
     required this.appSubtext,
-    required this.appField,
-    required this.appBorder,
+    required this.onWeightChanged,
+    required this.onRemove,
   });
   final PerformanceCriterion criterion;
-  final void Function(double) onWeightChanged;
+  final Color appText, appSubtext;
+  final ValueChanged<double> onWeightChanged;
   final VoidCallback onRemove;
-  final Color appText, appSubtext, appField, appBorder;
 
   @override
   State<_CriterionRow> createState() => _CriterionRowState();
 }
 
 class _CriterionRowState extends State<_CriterionRow> {
-  late TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.criterion.weight.toStringAsFixed(0));
-  }
+  late final _ctrl = TextEditingController(text: widget.criterion.weight.toStringAsFixed(0));
 
   @override
   void dispose() { _ctrl.dispose(); super.dispose(); }
@@ -676,6 +565,7 @@ class _CriterionRowState extends State<_CriterionRow> {
           label: 'Weight',
           controller: _ctrl,
           keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'\d'))],
           suffixIcon: Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Align(
@@ -736,13 +626,14 @@ class _AddCriterionRowState extends State<_AddCriterionRow> {
         label: 'Weight',
         controller: _weightCtrl,
         keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'\d'))],
         hint: 'Weight%',
       )),
       const SizedBox(width: 8),
       HRNovaButton(
         label: 'Add',
+        icon: AppIcons.addRounded,
         isFullWidth: false,
-        height: 44,
         onPressed: _add,
       ),
     ]);

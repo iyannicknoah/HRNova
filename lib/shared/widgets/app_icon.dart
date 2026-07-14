@@ -19,7 +19,7 @@ class AppIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return HeroIcon(
       ref.hero,
-      style: HeroIconStyle.outline,
+      style: HeroIconStyle.solid,
       size: size,
       color: color,
     );

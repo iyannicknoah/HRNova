@@ -72,8 +72,11 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
     super.initState();
     final role = ref.read(currentUserRoleProvider) ?? '';
     _isTopHr = role == AppConstants.roleHrAdmin || role == AppConstants.roleGroupHrAdmin;
-    // Leave Roster tab added for all roles; top HR: 4 tabs, others: 5 tabs
-    _tabs = TabController(length: _isTopHr ? 4 : 5, vsync: this);
+    // Every HR-facing role gets the same 5 tabs, including Pending — it
+    // used to be hidden for hr_admin/group_hr_admin (single- and
+    // multi-branch company top admins), leaving them with no way to
+    // accept/decline leave requests at all.
+    _tabs = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -90,24 +93,17 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _LeaveHeader(),
-          _LeaveTabBar(controller: _tabs, isTopHr: _isTopHr),
+          _LeaveTabBar(controller: _tabs),
           Expanded(
             child: TabBarView(
               controller: _tabs,
-              children: _isTopHr
-                  ? const [
-                      _LeaveRosterTab(),
-                      _AllRequestsTab(showBranchFilter: true),
-                      _ExpiredTab(),
-                      _CalendarTab(),
-                    ]
-                  : const [
-                      _LeaveRosterTab(),
-                      _PendingTab(),
-                      _AllRequestsTab(showBranchFilter: false),
-                      _ExpiredTab(),
-                      _CalendarTab(),
-                    ],
+              children: [
+                const _LeaveRosterTab(),
+                const _PendingTab(),
+                _AllRequestsTab(showBranchFilter: _isTopHr),
+                const _ExpiredTab(),
+                const _CalendarTab(),
+              ],
             ),
           ),
         ],
@@ -143,9 +139,8 @@ class _LeaveHeader extends StatelessWidget {
 // ── Tab bar ───────────────────────────────────────────────────────────────────
 
 class _LeaveTabBar extends StatelessWidget {
-  const _LeaveTabBar({required this.controller, required this.isTopHr});
+  const _LeaveTabBar({required this.controller});
   final TabController controller;
-  final bool isTopHr;
 
   @override
   Widget build(BuildContext context) {
@@ -162,9 +157,13 @@ class _LeaveTabBar extends StatelessWidget {
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
-        tabs: isTopHr
-            ? const [Tab(text: 'Leave Roster'), Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')]
-            : const [Tab(text: 'Leave Roster'), Tab(text: 'Pending'), Tab(text: 'All Requests'), Tab(text: 'Expired'), Tab(text: 'Calendar')],
+        tabs: const [
+          Tab(text: 'Leave Roster'),
+          Tab(text: 'Pending'),
+          Tab(text: 'All Requests'),
+          Tab(text: 'Expired'),
+          Tab(text: 'Calendar'),
+        ],
       ),
     );
   }

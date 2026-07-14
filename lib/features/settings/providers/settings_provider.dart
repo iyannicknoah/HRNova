@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../../core/services/firebase_service.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/firebase_service.dart';
 import '../models/company_settings_model.dart';
 
 // ── Settings write notifier ────────────────────────────────────────────────
@@ -70,7 +70,8 @@ final companyStatusProvider = StreamProvider.autoDispose<String?>((ref) {
 // ── Local override — set to true when wizard completes (design-only bypass) ──
 final onboardingCompleteOverrideProvider = StateProvider<bool>((ref) => false);
 
-// ── Onboarding complete check (top-level company admins only) ─────────────
+// ── Onboarding complete check (top-level company admins only: hr_admin for
+// single-branch, group_hr_admin for multi-branch) ──────────────────────────
 final isOnboardingCompleteProvider = StreamProvider.autoDispose<bool>((ref) {
   final companyId = ref.watch(currentCompanyIdProvider);
   final role = ref.watch(currentUserRoleProvider);

@@ -141,7 +141,7 @@ class AppRouterNotifier extends Notifier<GoRouter> {
 
     // Manager: block salary/admin routes
     if (role == AppConstants.roleManager) {
-      const blocked = ['/payroll', '/settings', '/recruitment', '/branches', '/departments', '/super-admin', '/reports', '/nova-ai'];
+      const blocked = ['/payroll', '/recruitment', '/branches', '/departments', '/super-admin', '/reports', '/nova-ai'];
       if (blocked.any((b) => path == b || path.startsWith('$b/'))) return '/dashboard';
     }
 
@@ -210,12 +210,6 @@ List<RouteBase> _buildRoutes() => [
         ),
       ),
 
-      // ── Onboarding (authenticated, no sidebar) ───────────────────────────
-      GoRoute(
-        path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
-      ),
-
       // ── Mobile-only routes (no sidebar) ─────────────────────────────────
       GoRoute(
         path: '/mobile-splash',
@@ -224,6 +218,12 @@ List<RouteBase> _buildRoutes() => [
       GoRoute(
         path: '/mobile-onboarding',
         builder: (context, state) => const MobileOnboardingScreen(),
+      ),
+
+      // ── Onboarding (authenticated, no sidebar) ───────────────────────────
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/mobile-home',

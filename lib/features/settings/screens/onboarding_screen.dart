@@ -21,7 +21,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _step = 0;
   bool _saving = false;
-  static const _total = 5;
+  static const _total = 4;
 
   // Step 1 — Work Schedule
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
@@ -40,11 +40,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _lateCtrl = TextEditingController(text: '500');
   final _maxLateCtrl = TextEditingController(text: '3');
 
-  // Step 4 — Departments
-  final List<String> _depts = [];
-  final _deptCtrl = TextEditingController();
-
-  // Step 5 — Notifications & Contacts
+  // Step 4 — Notifications & Contacts
   final _mgrPhone = TextEditingController(text: '+250');
   final _hrPhone = TextEditingController(text: '+250');
   final _mgrEmail = TextEditingController();
@@ -52,7 +48,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _directorEmail = TextEditingController();
   final _directorPhone = TextEditingController();
   final _tinCtrl = TextEditingController();
-  String _notif = 'email';
+  final String _notif = 'email';
 
   // Day abbreviation ↔ Firestore long-form mapping
   static const _toFirestore = {
@@ -66,7 +62,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void dispose() {
     _graceCtrl.dispose(); _minHoursCtrl.dispose(); _annualCtrl.dispose(); _sickCtrl.dispose();
     _payDayCtrl.dispose(); _lateCtrl.dispose(); _maxLateCtrl.dispose();
-    _deptCtrl.dispose(); _mgrPhone.dispose(); _hrPhone.dispose();
+    _mgrPhone.dispose(); _hrPhone.dispose();
     _mgrEmail.dispose(); _hrEmail.dispose();
     _directorEmail.dispose(); _directorPhone.dispose();
     _tinCtrl.dispose();
@@ -111,15 +107,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _next() async {
-    if (_step == 3 && _depts.isEmpty) return;
     if (_step < _total - 1) {
       setState(() => _step++);
       return;
     }
     // Final step — save all to Firestore
     setState(() => _saving = true);
+    debugPrint('[Onboarding] Completing setup, saving all settings...');
     try {
-      await ref.read(settingsNotifierProvider.notifier).updateSettings({
+      final data = {
         'workStartTime': _fmtTime(_startTime),
         'workEndTime': _fmtTime(_endTime),
         'gracePeriodMinutes': _reqNum(_graceCtrl, 10),
@@ -131,7 +127,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'overtimeMultiplier': _parseMultiplier(_overtime),
         'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
         'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
-        'departments': _depts,
         'managerPhone': _mgrPhone.text.trim(),
         'hrAdminPhone': _hrPhone.text.trim(),
         'managerEmail': _mgrEmail.text.trim(),
@@ -141,11 +136,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'notificationMethod': _notif,
         'rraTinNumber': _tinCtrl.text.trim(),
         'isOnboardingComplete': true,
-      });
+      };
+      await ref.read(settingsNotifierProvider.notifier).updateSettings(data);
+      debugPrint('[Onboarding] Setup saved successfully, navigating to dashboard.');
       // Local override so router lets us through before stream refreshes
       ref.read(onboardingCompleteOverrideProvider.notifier).state = true;
       if (mounted) context.go('/dashboard');
     } catch (e) {
+      debugPrint('[Onboarding] Setup save FAILED: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),
@@ -162,22 +160,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_step > 0) setState(() => _step--);
   }
 
-  void _addDept() {
-    final v = _deptCtrl.text.trim();
-    if (v.isNotEmpty && !_depts.contains(v)) {
-      setState(() { _depts.add(v); _deptCtrl.clear(); });
-    }
-  }
-
   static const _stepTitles = [
-    'Work Schedule', 'Leave Policy', 'Payroll Rules', 'Departments',
-    'Notifications & Contacts',
+    'Work Schedule', 'Leave Policy', 'Payroll Rules', 'Notifications & Contacts',
   ];
   static const _stepSubs = [
     'Set your company work hours and working days',
     'Define leave entitlements for your employees',
     'Configure salary payment and deduction rules',
-    'Add the departments in your company',
     'Set up emergency contacts and notification preferences',
   ];
 
@@ -278,7 +267,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     0 => _buildWorkSchedule(),
     1 => _buildLeavePolicy(),
     2 => _buildPayrollRules(),
-    3 => _buildDepartments(),
     _ => _buildNotifications(),
   };
 
@@ -379,59 +367,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ],
   );
 
-  // ── Step 4: Departments ───────────────────────────────────────────────────
-  Widget _buildDepartments() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Expanded(
-          child: HRNovaTextField(
-            label: 'Department',
-            controller: _deptCtrl,
-            onFieldSubmitted: (_) => _addDept(),
-            hint: 'e.g. Finance, Operations, IT...',
-          ),
-        ),
-        const SizedBox(width: 12),
-        HRNovaButton(
-          label: 'Add',
-          icon: AppIcons.addRounded,
-          isFullWidth: false,
-          backgroundColor: _blue,
-          height: 50,
-          onPressed: _addDept,
-        ),
-      ]),
-      if (_depts.isEmpty)
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text('Add at least one department to continue', style: TextStyle(color: AppColors.errorRed.withAlpha(200), fontSize: 14)),
-        ),
-      if (_depts.isNotEmpty) ...[
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8, runSpacing: 8,
-          children: _depts.map((d) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(color: _blue.withAlpha(20), borderRadius: BorderRadius.circular(100), border: Border.all(color: _blue.withAlpha(80))),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(d, style: const TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w400)),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => setState(() => _depts.remove(d)),
-                  child: const AppIcon(AppIcons.closeRounded, size: 14, color: _blue),
-                ),
-              ],
-            ),
-          )).toList(),
-        ),
-      ],
-    ],
-  );
-
-  // ── Step 5: Notifications & Contacts ─────────────────────────────────────
+  // ── Step 4: Notifications & Contacts ─────────────────────────────────────
   Widget _buildNotifications() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

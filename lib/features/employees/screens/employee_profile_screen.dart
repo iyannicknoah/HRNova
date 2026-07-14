@@ -203,13 +203,18 @@ class _ProfileHeader extends ConsumerWidget {
         children: [
           InkWell(
             onTap: () => context.pop(),
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: AppIcon(AppIcons.arrowBackIosNew, size: 17, color: context.appSubtext),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 36, height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: context.appField,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: AppIcon(AppIcons.arrowBackIosNew, size: 18, color: context.appText),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
@@ -668,14 +673,25 @@ class _CredRowState extends State<_CredRow> {
           const SizedBox(height: 2),
           Text(widget.value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appText, fontFamily: 'monospace')),
         ])),
-        GestureDetector(
-          onTap: _copy,
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: AppIcon(
-              _copied ? AppIcons.checkRounded : AppIcons.copyRounded,
-              size: 15,
-              color: _copied ? AppColors.successGreen : context.appSubtext,
+        Tooltip(
+          message: _copied ? 'Copied!' : 'Copy',
+          child: InkWell(
+            onTap: _copy,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 32, height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _copied
+                    ? AppColors.successGreen.withAlpha(20)
+                    : AppColors.primaryBlue.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: AppIcon(
+                _copied ? AppIcons.checkRounded : AppIcons.copyRounded,
+                size: 16,
+                color: _copied ? AppColors.successGreen : AppColors.primaryBlue,
+              ),
             ),
           ),
         ),
