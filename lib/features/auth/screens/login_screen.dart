@@ -8,6 +8,7 @@ import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/app_icon.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -42,12 +43,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final signInState = ref.watch(authNotifierProvider);
+    final l10n = AppLocalizations.of(context);
 
     // Show splash loading while Firebase auth initialises
     if (authState.isLoading) {
       return Scaffold(
         backgroundColor: context.appBg,
-        body: const LoadingWidget(message: 'Starting HRNovva…'),
+        body: LoadingWidget(message: l10n.loginStarting),
       );
     }
 
@@ -97,7 +99,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 Column(
                                   children: [
                                     Text(
-                                      'Welcome back',
+                                      l10n.loginWelcomeBack,
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
@@ -105,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ),
                                     ),
                                     Text(
-                                      'Sign in to your account',
+                                      l10n.loginSubtitle,
                                       style: TextStyle(
                                         color: context.appSubtext,
                                       ),
@@ -115,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 Column(
                                   children: [
                                     HRNovaTextField(
-                                      label: 'Email address',
+                                      label: l10n.loginEmailLabel,
                                       hint: 'you@company.rw',
                                       controller: _emailController,
                                       keyboardType: TextInputType.emailAddress,
@@ -123,13 +125,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       textInputAction: TextInputAction.next,
                                       validator: (v) {
                                         if (v == null || v.trim().isEmpty) {
-                                          return 'Please enter your email address';
+                                          return l10n.loginEmailRequired;
                                         }
                                         return null;
                                       },
                                     ),
                                     HRNovaTextField(
-                                      label: 'Password',
+                                      label: l10n.loginPasswordLabel,
                                       hint: '••••••••',
                                       controller: _passwordController,
                                       obscureText: !_showPassword,
@@ -149,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ),
                                       validator: (v) {
                                         if (v == null || v.isEmpty) {
-                                          return 'Please enter your password';
+                                          return l10n.loginPasswordRequired;
                                         }
                                         return null;
                                       },
@@ -183,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         ),
                                       ),
                                     HRNovaButton(
-                                      label: 'Sign In',
+                                      label: l10n.loginSignIn,
                                       onPressed: isLoading ? null : _signIn,
                                       isLoading: isLoading,
                                       isFullWidth: true,

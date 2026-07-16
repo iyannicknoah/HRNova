@@ -110,12 +110,8 @@ class AppConstants {
   ];
 
   // Rwanda 2025 Tax Constants
-  static const double pensionEmployeeRate = 0.06;
-  static const double pensionEmployerRate = 0.06;
-  static const double maternityEmployeeRate = 0.003;
-  static const double maternityEmployerRate = 0.003;
-  static const double occupationalHazardRate = 0.02;
-
+  // (Statutory contribution rates are now company-configurable — see
+  // DeductionRule.rssbDefaults in company_settings_model.dart)
   static const double payeTaxFreeMonthly = 60000.0;
   static const double payeBracket1Max = 100000.0;
   static const double payeBracket1Rate = 0.20;

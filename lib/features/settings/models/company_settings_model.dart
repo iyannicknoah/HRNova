@@ -20,6 +20,53 @@ class PerformanceCriterion {
   Map<String, dynamic> toMap() => {'name': name, 'weight': weight};
 }
 
+/// A company-defined percentage deduction applied on adjusted gross during
+/// payroll. PAYE is statutory and never part of this list.
+class DeductionRule {
+  const DeductionRule({
+    required this.title,
+    required this.percent,
+    required this.side,
+    this.active = true,
+  });
+
+  final String title;
+  final double percent; // 6 means 6%
+  final String side; // 'employee' (reduces net) | 'employer' (company cost)
+  final bool active;
+
+  static const sideEmployee = 'employee';
+  static const sideEmployer = 'employer';
+
+  /// Standard Rwanda RSSB scheme — the pre-filled starting point every
+  /// company gets, fully editable per company.
+  static const rssbDefaults = [
+    DeductionRule(title: 'RSSB Pension', percent: 6, side: sideEmployee),
+    DeductionRule(title: 'RSSB Maternity', percent: 0.3, side: sideEmployee),
+    DeductionRule(title: 'RSSB Pension', percent: 6, side: sideEmployer),
+    DeductionRule(title: 'RSSB Maternity', percent: 0.3, side: sideEmployer),
+    DeductionRule(title: 'RSSB Occupational Hazard', percent: 2, side: sideEmployer),
+  ];
+
+  factory DeductionRule.fromMap(Map<String, dynamic> m) => DeductionRule(
+        title: m['title'] as String? ?? '',
+        percent: (m['percent'] as num?)?.toDouble() ?? 0,
+        side: m['side'] as String? ?? sideEmployee,
+        active: m['active'] as bool? ?? true,
+      );
+
+  Map<String, dynamic> toMap() =>
+      {'title': title, 'percent': percent, 'side': side, 'active': active};
+
+  DeductionRule copyWith({String? title, double? percent, String? side, bool? active}) =>
+      DeductionRule(
+        title: title ?? this.title,
+        percent: percent ?? this.percent,
+        side: side ?? this.side,
+        active: active ?? this.active,
+      );
+}
+
 class CompanySettingsModel {
   const CompanySettingsModel({
     required this.companyId,
@@ -46,6 +93,7 @@ class CompanySettingsModel {
     this.overtimeMultiplier = 1.5,
     this.transportAllowanceRwf = 0,
     this.housingAllowanceRwf = 0,
+    this.deductions = DeductionRule.rssbDefaults,
     this.notificationMethod = 'email',
     this.isOnboardingComplete = false,
     this.departments = const [],
@@ -105,6 +153,17 @@ class CompanySettingsModel {
   final double overtimeMultiplier;
   final int transportAllowanceRwf;
   final int housingAllowanceRwf;
+
+  /// Company-defined percentage deductions (on adjusted gross). Companies
+  /// that never saved the field get the standard RSSB scheme.
+  final List<DeductionRule> deductions;
+
+  List<DeductionRule> get activeEmployeeDeductions => deductions
+      .where((d) => d.active && d.side == DeductionRule.sideEmployee)
+      .toList();
+  List<DeductionRule> get activeEmployerDeductions => deductions
+      .where((d) => d.active && d.side == DeductionRule.sideEmployer)
+      .toList();
 
   // Notifications & contacts
   final String notificationMethod;
@@ -166,6 +225,11 @@ class CompanySettingsModel {
       overtimeMultiplier: (map['overtimeMultiplier'] as num?)?.toDouble() ?? 1.5,
       transportAllowanceRwf: map['transportAllowanceRwf'] as int? ?? 0,
       housingAllowanceRwf: map['housingAllowanceRwf'] as int? ?? 0,
+      deductions: map['deductions'] == null
+          ? DeductionRule.rssbDefaults
+          : (map['deductions'] as List)
+              .map((e) => DeductionRule.fromMap(Map<String, dynamic>.from(e as Map)))
+              .toList(),
       notificationMethod: map['notificationMethod'] as String? ?? 'email',
       isOnboardingComplete: map['isOnboardingComplete'] as bool? ?? false,
       departments: (map['departments'] as List?)?.cast<String>() ?? const [],
@@ -225,6 +289,7 @@ class CompanySettingsModel {
     'overtimeMultiplier': overtimeMultiplier,
     'transportAllowanceRwf': transportAllowanceRwf,
     'housingAllowanceRwf': housingAllowanceRwf,
+    'deductions': deductions.map((d) => d.toMap()).toList(),
     'notificationMethod': notificationMethod,
     'isOnboardingComplete': isOnboardingComplete,
     'departments': departments,
@@ -267,6 +332,7 @@ class CompanySettingsModel {
     double? overtimeMultiplier,
     int? transportAllowanceRwf,
     int? housingAllowanceRwf,
+    List<DeductionRule>? deductions,
     String? notificationMethod,
     bool? isOnboardingComplete,
     List<String>? departments,
@@ -306,6 +372,7 @@ class CompanySettingsModel {
         overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
         transportAllowanceRwf: transportAllowanceRwf ?? this.transportAllowanceRwf,
         housingAllowanceRwf: housingAllowanceRwf ?? this.housingAllowanceRwf,
+        deductions: deductions ?? this.deductions,
         notificationMethod: notificationMethod ?? this.notificationMethod,
         isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
         departments: departments ?? this.departments,

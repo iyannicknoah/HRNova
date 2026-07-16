@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import '../models/job_posting_model.dart';
 import '../providers/recruitment_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class RecruitmentScreen extends ConsumerWidget {
   const RecruitmentScreen({super.key});
@@ -43,7 +45,7 @@ class RecruitmentScreen extends ConsumerWidget {
                   // Job postings
                   Row(
                     children: [
-                      Text('Job Postings',
+                      Text(context.tr('Job Postings'),
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600, color: context.appText)),
                       const Spacer(),
@@ -92,17 +94,19 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Row(
         children: [
-          Text('Recruitment',
+          Text(context.tr('Recruitment'),
               style: TextStyle(
                   fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
           const Spacer(),
           HRNovaButton(
-            label: 'New Job Posting',
+            label: context.tr('New Job Posting'),
             icon: AppIcons.addRounded,
             isFullWidth: false,
             height: 44,
             onPressed: () => context.go('/recruitment/new'),
           ),
+          const SizedBox(width: 12),
+          const LanguageSwitcher(size: 36),
         ],
       ),
     );
@@ -118,13 +122,13 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StatCard(label: 'Open Positions', value: stats.openPositions),
+        _StatCard(label: context.tr('Open Positions'), value: stats.openPositions),
         const SizedBox(width: 12),
-        _StatCard(label: 'Total Applications', value: stats.totalApplications),
+        _StatCard(label: context.tr('Total Applications'), value: stats.totalApplications),
         const SizedBox(width: 12),
-        _StatCard(label: 'Shortlisted', value: stats.shortlisted),
+        _StatCard(label: context.tr('Shortlisted'), value: stats.shortlisted),
         const SizedBox(width: 12),
-        _StatCard(label: 'Hired', value: stats.hired),
+        _StatCard(label: context.tr('Hired'), value: stats.hired),
       ],
     );
   }
@@ -269,7 +273,7 @@ class _JobCard extends StatelessWidget {
 
               IconButton(
                 icon: AppIcon(AppIcons.editOutlined, size: 17, color: context.appSubtext),
-                tooltip: 'Edit job',
+                tooltip: context.tr('Edit job'),
                 onPressed: () => context.go('/recruitment/${job.id}/edit'),
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.all(6),
@@ -360,17 +364,17 @@ class _EmptyJobs extends StatelessWidget {
                   color: AppColors.primaryBlue, size: 34),
             ),
             const SizedBox(height: 16),
-            Text('No job postings yet',
+            Text(context.tr('No job postings yet'),
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: context.appText)),
             const SizedBox(height: 8),
-            Text('Create your first job posting to start receiving applications.',
+            Text(context.tr('Create your first job posting to start receiving applications.'),
                 style: TextStyle(fontSize: 13, color: context.appSubtext)),
             const SizedBox(height: 20),
             HRNovaButton(
-              label: 'Create Job Posting',
+              label: context.tr('Create Job Posting'),
               icon: AppIcons.addRounded,
               isFullWidth: false,
               height: 44,

@@ -5,6 +5,7 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/app_icon.dart';
 
 class SuspensionScreen extends ConsumerWidget {
@@ -68,7 +69,7 @@ class SuspensionScreen extends ConsumerWidget {
 
                   // Title
                   Text(
-                    'Account Suspended',
+                    AppLocalizations.of(context).suspTitle,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -80,7 +81,7 @@ class SuspensionScreen extends ConsumerWidget {
 
                   // Message
                   Text(
-                    "Your company's HRNovva account has been suspended. This may be due to a billing issue or a policy violation.",
+                    AppLocalizations.of(context).suspBody,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -122,7 +123,7 @@ class SuspensionScreen extends ConsumerWidget {
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 240),
                     child: HRNovaButton(
-                      label: 'Sign Out',
+                      label: AppLocalizations.of(context).suspSignOut,
                       onPressed: () =>
                           ref.read(authNotifierProvider.notifier).signOut(),
                       isFullWidth: true,

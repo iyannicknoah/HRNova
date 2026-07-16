@@ -9,7 +9,8 @@ class PayrollEngine {
   PayrollEngine._();
 
   // ── Rwanda 2025 PAYE ─────────────────────────────────────────────────────────
-  // Taxable income = adjustedGross (RSSB does NOT reduce PAYE base)
+  // Taxable income = adjustedGross (statutory — identical for all companies;
+  // company-defined deductions do NOT reduce the PAYE base)
   static double calculatePaye(double gross) {
     if (gross <= 60000) return 0;
     if (gross <= 100000) return _r((gross - 60000) * 0.20);
@@ -17,12 +18,19 @@ class PayrollEngine {
     return _r(38000 + (gross - 200000) * 0.30);
   }
 
-  // ── Individual rate helpers ────────────────────────────────────────────────
-  static double calculatePensionEmployee(double gross) => _r(gross * 0.06);
-  static double calculatePensionEmployer(double gross) => _r(gross * 0.06);
-  static double calculateMaternityEmployee(double gross) => _r(gross * 0.003);
-  static double calculateMaternityEmployer(double gross) => _r(gross * 0.003);
-  static double calculateOccupationalHazard(double gross) => _r(gross * 0.02);
+  /// Applies the company's active deduction rules for [side] on
+  /// [adjustedGross], snapshotting title + percent + computed amount.
+  static List<PayslipDeductionLine> applyDeductions(
+      List<DeductionRule> rules, String side, double adjustedGross) {
+    return rules
+        .where((r) => r.active && r.side == side)
+        .map((r) => PayslipDeductionLine(
+              title: r.title,
+              percent: r.percent,
+              amount: _r(adjustedGross * r.percent / 100),
+            ))
+        .toList();
+  }
 
   // ── Working days in a month ───────────────────────────────────────────────
   static List<String> workingDayKeysForMonth(
@@ -91,6 +99,9 @@ class PayrollEngine {
         break;
       case 'hourly_rate':
         for (final rec in attendanceMap.values) {
+          // Consistent with daily_rate: a record flagged absent (or on
+          // leave) never earns hours, even if check-in/out times exist.
+          if (rec.isAbsent || rec.isOnLeave) continue;
           if (rec.checkInTime != null && rec.checkOutTime != null) {
             totalHoursWorked +=
                 rec.checkOutTime!.difference(rec.checkInTime!).inMinutes / 60.0;
@@ -104,10 +115,13 @@ class PayrollEngine {
         break;
       default: // fixed_monthly
         baseSalary = _r(employee.salaryAmount);
-        // Count present days (for display)
+        // Count present days (for display) — absent/leave-flagged records
+        // don't count even when a check-in time was recorded.
         for (final key in workingDayKeys) {
           final rec = attendanceMap[key];
-          if (rec != null && rec.checkInTime != null) presentDays++;
+          if (rec != null && rec.checkInTime != null && !rec.isAbsent && !rec.isOnLeave) {
+            presentDays++;
+          }
         }
     }
 
@@ -119,6 +133,8 @@ class PayrollEngine {
 
     if (workdayHours > 0 && employee.salaryType != 'hourly_rate') {
       for (final rec in attendanceMap.values) {
+        // Absent/leave-flagged records never earn overtime
+        if (rec.isAbsent || rec.isOnLeave) continue;
         if (rec.checkInTime != null && rec.checkOutTime != null) {
           final hoursWorked = rec.checkOutTime!.difference(rec.checkInTime!).inMinutes / 60.0;
           if (hoursWorked > workdayHours) {
@@ -149,8 +165,12 @@ class PayrollEngine {
       for (final key in workingDayKeys) {
         final rec = attendanceMap[key];
         final hasApprovedLeave = approvedLeaveKeys.contains(key);
-        final hasAttendance = rec != null && rec.checkInTime != null;
-        if (!hasAttendance && !hasApprovedLeave) {
+        final isMarkedOnLeave = rec != null && rec.isOnLeave;
+        // A record flagged absent counts as an absent day even when a
+        // check-in time was recorded (e.g. after-hours check-in attempt).
+        final hasAttendance =
+            rec != null && rec.checkInTime != null && !rec.isAbsent;
+        if (!hasAttendance && !hasApprovedLeave && !isMarkedOnLeave) {
           absentDays++;
         }
       }
@@ -172,10 +192,11 @@ class PayrollEngine {
     final adjustedGross = _r(grossBeforeAdjustments - absentDeduction - lateDeduction)
         .clamp(0.0, double.infinity);
 
-    // ── Step 6 — RSSB employee ──────────────────────────────────────────────
-    final pensionEmployee = calculatePensionEmployee(adjustedGross);
-    final maternityEmployee = calculateMaternityEmployee(adjustedGross);
-    final totalEmployeeRssb = pensionEmployee + maternityEmployee;
+    // ── Step 6 — Company-defined employee deductions ────────────────────────
+    final employeeDeductions = applyDeductions(
+        settings.deductions, DeductionRule.sideEmployee, adjustedGross);
+    final totalEmployeeDeductionLines =
+        employeeDeductions.fold(0.0, (s, l) => s + l.amount);
 
     // ── Step 7 — PAYE ───────────────────────────────────────────────────────
     final paye = calculatePaye(adjustedGross);
@@ -194,15 +215,15 @@ class PayrollEngine {
     loanDeductions = _r(loanDeductions);
 
     // ── Step 9 — Net salary ─────────────────────────────────────────────────
-    final totalDeductions = _r(totalEmployeeRssb + paye + loanDeductions + extraDeductions);
+    final totalDeductions =
+        _r(totalEmployeeDeductionLines + paye + loanDeductions + extraDeductions);
     final netSalary = _r(adjustedGross - totalDeductions).clamp(0.0, double.infinity);
 
-    // ── Step 10 — Employer costs ────────────────────────────────────────────
-    final pensionEmployer = calculatePensionEmployer(adjustedGross);
-    final maternityEmployer = calculateMaternityEmployer(adjustedGross);
-    final occupationalHazard = calculateOccupationalHazard(adjustedGross);
-    final totalEmployerCost =
-        _r(adjustedGross + pensionEmployer + maternityEmployer + occupationalHazard);
+    // ── Step 10 — Employer costs (company-defined employer contributions) ──
+    final employerContributions = applyDeductions(
+        settings.deductions, DeductionRule.sideEmployer, adjustedGross);
+    final totalEmployerCost = _r(adjustedGross +
+        employerContributions.fold(0.0, (s, l) => s + l.amount));
 
     return PayslipModel(
       id: employee.id,
@@ -231,18 +252,14 @@ class PayrollEngine {
       totalLateMinutes: totalLateMinutes,
       lateDeduction: lateDeduction,
       adjustedGross: adjustedGross,
-      pensionEmployee: pensionEmployee,
-      maternityEmployee: maternityEmployee,
-      totalEmployeeRssb: _r(totalEmployeeRssb),
+      employeeDeductions: employeeDeductions,
+      employerContributions: employerContributions,
       paye: paye,
       loanDeductions: loanDeductions,
       extraDeductions: extraDeductions,
       extraDeductionsDescription: extraDeductionsDescription,
       totalDeductions: totalDeductions,
       netSalary: netSalary,
-      pensionEmployer: pensionEmployer,
-      maternityEmployer: maternityEmployer,
-      occupationalHazard: occupationalHazard,
       totalEmployerCost: totalEmployerCost,
       workingDays: totalWorkingDays,
       presentDays: presentDays,

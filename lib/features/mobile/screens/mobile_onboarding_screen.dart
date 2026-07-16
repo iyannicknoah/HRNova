@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
+import '../../../l10n/tr.dart';
 
 class MobileOnboardingScreen extends StatelessWidget {
   const MobileOnboardingScreen({super.key});
@@ -57,7 +58,7 @@ class MobileOnboardingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Welcome to HRNovva',
+                    context.tr('Welcome to HRNovva'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.appText,
@@ -67,7 +68,7 @@ class MobileOnboardingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Check your attendance, request leave, and view your payslips — all from your phone.',
+                    context.tr('Check your attendance, request leave, and view your payslips — all from your phone.'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.appSubtext,
@@ -78,7 +79,7 @@ class MobileOnboardingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   HRNovaButton(
-                    label: 'Signin',
+                    label: context.tr('Signin'),
                     height: 55,
                     onPressed: () => context.go('/login'),
                   ),

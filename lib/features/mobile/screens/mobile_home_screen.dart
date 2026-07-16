@@ -31,6 +31,7 @@ import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/month_nav.dart';
+import '../../../l10n/tr.dart';
 
 // Mobile-only notification providers filtered by employeeId
 final _mobileNotifsProvider =
@@ -133,31 +134,31 @@ class _MobileHomeScreenState extends ConsumerState<MobileHomeScreen> {
           elevation: 2,
           shadowColor: Colors.black.withOpacity(0.08),
           height: 64,
-          destinations: const [
+          destinations: [
             NavigationDestination(
               icon: AppIcon(AppIcons.homeOutlined),
               selectedIcon: AppIcon(AppIcons.homeRounded),
-              label: 'Home',
+              label: context.tr('Home'),
             ),
             NavigationDestination(
               icon: AppIcon(AppIcons.calendarMonthOutlined),
               selectedIcon: AppIcon(AppIcons.calendarMonthRounded),
-              label: 'Attendance',
+              label: context.tr('Attendance'),
             ),
             NavigationDestination(
               icon: AppIcon(AppIcons.beachAccessOutlined),
               selectedIcon: AppIcon(AppIcons.beachAccessRounded),
-              label: 'Leave',
+              label: context.tr('Leave'),
             ),
             NavigationDestination(
               icon: AppIcon(AppIcons.receiptLongOutlined),
               selectedIcon: AppIcon(AppIcons.receiptLongRounded),
-              label: 'Payslip',
+              label: context.tr('Payslip'),
             ),
             NavigationDestination(
               icon: AppIcon(AppIcons.personOutlineRounded),
               selectedIcon: AppIcon(AppIcons.personRounded),
-              label: 'Profile',
+              label: context.tr('Profile'),
             ),
           ],
         ),
@@ -189,7 +190,7 @@ class _HomeTab extends ConsumerWidget {
       data: (emp) {
         if (emp == null) {
           return Center(
-              child: Text('Profile not found',
+              child: Text(context.tr('Profile not found'),
                   style: TextStyle(color: context.appSubtext)));
         }
         return _HomeContent(emp: emp, greeting: _greeting());
@@ -250,7 +251,7 @@ class _HomeContent extends ConsumerWidget {
                 const SizedBox(height: 20),
                 _buildStatsGrid(context, presentCount, lateCount, annualBalance, pendingLeaves),
                 const SizedBox(height: 24),
-                Text('Recent Attendance',
+                Text(context.tr('Recent Attendance'),
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 17,
@@ -417,16 +418,16 @@ class _HomeContent extends ConsumerWidget {
       children: [
         _StatCard(
             value: '$present',
-            label: 'Present\nThis Month'),
+            label: context.tr('Present\nThis Month')),
         _StatCard(
             value: '$late',
-            label: 'Late\nThis Month'),
+            label: context.tr('Late\nThis Month')),
         _StatCard(
             value: '$annualLeft',
-            label: 'Annual Leave\nBalance'),
+            label: context.tr('Annual Leave\nBalance')),
         _StatCard(
             value: '$pending',
-            label: 'Pending\nRequests'),
+            label: context.tr('Pending\nRequests')),
       ],
     );
   }
@@ -614,7 +615,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       ),
       child: Row(
         children: [
-          Text('Attendance',
+          Text(context.tr('Attendance'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 20,
@@ -673,7 +674,7 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
         const SizedBox(height: 20),
         _calendar(context, dayMap, leaveDayNums),
         const SizedBox(height: 20),
-        Text('Details',
+        Text(context.tr('Details'),
             style: TextStyle(
                 color: context.appText,
                 fontSize: 17,
@@ -690,11 +691,11 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
   Widget _summaryRow(int present, int late, int absent) {
     return Row(
       children: [
-        _SummaryChip(label: 'Present', value: present, color: _green),
+        _SummaryChip(label: context.tr('Present'), value: present, color: _green),
         const SizedBox(width: 10),
-        _SummaryChip(label: 'Late', value: late, color: _amber),
+        _SummaryChip(label: context.tr('Late'), value: late, color: _amber),
         const SizedBox(width: 10),
-        _SummaryChip(label: 'Absent', value: absent, color: _red),
+        _SummaryChip(label: context.tr('Absent'), value: absent, color: _red),
       ],
     );
   }
@@ -809,10 +810,10 @@ class _AttendanceTabState extends ConsumerState<_AttendanceTab> {
       spacing: 14,
       runSpacing: 6,
       children: [
-        _LegendDot(color: _green, label: 'On time'),
-        _LegendDot(color: _amber, label: 'Late'),
-        _LegendDot(color: _red, label: 'Absent'),
-        _LegendDot(color: _blue, label: 'Leave'),
+        _LegendDot(color: _green, label: context.tr('On time')),
+        _LegendDot(color: _amber, label: context.tr('Late')),
+        _LegendDot(color: _red, label: context.tr('Absent')),
+        _LegendDot(color: _blue, label: context.tr('Leave')),
       ],
     );
   }
@@ -888,7 +889,7 @@ class _LeaveTab extends ConsumerWidget {
       data: (emp) {
         if (emp == null) {
           return Center(
-              child: Text('Profile not found',
+              child: Text(context.tr('Profile not found'),
                   style: TextStyle(color: context.appSubtext)));
         }
         return _LeaveContent(emp: emp);
@@ -912,14 +913,14 @@ class _LeaveContent extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Text('Leave',
+              Text(context.tr('Leave'),
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 20,
                       fontWeight: FontWeight.w600)),
               const Spacer(),
               HRNovaButton(
-                label: 'Request',
+                label: context.tr('Request'),
                 icon: AppIcons.add,
                 isFullWidth: false,
                 height: 38,
@@ -928,7 +929,7 @@ class _LeaveContent extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Text('Leave Balances',
+          Text(context.tr('Leave Balances'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 16,
@@ -945,28 +946,28 @@ class _LeaveContent extends ConsumerWidget {
             return Column(
               children: [
                 _BalanceCard(
-                    label: 'Annual Leave',
+                    label: context.tr('Annual Leave'),
                     icon: AppIcons.flightTakeoffRounded,
                     used: annualUsed,
                     total: AppConstants.annualLeaveDaysPerYear,
                     color: _blue),
                 const SizedBox(height: 10),
                 _BalanceCard(
-                    label: 'Sick Leave',
+                    label: context.tr('Sick Leave'),
                     icon: AppIcons.localHospitalRounded,
                     used: sickUsed,
                     total: AppConstants.sickLeaveDays,
                     color: _green),
                 const SizedBox(height: 10),
                 _BalanceCard(
-                    label: 'Maternity Leave',
+                    label: context.tr('Maternity Leave'),
                     icon: AppIcons.childFriendlyRounded,
                     used: maternityUsed,
                     total: AppConstants.maternityLeaveDays,
                     color: _purple),
                 const SizedBox(height: 10),
                 _BalanceCard(
-                    label: 'Paternity Leave',
+                    label: context.tr('Paternity Leave'),
                     icon: AppIcons.familyRestroomRounded,
                     used: paternityUsed,
                     total: AppConstants.paternityLeaveDays,
@@ -975,7 +976,7 @@ class _LeaveContent extends ConsumerWidget {
             );
           }),
           const SizedBox(height: 24),
-          Text('My Requests',
+          Text(context.tr('My Requests'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 16,
@@ -1192,7 +1193,7 @@ class _LeaveRequestCardState extends State<_LeaveRequestCard> {
             if (_canExtend) ...[
               const SizedBox(height: 10),
               HRNovaButton(
-                label: 'Extend Leave',
+                label: context.tr('Extend Leave'),
                 icon: AppIcons.eventRepeatRounded,
                 outlined: true,
                 height: 40,
@@ -1245,7 +1246,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
       _leaveType = orig.leaveType;
       _startDate = orig.endDate.add(const Duration(days: 1));
       _endDate = _startDate;
-      _reasonCtrl = TextEditingController(text: 'Extension of leave');
+      _reasonCtrl = TextEditingController(text: context.tr('Extension of leave'));
     } else {
       _leaveType = 'annual';
       _startDate = DateTime.now();
@@ -1390,10 +1391,10 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
             }),
             const SizedBox(height: 16),
             HRNovaTextField(
-              label: 'Reason',
+              label: context.tr('Reason'),
               controller: _reasonCtrl,
               maxLines: 3,
-              hint: 'Describe the reason...',
+              hint: context.tr('Describe the reason...'),
             ),
             Builder(builder: (context) {
               final days = WorkingDaysService.calculate(
@@ -1429,7 +1430,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
             }),
             const SizedBox(height: 28),
             HRNovaButton(
-              label: 'Submit Request',
+              label: context.tr('Submit Request'),
               isLoading: _submitting,
               onPressed: _submit,
             ),
@@ -1451,7 +1452,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
       ('paternity', 'Paternity Leave'),
     ];
     return HRNovaDropdown<String>(
-      label: 'Leave Type',
+      label: context.tr('Leave Type'),
       value: _leaveType,
       enabled: !_isExtension,
       onChanged: (v) => setState(() => _leaveType = v!),
@@ -1491,7 +1492,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
   Future<void> _submit() async {
     if (_reasonCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a reason')));
+          SnackBar(content: Text(context.tr('Please enter a reason'))));
       return;
     }
     setState(() => _submitting = true);
@@ -1511,7 +1512,7 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Leave request submitted!')),
+          SnackBar(content: Text(context.tr('Leave request submitted!'))),
         );
       }
     } catch (e) {
@@ -1562,7 +1563,7 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: Text('Payslips',
+                  child: Text(context.tr('Payslips'),
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 20,
@@ -1587,7 +1588,7 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
             children: [
               Row(
                 children: [
-                  Text('Payslips',
+                  Text(context.tr('Payslips'),
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 20,
@@ -1608,12 +1609,12 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
               _deductionsSection(context, slip),
               const SizedBox(height: 20),
               HRNovaButton(
-                label: 'Download Payslip PDF',
+                label: context.tr('Download Payslip PDF'),
                 icon: AppIcons.downloadRounded,
                 onPressed: () => _downloadPdf(context, slip),
               ),
               const SizedBox(height: 24),
-              Text('Previous Months',
+              Text(context.tr('Previous Months'),
                   style: TextStyle(
                       color: context.appText,
                       fontSize: 16,
@@ -1658,7 +1659,7 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
             style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
           ),
           const SizedBox(height: 6),
-          const Text('Net Salary',
+          Text(context.tr('Net Salary'),
               style: TextStyle(color: Colors.white, fontSize: 14)),
           const SizedBox(height: 4),
           Text(
@@ -1679,7 +1680,7 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
   Widget _earningsSection(BuildContext context, PayslipModel slip) {
     final fmt = NumberFormat('#,##0', 'en');
     return _CollapsibleSection(
-      title: 'Earnings',
+      title: context.tr('Earnings'),
       total: 'RWF ${fmt.format(slip.totalEarnings)}',
       color: _green,
       children: [
@@ -1696,13 +1697,15 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
   Widget _deductionsSection(BuildContext context, PayslipModel slip) {
     final fmt = NumberFormat('#,##0', 'en');
     return _CollapsibleSection(
-      title: 'Deductions',
+      title: context.tr('Deductions'),
       total: 'RWF ${fmt.format(slip.totalDeductions)}',
       color: _red,
       children: [
         _SlipRow('PAYE Tax', fmt.format(slip.paye)),
-        _SlipRow('RSSB Pension (6%)', fmt.format(slip.pensionEmployee)),
-        _SlipRow('Maternity Levy (0.3%)', fmt.format(slip.maternityEmployee)),
+        for (final line in slip.employeeDeductions)
+          _SlipRow(
+              '${line.title} (${line.percent % 1 == 0 ? line.percent.toStringAsFixed(0) : line.percent}%)',
+              fmt.format(line.amount)),
         if (slip.absentDeduction > 0)
           _SlipRow('Absent (${slip.absentDays}d)', fmt.format(slip.absentDeduction)),
         if (slip.lateDeduction > 0)
@@ -1724,7 +1727,7 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
       build: (c) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('HRNovva Payslip',
+          pw.Text(context.tr('HRNovva Payslip'),
               style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text('${slip.payrollMonth}  ·  ${slip.firstName} ${slip.lastName}'),
@@ -1732,36 +1735,37 @@ class _PayslipTabState extends ConsumerState<_PayslipTab> {
           pw.Divider(),
           pw.SizedBox(height: 12),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('Net Salary', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.Text(context.tr('Net Salary'), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             pw.Text('RWF ${fmt.format(slip.netSalary)}',
                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 17)),
           ]),
           pw.SizedBox(height: 16),
-          pw.Text('Earnings', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(context.tr('Earnings'), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 6),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [pw.Text('Basic Salary'), pw.Text(fmt.format(slip.baseSalary))]),
+              children: [pw.Text(context.tr('Basic Salary')), pw.Text(fmt.format(slip.baseSalary))]),
           if (slip.transportAllowance > 0)
             pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [pw.Text('Transport'), pw.Text(fmt.format(slip.transportAllowance))]),
+                children: [pw.Text(context.tr('Transport')), pw.Text(fmt.format(slip.transportAllowance))]),
           if (slip.housingAllowance > 0)
             pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [pw.Text('Housing'), pw.Text(fmt.format(slip.housingAllowance))]),
+                children: [pw.Text(context.tr('Housing')), pw.Text(fmt.format(slip.housingAllowance))]),
           pw.SizedBox(height: 12),
-          pw.Text('Deductions', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(context.tr('Deductions'), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 6),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [pw.Text('PAYE Tax'), pw.Text(fmt.format(slip.paye))]),
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [pw.Text('Employee RSSB'), pw.Text(fmt.format(slip.totalEmployeeRssb))]),
+              children: [pw.Text(context.tr('PAYE Tax')), pw.Text(fmt.format(slip.paye))]),
+          for (final line in slip.employeeDeductions)
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [pw.Text(line.title), pw.Text(fmt.format(line.amount))]),
           if (slip.loanDeductions > 0)
             pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [pw.Text('Loan Repayment'), pw.Text(fmt.format(slip.loanDeductions))]),
+                children: [pw.Text(context.tr('Loan Repayment')), pw.Text(fmt.format(slip.loanDeductions))]),
           pw.SizedBox(height: 16),
           pw.Divider(),
           pw.SizedBox(height: 8),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('NET SALARY', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.Text(context.tr('NET SALARY'), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             pw.Text('RWF ${fmt.format(slip.netSalary)}',
                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           ]),
@@ -2007,7 +2011,7 @@ class _ProfileTab extends ConsumerWidget {
       data: (emp) {
         if (emp == null) {
           return Center(
-              child: Text('Profile not found',
+              child: Text(context.tr('Profile not found'),
                   style: TextStyle(color: context.appSubtext)));
         }
         return _ProfileContent(emp: emp);
@@ -2044,7 +2048,7 @@ class _ProfileContent extends ConsumerWidget {
                     color: ctx.appBorder, borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(height: 20),
-              Text('My QR Code',
+              Text(context.tr('My QR Code'),
                   style: TextStyle(
                       color: ctx.appText, fontSize: 17, fontWeight: FontWeight.w600)),
               const SizedBox(height: 20),
@@ -2088,20 +2092,20 @@ class _ProfileContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text('${emp.firstName} ${emp.lastName}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
+                            color: context.appText)),
                     const SizedBox(height: 4),
                     Text(
                         '${emp.department} · ${emp.jobTitle.isEmpty ? "Employee" : emp.jobTitle}',
-                        style: const TextStyle(
-                            fontSize: 13, color: AppColors.textSecondary)),
+                        style: TextStyle(
+                            fontSize: 13, color: context.appSubtext)),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              HRNovaButton(label: 'Done', onPressed: () => Navigator.pop(ctx)),
+              HRNovaButton(label: context.tr('Done'), onPressed: () => Navigator.pop(ctx)),
             ],
           ),
         ),
@@ -2228,7 +2232,7 @@ class _ProfileContent extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Account
-          Text('Account',
+          Text(context.tr('Account'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 16,
@@ -2236,12 +2240,12 @@ class _ProfileContent extends ConsumerWidget {
           const SizedBox(height: 12),
           _LinkRow(
               icon: AppIcons.qrCodeScannerRounded,
-              label: 'My QR Code',
+              label: context.tr('My QR Code'),
               onTap: () => _showQrSheet(context)),
           const SizedBox(height: 24),
 
           // Personal Info
-          Text('Personal Info',
+          Text(context.tr('Personal Info'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 16,
@@ -2250,22 +2254,22 @@ class _ProfileContent extends ConsumerWidget {
           if (emp.nationalId.isNotEmpty)
             _InfoRow(
                 icon: AppIcons.badgeRounded,
-                label: 'National ID',
+                label: context.tr('National ID'),
                 value: emp.nationalId),
           if (emp.phone.isNotEmpty)
             _InfoRow(
-                icon: AppIcons.phoneRounded, label: 'Phone', value: emp.phone),
+                icon: AppIcons.phoneRounded, label: context.tr('Phone'), value: emp.phone),
           if (emp.email.isNotEmpty)
             _InfoRow(
-                icon: AppIcons.emailRounded, label: 'Email', value: emp.email),
+                icon: AppIcons.emailRounded, label: context.tr('Email'), value: emp.email),
           _InfoRow(
               icon: AppIcons.workRounded,
-              label: 'Contract',
+              label: context.tr('Contract'),
               value: emp.contractType),
           const SizedBox(height: 24),
 
           // Theme toggle
-          Text('Appearance',
+          Text(context.tr('Appearance'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 16,
@@ -2319,7 +2323,7 @@ class _ProfileContent extends ConsumerWidget {
 
           // Sign out
           HRNovaButton(
-            label: 'Sign Out',
+            label: context.tr('Sign Out'),
             icon: AppIcons.logoutRounded,
             outlined: true,
             backgroundColor: _red,
@@ -2519,7 +2523,7 @@ class _NotificationSheet extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      Text('Notifications',
+                      Text(context.tr('Notifications'),
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 18,
@@ -2528,7 +2532,7 @@ class _NotificationSheet extends StatelessWidget {
                       if (hasUnread)
                         TextButton(
                           onPressed: onReadAll,
-                          child: const Text('Mark all read',
+                          child: Text(context.tr('Mark all read'),
                               style: TextStyle(
                                   color: _blue, fontSize: 13)),
                         ),
@@ -2549,7 +2553,7 @@ class _NotificationSheet extends StatelessWidget {
                               size: 48,
                               color: context.appSubtext.withOpacity(0.4)),
                           const SizedBox(height: 10),
-                          Text('No notifications',
+                          Text(context.tr('No notifications'),
                               style: TextStyle(
                                   color: context.appSubtext, fontSize: 15)),
                         ],

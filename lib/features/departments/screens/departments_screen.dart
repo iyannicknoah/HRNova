@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -10,6 +11,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/row_actions_menu.dart';
+import '../../../l10n/tr.dart';
 
 class DepartmentsScreen extends ConsumerStatefulWidget {
   const DepartmentsScreen({super.key});
@@ -49,7 +51,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
     context: context,
     alignment: Alignment.center,
     child: _DeptDialog(
-      title: 'Add Department',
+      title: context.tr('Add Department'),
       existing: _depts ?? [],
       onConfirm: (name) => _persist([...(_depts ?? []), name]),
     ),
@@ -59,7 +61,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
     context: context,
     alignment: Alignment.center,
     child: _DeptDialog(
-      title: 'Edit Department',
+      title: context.tr('Edit Department'),
       initial: _depts![i],
       existing: (_depts ?? []).where((d) => d != _depts![i]).toList(),
       onConfirm: (name) async {
@@ -81,7 +83,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Delete Department',
+            Text(context.tr('Delete Department'),
                 style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 15),
             Text(
@@ -93,12 +95,12 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 HRNovaButton.text(
-                  label: 'Cancel',
+                  label: context.tr('Cancel'),
                   onPressed: () => Navigator.pop(context),
                   textColor: context.appSubtext,
                 ),
                 HRNovaButton(
-                  label: 'Delete',
+                  label: context.tr('Delete'),
                   isFullWidth: false,
                   backgroundColor: AppColors.errorRed,
                   onPressed: () {
@@ -138,7 +140,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
                 // ── Header ─────────────────────────────────────────────────
                 Row(children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Departments',
+                    Text(context.tr('Departments'),
                         style: TextStyle(
                           color: context.appText,
                           fontSize: 20,
@@ -163,11 +165,13 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
                       ),
                     ),
                   HRNovaButton(
-                    label: 'Add Department',
+                    label: context.tr('Add Department'),
                     icon: AppIcons.addRounded,
                     isFullWidth: false,
                     onPressed: _showAdd,
                   ),
+                  const SizedBox(width: 12),
+                  const LanguageSwitcher(size: 36),
                 ]),
                 const SizedBox(height: 28),
 
@@ -241,8 +245,8 @@ class _DeptTile extends StatelessWidget {
           ),
         ),
         RowActionsMenu(actions: [
-          RowAction(label: 'Edit', icon: AppIcons.editOutlined, onTap: onEdit),
-          RowAction(label: 'Delete', icon: AppIcons.deleteOutlineRounded, onTap: onDelete, danger: true),
+          RowAction(label: context.tr('Edit'), icon: AppIcons.editOutlined, onTap: onEdit),
+          RowAction(label: context.tr('Delete'), icon: AppIcons.deleteOutlineRounded, onTap: onDelete, danger: true),
         ]),
       ]),
     );
@@ -260,7 +264,7 @@ class _EmptyState extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         AppIcon(AppIcons.categoryOutlined, size: 64, color: context.appSubtext.withAlpha(80)),
         const SizedBox(height: 16),
-        Text('No departments yet',
+        Text(context.tr('No departments yet'),
             style: TextStyle(
               color: context.appText,
               fontSize: 18,
@@ -268,12 +272,12 @@ class _EmptyState extends StatelessWidget {
             )),
         const SizedBox(height: 8),
         Text(
-          'Add your company\'s departments to organise employees.',
+          context.tr('Add your company\'s departments to organise employees.'),
           style: TextStyle(color: context.appSubtext, fontSize: 15),
         ),
         const SizedBox(height: 24),
         HRNovaButton(
-          label: 'Add First Department',
+          label: context.tr('Add First Department'),
           icon: AppIcons.addRounded,
           isFullWidth: false,
           onPressed: onAdd,
@@ -362,11 +366,11 @@ class _DeptDialogState extends State<_DeptDialog> {
 
             // Field
             HRNovaTextField(
-              label: 'Department Name *',
+              label: context.tr('Department Name *'),
               controller: _ctrl,
               autofocus: true,
               onFieldSubmitted: (_) => _submit(),
-              hint: 'e.g. Human Resources',
+              hint: context.tr('e.g. Human Resources'),
               errorText: _error,
             ),
             const SizedBox(height: 20),
@@ -374,7 +378,7 @@ class _DeptDialogState extends State<_DeptDialog> {
             // Buttons
             Row(children: [
               Expanded(child: HRNovaButton(
-                label: 'Cancel',
+                label: context.tr('Cancel'),
                 outlined: true,
                 onPressed: _saving ? null : () => Navigator.pop(context),
               )),

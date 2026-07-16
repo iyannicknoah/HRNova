@@ -1,0 +1,41 @@
+{
+  "@@locale": "fr",
+
+  "language": "Langue",
+  "languageEnglish": "English",
+  "languageFrench": "Français",
+
+  "navDashboard": "Tableau de bord",
+  "navEmployees": "Employés",
+  "navAttendance": "Présence",
+  "navLeave": "Congés",
+  "navPayroll": "Paie",
+  "navPerformance": "Performance",
+  "navReports": "Rapports",
+  "navNovaAi": "Nova AI",
+  "navRecruitment": "Recrutement",
+  "navBranches": "Succursales",
+  "navDepartments": "Départements",
+  "navSettings": "Paramètres",
+
+  "lightMode": "Mode clair",
+  "darkMode": "Mode sombre",
+  "signOut": "Se déconnecter",
+  "logOutTitle": "Se déconnecter ?",
+  "logOutMessage": "Voulez-vous vraiment vous déconnecter de votre compte ?",
+  "logOutConfirm": "Déconnexion",
+  "cancel": "Annuler",
+
+  "loginStarting": "Démarrage de HRNovva…",
+  "loginWelcomeBack": "Bon retour",
+  "loginSubtitle": "Connectez-vous à votre compte",
+  "loginEmailLabel": "Adresse e-mail",
+  "loginEmailRequired": "Veuillez saisir votre adresse e-mail",
+  "loginPasswordLabel": "Mot de passe",
+  "loginPasswordRequired": "Veuillez saisir votre mot de passe",
+  "loginSignIn": "Se connecter",
+
+  "suspTitle": "Compte suspendu",
+  "suspBody": "Le compte HRNovva de votre entreprise a été suspendu. Cela peut être dû à un problème de facturation ou à une violation des conditions d'utilisation.",
+  "suspSignOut": "Se déconnecter"
+}

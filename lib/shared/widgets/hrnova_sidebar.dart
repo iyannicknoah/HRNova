@@ -10,6 +10,7 @@ import 'employee_avatar.dart';
 import 'notification_bell.dart';
 import '../../core/theme/app_icons.dart';
 import '../../shared/widgets/app_icon.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'confirm_dialog.dart';
 
 class _NavItem {
@@ -18,6 +19,27 @@ class _NavItem {
   final IconRef icon;
   final String route;
   final List<String>? roles;
+
+  /// Translated label — falls back to the English [label] for routes
+  /// without a translation entry yet.
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (route) {
+      '/dashboard' => l10n.navDashboard,
+      '/employees' => l10n.navEmployees,
+      '/attendance' => l10n.navAttendance,
+      '/leave' => l10n.navLeave,
+      '/payroll' => l10n.navPayroll,
+      '/performance' => l10n.navPerformance,
+      '/reports' => l10n.navReports,
+      '/nova-ai' => l10n.navNovaAi,
+      '/recruitment' => l10n.navRecruitment,
+      '/branches' => l10n.navBranches,
+      '/departments' => l10n.navDepartments,
+      '/settings' => l10n.navSettings,
+      _ => label,
+    };
+  }
 }
 
 // Routes visible to manager only
@@ -197,11 +219,12 @@ class HRNovaSidebar extends ConsumerWidget {
                 ),
                 GestureDetector(
                   onTap: () async {
+                    final l10n = AppLocalizations.of(context);
                     final confirmed = await showConfirmDialog(
                       context,
-                      title: 'Log out?',
-                      message: 'Are you sure you want to log out of your account?',
-                      confirmLabel: 'Log Out',
+                      title: l10n.logOutTitle,
+                      message: l10n.logOutMessage,
+                      confirmLabel: l10n.logOutConfirm,
                       danger: true,
                     );
                     if (confirmed) {
@@ -209,7 +232,7 @@ class HRNovaSidebar extends ConsumerWidget {
                     }
                   },
                   child: Tooltip(
-                    message: 'Sign Out',
+                    message: AppLocalizations.of(context).signOut,
                     child: Container(
                       width: 32, height: 32,
                       decoration: BoxDecoration(
@@ -268,7 +291,9 @@ class _ThemeToggleRow extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  isDark ? 'Light Mode' : 'Dark Mode',
+                  isDark
+                      ? AppLocalizations.of(context).lightMode
+                      : AppLocalizations.of(context).darkMode,
                   style: TextStyle(
                       color: context.appSubtext,
                       fontSize: 15,
@@ -337,7 +362,7 @@ class _SidebarItem extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  item.label,
+                  item.localizedLabel(context),
                   style: TextStyle(
                     color: isActive ? AppColors.primaryBlue : inactiveColor,
                     fontSize: 15,

@@ -7,9 +7,12 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
+import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/deductions_editor.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,7 +24,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _step = 0;
   bool _saving = false;
-  static const _total = 4;
+  static const _total = 5;
 
   // Step 1 — Work Schedule
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
@@ -40,7 +43,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _lateCtrl = TextEditingController(text: '500');
   final _maxLateCtrl = TextEditingController(text: '3');
 
-  // Step 4 — Notifications & Contacts
+  // Step 4 — Payroll Deductions (pre-filled with standard RSSB, fully editable)
+  List<DeductionRule> _deductions = List.of(DeductionRule.rssbDefaults);
+
+  // Step 5 — Notifications & Contacts
   final _mgrPhone = TextEditingController(text: '+250');
   final _hrPhone = TextEditingController(text: '+250');
   final _mgrEmail = TextEditingController();
@@ -107,6 +113,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _next() async {
+    if (_step == 3) {
+      // Validate deductions before leaving the step
+      if (_deductions.any((d) => d.title.trim().isEmpty) ||
+          _deductions.any((d) => d.percent <= 0 || d.percent > 100)) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.tr('Every deduction needs a title and a rate between 0 and 100%.')),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
+    }
     if (_step < _total - 1) {
       setState(() => _step++);
       return;
@@ -135,6 +153,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'directorPhone': _directorPhone.text.trim(),
         'notificationMethod': _notif,
         'rraTinNumber': _tinCtrl.text.trim(),
+        'deductions': _deductions.map((d) => d.toMap()).toList(),
         'isOnboardingComplete': true,
       };
       await ref.read(settingsNotifierProvider.notifier).updateSettings(data);
@@ -160,14 +179,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_step > 0) setState(() => _step--);
   }
 
-  static const _stepTitles = [
-    'Work Schedule', 'Leave Policy', 'Payroll Rules', 'Notifications & Contacts',
+  List<String> _stepTitles(BuildContext context) => [
+    context.tr('Work Schedule'), context.tr('Leave Policy'), context.tr('Payroll Rules'),
+    context.tr('Payroll Deductions'), context.tr('Notifications & Contacts'),
   ];
-  static const _stepSubs = [
-    'Set your company work hours and working days',
-    'Define leave entitlements for your employees',
-    'Configure salary payment and deduction rules',
-    'Set up emergency contacts and notification preferences',
+  List<String> _stepSubs(BuildContext context) => [
+    context.tr('Set your company work hours and working days'),
+    context.tr('Define leave entitlements for your employees'),
+    context.tr('Configure salary payment and deduction rules'),
+    context.tr('Define the deductions applied on every payroll run — standard RSSB rates are pre-filled'),
+    context.tr('Set up emergency contacts and notification preferences'),
   ];
 
   static const _blue = AppColors.primaryBlue;
@@ -225,11 +246,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Step ${_step + 1} of $_total', style: const TextStyle(color: _blue, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.5)),
+        Text(context.trp('Step {i} of {n}', {'i': '${_step + 1}', 'n': '$_total'}), style: const TextStyle(color: _blue, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.5)),
         const SizedBox(height: 6),
-        Text(_stepTitles[_step], style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w600)),
+        Text(_stepTitles(context)[_step], style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
-        Text(_stepSubs[_step], style: TextStyle(color: context.appSubtext, fontSize: 15)),
+        Text(_stepSubs(context)[_step], style: TextStyle(color: context.appSubtext, fontSize: 15)),
         const SizedBox(height: 24),
         Divider(color: context.appBorder, height: 1),
         const SizedBox(height: 24),
@@ -242,7 +263,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     children: [
       if (_step > 0) ...[
         HRNovaButton(
-          label: 'Back',
+          label: context.tr('Back'),
           outlined: true,
           isFullWidth: false,
           textColor: context.appText,
@@ -267,8 +288,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     0 => _buildWorkSchedule(),
     1 => _buildLeavePolicy(),
     2 => _buildPayrollRules(),
+    3 => _buildDeductions(),
     _ => _buildNotifications(),
   };
+
+  // ── Step 4: Payroll Deductions ────────────────────────────────────────────
+  Widget _buildDeductions() => DeductionsEditor(
+    deductions: _deductions,
+    onChanged: (rules) => setState(() => _deductions = rules),
+  );
 
   // ── Step 1: Work Schedule ─────────────────────────────────────────────────
   Widget _buildWorkSchedule() => Column(
@@ -280,11 +308,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Expanded(child: _timeField('Work End', _endTime, () => _pickTime(false))),
       ]),
       const SizedBox(height: 20),
-      _textField('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
+      _textField(context.tr('Grace Period'), _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
       const SizedBox(height: 20),
-      _textField('Minimum Hours Before Checkout', _minHoursCtrl, hint: '0 = no minimum', suffix: 'hours', type: TextInputType.number, allowDecimal: true),
+      _textField(context.tr('Minimum Hours Before Checkout'), _minHoursCtrl, hint: context.tr('0 = no minimum'), suffix: 'hours', type: TextInputType.number, allowDecimal: true),
       const SizedBox(height: 20),
-      Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
+      Text(context.tr('Working Days'), style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
       const SizedBox(height: 10),
       Wrap(
         spacing: 8, runSpacing: 8,
@@ -313,9 +341,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(children: [
-        Expanded(child: _textField('Annual Leave', _annualCtrl, hint: '18', suffix: 'days', type: TextInputType.number)),
+        Expanded(child: _textField(context.tr('Annual Leave'), _annualCtrl, hint: '18', suffix: 'days', type: TextInputType.number)),
         const SizedBox(width: 16),
-        Expanded(child: _textField('Sick Leave', _sickCtrl, hint: '10', suffix: 'days', type: TextInputType.number)),
+        Expanded(child: _textField(context.tr('Sick Leave'), _sickCtrl, hint: '10', suffix: 'days', type: TextInputType.number)),
       ]),
       const SizedBox(height: 20),
       Container(
@@ -329,9 +357,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Statutory Leave — Fixed by Rwanda Law', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
+                Text(context.tr('Statutory Leave — Fixed by Rwanda Law'), style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
-                Text('Maternity: 84 days  •  Paternity: 4 days\nThese are mandatory and cannot be configured.',
+                Text(context.tr('Maternity: 84 days  •  Paternity: 4 days\nThese are mandatory and cannot be configured.'),
                     style: TextStyle(color: context.appSubtext, fontSize: 14, height: 1.5)),
               ],
             )),
@@ -346,10 +374,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(children: [
-        Expanded(child: _textField('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
+        Expanded(child: _textField(context.tr('Salary Payment Day'), _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
         const SizedBox(width: 16),
         Expanded(child: HRNovaDropdown<String>(
-          label: 'Overtime Multiplier',
+          label: context.tr('Overtime Multiplier'),
           value: _overtime,
           items: ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
             value: v,
@@ -360,9 +388,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ]),
       const SizedBox(height: 20),
       Row(children: [
-        Expanded(child: _textField('Late Deduction / Hour', _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
+        Expanded(child: _textField(context.tr('Late Deduction / Hour'), _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
         const SizedBox(width: 16),
-        Expanded(child: _textField('Max Late Before Warning', _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
+        Expanded(child: _textField(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
       ]),
     ],
   );
@@ -371,37 +399,37 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildNotifications() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('Emergency Contacts', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+      Text(context.tr('Emergency Contacts'), style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 14),
-      _textField('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000'),
+      _textField(context.tr('Manager WhatsApp'), _mgrPhone, hint: '+250 788 000 000'),
       const SizedBox(height: 14),
-      _textField('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001'),
+      _textField(context.tr('HR Admin WhatsApp'), _hrPhone, hint: '+250 788 000 001'),
       const SizedBox(height: 14),
       Row(children: [
-        Expanded(child: _textField('Manager Email', _mgrEmail, hint: 'manager@company.com', type: TextInputType.emailAddress)),
+        Expanded(child: _textField(context.tr('Manager Email'), _mgrEmail, hint: context.tr('manager@company.com'), type: TextInputType.emailAddress)),
         const SizedBox(width: 16),
-        Expanded(child: _textField('HR Admin Email', _hrEmail, hint: 'hr@company.com', type: TextInputType.emailAddress)),
+        Expanded(child: _textField(context.tr('HR Admin Email'), _hrEmail, hint: context.tr('hr@company.com'), type: TextInputType.emailAddress)),
       ]),
       const SizedBox(height: 14),
       Row(children: [
-        Expanded(child: _textField('Director Email', _directorEmail, hint: 'director@company.rw', type: TextInputType.emailAddress)),
+        Expanded(child: _textField(context.tr('Director Email'), _directorEmail, hint: context.tr('director@company.rw'), type: TextInputType.emailAddress)),
         const SizedBox(width: 16),
-        Expanded(child: _textField('Director Phone', _directorPhone, hint: '+250 7XX XXX XXX')),
+        Expanded(child: _textField(context.tr('Director Phone'), _directorPhone, hint: '+250 7XX XXX XXX')),
       ]),
       const SizedBox(height: 8),
       Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: _blue.withAlpha(15), borderRadius: BorderRadius.circular(10), border: Border.all(color: _blue.withAlpha(60))),
-        child: const Row(children: [
+        child: Row(children: [
           AppIcon(AppIcons.infoOutlineRounded, color: _blue, size: 14),
           SizedBox(width: 8),
-          Expanded(child: Text('Director receives weekly and monthly HR reports automatically.', style: TextStyle(color: _blue, fontSize: 13))),
+          Expanded(child: Text(context.tr('Director receives weekly and monthly HR reports automatically.'), style: TextStyle(color: _blue, fontSize: 13))),
         ]),
       ),
       const SizedBox(height: 24),
       Divider(color: context.appBorder, height: 1),
       const SizedBox(height: 20),
-      Text('Notification Method', style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+      Text(context.tr('Notification Method'), style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 6),
       Container(
         padding: const EdgeInsets.all(12),
@@ -410,16 +438,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           children: [
             const AppIcon(AppIcons.emailOutlined, color: _blue, size: 16),
             const SizedBox(width: 8),
-            const Text('Email only', style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
+            Text(context.tr('Email only'), style: TextStyle(color: _blue, fontSize: 15, fontWeight: FontWeight.w500)),
             const Spacer(),
-            Text('WhatsApp coming in Phase 2', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+            Text(context.tr('WhatsApp coming in Phase 2'), style: TextStyle(color: context.appSubtext, fontSize: 13)),
           ],
         ),
       ),
       const SizedBox(height: 20),
       Divider(color: context.appBorder, height: 1),
       const SizedBox(height: 20),
-      _textField('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX (for RRA payroll export)'),
+      _textField(context.tr('RRA TIN Number'), _tinCtrl, hint: context.tr('102XXXXXXXXX (for RRA payroll export)')),
     ],
   );
 

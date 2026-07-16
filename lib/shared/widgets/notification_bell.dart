@@ -1,5 +1,6 @@
 ﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../l10n/tr.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
@@ -103,7 +104,7 @@ class _NotificationPanelCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
             child: Row(children: [
-              const Text('Notifications',
+              Text(context.tr('Notifications'),
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -112,15 +113,15 @@ class _NotificationPanelCard extends StatelessWidget {
               if (hasUnread)
                 GestureDetector(
                   onTap: onReadAll,
-                  child: const Text('Mark all read',
+                  child: Text(context.tr('Mark all read'),
                       style: TextStyle(
                           color: AppColors.primaryBlue, fontSize: 14)),
                 ),
               const SizedBox(width: 10),
               GestureDetector(
                 onTap: onClose,
-                child: const AppIcon(AppIcons.closeRounded,
-                    size: 17, color: AppColors.textSecondary),
+                child: AppIcon(AppIcons.closeRounded,
+                    size: 17, color: context.appSubtext),
               ),
             ]),
           ),
@@ -128,16 +129,16 @@ class _NotificationPanelCard extends StatelessWidget {
           // List
           Expanded(
             child: items.isEmpty
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         AppIcon(AppIcons.notificationsNoneRounded,
-                            size: 40, color: AppColors.textSecondary),
+                            size: 40, color: context.appSubtext),
                         SizedBox(height: 8),
-                        Text('No notifications',
+                        Text(context.tr('No notifications'),
                             style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: context.appSubtext,
                                 fontSize: 15)),
                       ],
                     ),
@@ -190,13 +191,13 @@ class _NotificationPanelCard extends StatelessWidget {
                                     Text(n['body'] as String? ?? '',
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            color: AppColors.textSecondary,
+                                        style: TextStyle(
+                                            color: context.appSubtext,
                                             fontSize: 13)),
                                     const SizedBox(height: 3),
-                                    Text(_timeAgo(n['createdAt']),
-                                        style: const TextStyle(
-                                            color: AppColors.textSecondary,
+                                    Text(_timeAgo(context, n['createdAt']),
+                                        style: TextStyle(
+                                            color: context.appSubtext,
                                             fontSize: 12)),
                                   ],
                                 ),
@@ -240,10 +241,10 @@ class _NotificationPanelCard extends StatelessWidget {
         'leave_request' => AppColors.primaryBlue,
         'leave_approved' => AppColors.successGreen,
         'leave_rejected' => AppColors.errorRed,
-        _ => AppColors.textSecondary,
+        _ => const Color(0xFF8A9BBC),
       };
 
-  String _timeAgo(dynamic ts) {
+  String _timeAgo(BuildContext context, dynamic ts) {
     DateTime? dt;
     if (ts is Timestamp) {
       dt = ts.toDate();
@@ -252,9 +253,9 @@ class _NotificationPanelCard extends StatelessWidget {
     }
     if (dt == null) return '';
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inMinutes < 1) return context.tr('Just now');
+    if (diff.inHours < 1) return context.trp('{m}m ago', {'m': '${diff.inMinutes}'});
+    if (diff.inDays < 1) return context.trp('{h}h ago', {'h': '${diff.inHours}'});
     return DateFormat('MMM d').format(dt);
   }
 }

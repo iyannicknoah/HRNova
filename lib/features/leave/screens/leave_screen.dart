@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
@@ -20,6 +21,7 @@ import '../providers/leave_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/month_nav.dart';
+import '../../../l10n/tr.dart';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -28,10 +30,10 @@ Color _leaveColor(String t) => switch (t) {
       'sick' => AppColors.successGreen,
       'maternity' => const Color(0xFF9C27B0),
       'paternity' => const Color(0xFF00897B),
-      'unpaid' => AppColors.textSecondary,
+      'unpaid' => const Color(0xFF8A9BBC),
       'emergency' => AppColors.errorRed,
       'compassionate' => const Color(0xFFFF9800),
-      _ => AppColors.textSecondary,
+      _ => const Color(0xFF8A9BBC),
     };
 
 String _typeLabel(String t) => switch (t) {
@@ -121,16 +123,18 @@ class _LeaveHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 24, 24, 16),
       child: Row(children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Leave Management',
+          Text(context.tr('Leave Management'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
-          Text('Review, approve and track employee leave',
+          Text(context.tr('Review, approve and track employee leave'),
               style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
+        const Spacer(),
+        const LanguageSwitcher(size: 36),
       ]),
     );
   }
@@ -152,17 +156,17 @@ class _LeaveTabBar extends StatelessWidget {
         tabAlignment: TabAlignment.start,
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
+        labelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(text: 'Leave Roster'),
-          Tab(text: 'Pending'),
-          Tab(text: 'All Requests'),
-          Tab(text: 'Expired'),
-          Tab(text: 'Calendar'),
+        tabs: [
+          Tab(text: context.tr('Leave Roster')),
+          Tab(text: context.tr('Pending')),
+          Tab(text: context.tr('All Requests')),
+          Tab(text: context.tr('Expired')),
+          Tab(text: context.tr('Calendar')),
         ],
       ),
     );
@@ -316,7 +320,7 @@ class _LeaveRosterTab extends ConsumerWidget {
                       child: const _MarkOnLeaveDialog(),
                     ),
                     icon: const AppIcon(AppIcons.beachAccessRounded, size: 16),
-                    label: const Text('Mark on Leave'),
+                    label: Text(context.tr('Mark on Leave')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
                       foregroundColor: Colors.white,
@@ -338,13 +342,13 @@ class _LeaveRosterTab extends ConsumerWidget {
                       AppIcon(AppIcons.peopleOutlineRounded,
                           size: 56, color: context.appSubtext.withAlpha(120)),
                       const SizedBox(height: 12),
-                      Text('No one is on leave today',
+                      Text(context.tr('No one is on leave today'),
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 17,
                               fontWeight: FontWeight.w500)),
                       const SizedBox(height: 6),
-                      Text('All employees are present.',
+                      Text(context.tr('All employees are present.'),
                           style: TextStyle(color: context.appSubtext, fontSize: 15)),
                     ]),
                   )
@@ -423,7 +427,7 @@ class _RosterCard extends StatelessWidget {
                               color: AppColors.warningAmber.withAlpha(28),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text('HR Manual',
+                            child: Text(context.tr('HR Manual'),
                                 style: TextStyle(
                                     color: AppColors.warningAmber,
                                     fontSize: 11,
@@ -453,7 +457,7 @@ class _RosterCard extends StatelessWidget {
                       ),
                     ),
                     if (!isLastDay)
-                      Text('days left',
+                      Text(context.tr('days left'),
                           style: TextStyle(
                               color: isLastDay ? AppColors.warningAmber : AppColors.successGreen,
                               fontSize: 11)),
@@ -478,7 +482,7 @@ class _RosterCard extends StatelessWidget {
                   style: TextStyle(color: context.appSubtext, fontSize: 13),
                 ),
                 const Spacer(),
-                Text('${req.totalDays} day${req.totalDays == 1 ? '' : 's'}',
+                Text(context.trp('{count} day(s)', {'count': '${req.totalDays}'}),
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 13,
@@ -545,12 +549,12 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
   Future<void> _submit() async {
     if (_selectedEmployeeId == null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please select an employee')));
+          .showSnackBar(SnackBar(content: Text(context.tr('Please select an employee'))));
       return;
     }
     if (_reasonCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please enter a reason')));
+          .showSnackBar(SnackBar(content: Text(context.tr('Please enter a reason'))));
       return;
     }
     setState(() => _submitting = true);
@@ -567,8 +571,8 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Employee marked on leave successfully'),
+          SnackBar(
+              content: Text(context.tr('Employee marked on leave successfully')),
               backgroundColor: AppColors.successGreen),
         );
       }
@@ -618,7 +622,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                         color: AppColors.primaryBlue, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  Text('Mark Employee on Leave',
+                  Text(context.tr('Mark Employee on Leave'),
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 17,
@@ -635,7 +639,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
               const SizedBox(height: 20),
 
               // Employee search + select
-              Text('Employee',
+              Text(context.tr('Employee'),
                   style: TextStyle(
                       color: context.appSubtext,
                       fontSize: 13,
@@ -764,7 +768,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
 
               // Leave type
               HRNovaDropdown<String>(
-                label: 'Leave Type',
+                label: context.tr('Leave Type'),
                 value: _leaveType,
                 onChanged: (v) => setState(() => _leaveType = v!),
                 items: _types
@@ -783,7 +787,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Start Date',
+                        Text(context.tr('Start Date'),
                             style: TextStyle(
                                 color: context.appSubtext,
                                 fontSize: 13,
@@ -814,7 +818,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('End Date',
+                        Text(context.tr('End Date'),
                             style: TextStyle(
                                 color: context.appSubtext,
                                 fontSize: 13,
@@ -859,10 +863,10 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
 
               // Reason
               HRNovaTextField(
-                label: 'Reason / Notes',
+                label: context.tr('Reason / Notes'),
                 controller: _reasonCtrl,
                 maxLines: 2,
-                hint: 'E.g. Employee came in person to request leave...',
+                hint: context.tr('E.g. Employee came in person to request leave...'),
               ),
               const SizedBox(height: 20),
 
@@ -871,7 +875,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                 children: [
                   Expanded(
                     child: HRNovaButton(
-                      label: 'Cancel',
+                      label: context.tr('Cancel'),
                       onPressed: () => Navigator.of(context).pop(),
                       backgroundColor: context.isDark ? AppColors.darkCard : AppColors.backgroundBlue,
                       textColor: context.appText,
@@ -881,7 +885,7 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: HRNovaButton(
-                      label: 'Mark on Leave',
+                      label: context.tr('Mark on Leave'),
                       onPressed: _submitting ? null : _submit,
                       isLoading: _submitting,
                       height: 45,
@@ -945,13 +949,13 @@ class _PendingTab extends ConsumerWidget {
                     size: 56,
                     color: AppColors.successGreen.withAlpha(180)),
                 const SizedBox(height: 12),
-                Text('No pending requests',
+                Text(context.tr('No pending requests'),
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 17,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 6),
-                Text('All leave requests have been processed.',
+                Text(context.tr('All leave requests have been processed.'),
                     style: TextStyle(
                         color: context.appSubtext, fontSize: 15)),
               ]),
@@ -996,12 +1000,12 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
       if (mounted) {
         if (conflict != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Already handled by $conflict'),
+            content: Text(context.trp('Already handled by {name}', {'name': '$conflict'})),
             backgroundColor: AppColors.warningAmber,
           ));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Leave approved for ${widget.request.employeeName}'),
+            content: Text(context.trp('Leave approved for {name}', {'name': widget.request.employeeName})),
             backgroundColor: AppColors.successGreen,
           ));
         }
@@ -1090,7 +1094,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('FROM',
+                            Text(context.tr('FROM'),
                                 style: TextStyle(
                                     color: context.appSubtext,
                                     fontSize: 12,
@@ -1110,7 +1114,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('TO',
+                            Text(context.tr('TO'),
                                 style: TextStyle(
                                     color: context.appSubtext,
                                     fontSize: 12,
@@ -1133,7 +1137,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: const Color(0xFF1565C0).withAlpha(20), borderRadius: BorderRadius.circular(100)),
-                        child: const Text('Extension', style: TextStyle(color: Color(0xFF1565C0), fontSize: 12, fontWeight: FontWeight.w500)),
+                        child: Text(context.tr('Extension'), style: TextStyle(color: Color(0xFF1565C0), fontSize: 12, fontWeight: FontWeight.w500)),
                       ),
                     if (req.leaveType == 'sick' && req.totalDays >= 3)
                       Container(
@@ -1154,7 +1158,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                 ],
                 if (req.reason.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('Reason: ${req.reason}',
+                  Text(context.trp('Reason: {reason}', {'reason': req.reason}),
                       style: TextStyle(
                           color: context.appSubtext, fontSize: 14),
                       maxLines: 2,
@@ -1172,7 +1176,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                       minimumSize: const Size(90, 44),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+                    child: Text(context.tr('Decline'), style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
                   ),
                   const SizedBox(width: 10),
                   FilledButton(
@@ -1187,7 +1191,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                     child: _loading
                         ? const SizedBox(width: 14, height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15)),
+                        : Text(context.tr('Approve'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 15)),
                   ),
                 ]),
               ]),
@@ -1221,7 +1225,7 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
     final reason = _ctrl.text.trim();
     if (reason.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please provide a reason')));
+          SnackBar(content: Text(context.tr('Please provide a reason'))));
       return;
     }
     setState(() => _loading = true);
@@ -1233,12 +1237,12 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
         Navigator.pop(context);
         if (conflict != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Already handled by $conflict'),
+            content: Text(context.trp('Already handled by {name}', {'name': '$conflict'})),
             backgroundColor: AppColors.warningAmber,
           ));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Leave request declined')));
+              SnackBar(content: Text(context.tr('Leave request declined'))));
         }
       }
     } catch (e) {
@@ -1272,7 +1276,7 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text('Decline Leave Request',
+                    child: Text(context.tr('Decline Leave Request'),
                         style: TextStyle(
                             color: context.appText,
                             fontSize: 17,
@@ -1291,17 +1295,17 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
                         color: context.appSubtext, fontSize: 15)),
                 const SizedBox(height: 16),
                 HRNovaTextField(
-                  label: 'Reason for declining *',
+                  label: context.tr('Reason for declining *'),
                   controller: _ctrl,
                   maxLines: 3,
                   autofocus: true,
-                  hint: 'e.g. Critical deadline, insufficient notice…',
+                  hint: context.tr('e.g. Critical deadline, insufficient notice…'),
                 ),
                 const SizedBox(height: 20),
                 Row(children: [
                   Expanded(
                     child: HRNovaButton.text(
-                      label: 'Cancel',
+                      label: context.tr('Cancel'),
                       onPressed: () => Navigator.pop(context),
                       textColor: context.appSubtext,
                     ),
@@ -1309,7 +1313,7 @@ class _RejectDialogState extends ConsumerState<_RejectDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: HRNovaButton(
-                      label: 'Decline',
+                      label: context.tr('Decline'),
                       onPressed: _loading ? null : _reject,
                       isLoading: _loading,
                       backgroundColor: AppColors.errorRed,
@@ -1408,7 +1412,7 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
             onChanged: (v) => setState(() => _statusFilter = v),
           ),
           const SizedBox(width: 10),
-          Text('${filtered.length} result${filtered.length != 1 ? "s" : ""}',
+          Text(context.trp('{count} result(s)', {'count': '${filtered.length}'}),
               style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
       ),
@@ -1421,7 +1425,7 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: AppTableHeader(
-                columns: const ['EMPLOYEE', 'TYPE', 'FROM', 'TO', 'DAYS', 'STATUS', 'SOURCE'],
+                columns: [context.tr('EMPLOYEE'), context.tr('TYPE'), context.tr('FROM'), context.tr('TO'), context.tr('DAYS'), context.tr('STATUS'), context.tr('SOURCE')],
                 flex: const [24, 12, 12, 12, 7, 10, 7],
               ),
             ),
@@ -1430,7 +1434,7 @@ class _AllRequestsTabState extends ConsumerState<_AllRequestsTab> {
                   ? const Center(child: CircularProgressIndicator())
                   : filtered.isEmpty
                       ? Center(
-                          child: Text('No requests found',
+                          child: Text(context.tr('No requests found'),
                               style: TextStyle(
                                   color: context.appSubtext,
                                   fontSize: 15)))
@@ -1534,7 +1538,7 @@ class _RequestRowState extends ConsumerState<_RequestRow> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0xFF1565C0).withAlpha(20), borderRadius: BorderRadius.circular(100)),
-                child: const Text('Leave Extension', style: TextStyle(color: Color(0xFF1565C0), fontSize: 13, fontWeight: FontWeight.w500)),
+                child: Text(context.tr('Leave Extension'), style: TextStyle(color: Color(0xFF1565C0), fontSize: 13, fontWeight: FontWeight.w500)),
               ),
             ],
             // Doctor's note badge for sick leave >= 3 days
@@ -1616,14 +1620,14 @@ class _RequestRowState extends ConsumerState<_RequestRow> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Override to ${newStatus == 'approved' ? 'Approved' : 'Rejected'}',
+            Text(context.trp('Override to {status}', {'status': newStatus == 'approved' ? context.tr('Approved') : context.tr('Rejected')}),
                 style: TextStyle(color: ctx.appText, fontSize: 16, fontWeight: FontWeight.w500)),
             const SizedBox(height: 14),
             HRNovaTextField(
-              label: 'Reason',
+              label: context.tr('Reason'),
               controller: ctrl,
               autofocus: true,
-              hint: 'Reason for override',
+              hint: context.tr('Reason for override'),
               maxLines: 2,
             ),
             const SizedBox(height: 20),
@@ -1631,12 +1635,12 @@ class _RequestRowState extends ConsumerState<_RequestRow> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 HRNovaButton.text(
-                  label: 'Cancel',
+                  label: context.tr('Cancel'),
                   onPressed: () => Navigator.pop(ctx),
                   textColor: ctx.appSubtext,
                 ),
                 HRNovaButton.text(
-                  label: 'Confirm Override',
+                  label: context.tr('Confirm Override'),
                   onPressed: () async {
                     final reason = ctrl.text.trim();
                     if (reason.isEmpty) return;
@@ -1648,7 +1652,7 @@ class _RequestRowState extends ConsumerState<_RequestRow> {
                       );
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Decision overridden to $newStatus'), backgroundColor: AppColors.warningAmber),
+                          SnackBar(content: Text(context.trp('Decision overridden to {status}', {'status': newStatus})), backgroundColor: AppColors.warningAmber),
                         );
                       }
                     } catch (e) {
@@ -1755,10 +1759,10 @@ class _ExpiredTab extends ConsumerWidget {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               AppIcon(AppIcons.eventAvailableRounded, size: 56, color: AppColors.successGreen.withAlpha(180)),
               const SizedBox(height: 12),
-              Text('No expired requests',
+              Text(context.tr('No expired requests'),
                   style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
-              Text('All pending leave requests are still within their period.',
+              Text(context.tr('All pending leave requests are still within their period.'),
                   style: TextStyle(color: context.appSubtext, fontSize: 15)),
             ]),
           );
@@ -1769,7 +1773,7 @@ class _ExpiredTab extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
             child: Row(children: [
-              Text('${expired.length} expired request${expired.length != 1 ? "s" : ""}',
+              Text(context.trp('{count} expired request(s)', {'count': '${expired.length}'}),
                   style: TextStyle(color: context.appSubtext, fontSize: 15)),
               const Spacer(),
               Container(
@@ -1781,7 +1785,7 @@ class _ExpiredTab extends ConsumerWidget {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   AppIcon(AppIcons.infoOutlineRounded, size: 14, color: context.pillAmberText),
                   const SizedBox(width: 6),
-                  Text('Pending requests whose leave period has already ended',
+                  Text(context.tr('Pending requests whose leave period has already ended'),
                       style: TextStyle(color: context.pillAmberText, fontSize: 13)),
                 ]),
               ),
@@ -1799,13 +1803,13 @@ class _ExpiredTab extends ConsumerWidget {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   ),
                   child: Row(children: [
-                    Expanded(flex: 24, child: Text('EMPLOYEE', style: s)),
-                    Expanded(flex: 12, child: Text('TYPE', style: s)),
-                    Expanded(flex: 12, child: Text('FROM', style: s)),
-                    Expanded(flex: 12, child: Text('TO', style: s)),
-                    Expanded(flex: 7, child: Text('DAYS', style: s)),
-                    Expanded(flex: 12, child: Text('EXPIRED', style: s)),
-                    Expanded(flex: 8, child: Text('SOURCE', style: s)),
+                    Expanded(flex: 24, child: Text(context.tr('EMPLOYEE'), style: s)),
+                    Expanded(flex: 12, child: Text(context.tr('TYPE'), style: s)),
+                    Expanded(flex: 12, child: Text(context.tr('FROM'), style: s)),
+                    Expanded(flex: 12, child: Text(context.tr('TO'), style: s)),
+                    Expanded(flex: 7, child: Text(context.tr('DAYS'), style: s)),
+                    Expanded(flex: 12, child: Text(context.tr('EXPIRED'), style: s)),
+                    Expanded(flex: 8, child: Text(context.tr('SOURCE'), style: s)),
                   ]),
                 ),
                 Divider(height: 1, color: context.appBorder),
@@ -2116,7 +2120,7 @@ class _CalendarCell extends StatelessWidget {
                   )),
             ]),
             const SizedBox(height: 3),
-            Text('${entries.length} on leave',
+            Text(context.trp('{count} on leave', {'count': '${entries.length}'}),
                 style: TextStyle(color: context.appSubtext, fontSize: 9.5, fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis),
           ],
@@ -2145,7 +2149,7 @@ class _OnLeavePanel extends StatelessWidget {
             Row(children: [
               AppIcon(AppIcons.beachAccessRounded, size: 15, color: AppColors.primaryBlue),
               const SizedBox(width: 8),
-              Text('On Leave', style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
+              Text(context.tr('On Leave'), style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w600)),
             ]),
             const SizedBox(height: 2),
             Text(
@@ -2163,7 +2167,7 @@ class _OnLeavePanel extends StatelessWidget {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       AppIcon(AppIcons.checkCircleOutlineRounded, size: 32, color: context.appSubtext.withAlpha(120)),
                       const SizedBox(height: 8),
-                      Text('Nobody on leave this day',
+                      Text(context.tr('Nobody on leave this day'),
                           textAlign: TextAlign.center,
                           style: TextStyle(color: context.appSubtext, fontSize: 13)),
                     ]),

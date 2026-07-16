@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +23,7 @@ import '../providers/performance_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/month_nav.dart';
+import '../../../l10n/tr.dart';
 
 class PerformanceScreen extends ConsumerStatefulWidget {
   const PerformanceScreen({super.key});
@@ -117,14 +119,14 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
             child: Row(
               children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Performance Management',
+                  Text(context.tr('Performance Management'),
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 24,
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.5)),
                   const SizedBox(height: 2),
-                  Text('Track and evaluate employee performance',
+                  Text(context.tr('Track and evaluate employee performance'),
                       style: TextStyle(color: context.appSubtext, fontSize: 15)),
                 ]),
                 const Spacer(),
@@ -143,6 +145,8 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                   onPrev: _prevMonth,
                   onNext: _nextMonth,
                 ),
+                const SizedBox(width: 12),
+                const LanguageSwitcher(size: 36),
               ],
             ),
           ),
@@ -207,7 +211,7 @@ class _BranchFilterDrop extends StatelessWidget {
           items: [
             DropdownMenuItem(
               value: 'all',
-              child: Text('All Branches', style: TextStyle(color: context.appText, fontSize: 14)),
+              child: Text(context.tr('All Branches'), style: TextStyle(color: context.appText, fontSize: 14)),
             ),
             ...branches.map((b) => DropdownMenuItem(
                   value: b.id,
@@ -353,14 +357,14 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
       if (mounted) {
         if (scoreNext) {
           _selectNextUnscored();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Saved — loading next employee'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('Saved — loading next employee')),
             backgroundColor: AppColors.primaryBlue,
             duration: Duration(seconds: 1),
           ));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Score saved successfully'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('Score saved successfully')),
             backgroundColor: AppColors.successGreen,
           ));
         }
@@ -502,7 +506,7 @@ class _ManagerScoringViewState extends ConsumerState<_ManagerScoringView> {
                   child: employeesAsync.isLoading
                       ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
                       : allEmployees.isEmpty
-                          ? Center(child: Text('No employees found', style: TextStyle(color: context.appSubtext)))
+                          ? Center(child: Text(context.tr('No employees found'), style: TextStyle(color: context.appSubtext)))
                           : ListView(
                               children: [
                                 for (final dept in sortedDepts) ...[
@@ -794,7 +798,7 @@ class _ScorePanelState extends State<_ScorePanel> {
           Divider(color: context.appBorder, height: 1),
           const SizedBox(height: 16),
           // Criteria sliders
-          Text('Scoring Criteria',
+          Text(context.tr('Scoring Criteria'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 15,
@@ -881,7 +885,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                     ),
                   ),
                 ]),
-                Text('Weight: ${c.weight.toStringAsFixed(0)}%',
+                Text(context.trp('Weight: {w}%', {'w': c.weight.toStringAsFixed(0)}),
                     style: TextStyle(color: context.appSubtext, fontSize: 12)),
               ]),
             );
@@ -891,14 +895,14 @@ class _ScorePanelState extends State<_ScorePanel> {
           const SizedBox(height: 14),
           // Manager notes
           HRNovaTextField(
-            label: 'Manager Notes',
+            label: context.tr('Manager Notes'),
             controller: widget.notesCtrl,
             maxLines: 3,
-            hint: 'Optional notes for this employee...',
+            hint: context.tr('Optional notes for this employee...'),
           ),
           const SizedBox(height: 14),
           // AI Review section
-          Text('AI Performance Review',
+          Text(context.tr('AI Performance Review'),
               style: TextStyle(
                   color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
@@ -916,7 +920,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: AppColors.primaryBlue)),
                 const SizedBox(width: 12),
-                Text('Generating AI review...',
+                Text(context.tr('Generating AI review...'),
                     style: TextStyle(color: context.appSubtext, fontSize: 15)),
               ]),
             )
@@ -932,7 +936,7 @@ class _ScorePanelState extends State<_ScorePanel> {
               TextButton.icon(
                 onPressed: widget.generatingAi ? null : widget.onGenerateAi,
                 icon: const AppIcon(AppIcons.refreshRounded, size: 14),
-                label: const Text('Regenerate', style: TextStyle(fontSize: 14)),
+                label: Text(context.tr('Regenerate'), style: TextStyle(fontSize: 14)),
                 style: TextButton.styleFrom(foregroundColor: AppColors.primaryBlue),
               ),
             ])
@@ -940,7 +944,7 @@ class _ScorePanelState extends State<_ScorePanel> {
             FilledButton.icon(
               onPressed: widget.onGenerateAi,
               icon: const AppIcon(AppIcons.autoAwesomeRounded, size: 16),
-              label: const Text('Generate AI Review'),
+              label: Text(context.tr('Generate AI Review')),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue.withAlpha(200),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -971,7 +975,7 @@ class _ScorePanelState extends State<_ScorePanel> {
                 child: FilledButton.icon(
                   onPressed: widget.saving ? null : widget.onSaveAndNext,
                   icon: const AppIcon(AppIcons.skipNextRounded, size: 16),
-                  label: const Text('Save & Next'),
+                  label: Text(context.tr('Save & Next')),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF9B59B6),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1025,7 +1029,7 @@ class _AutoCriterionRow extends StatelessWidget {
                   color: AppColors.primaryBlue.withAlpha(22),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('Auto',
+                child: Text(context.tr('Auto'),
                     style: TextStyle(
                         color: AppColors.primaryBlue,
                         fontSize: 10,
@@ -1069,7 +1073,7 @@ class _AutoCriterionRow extends StatelessWidget {
                     color: sliderColor, fontSize: 17, fontWeight: FontWeight.w700)),
           ),
         ]),
-        Text('Weight: ${criterion.weight.toStringAsFixed(0)}% · Computed from attendance records',
+        Text(context.trp('Weight: {w}% · Computed from attendance records', {'w': criterion.weight.toStringAsFixed(0)}),
             style: TextStyle(color: context.appSubtext, fontSize: 12)),
       ]),
     );
@@ -1169,7 +1173,7 @@ class _HRDashboardView extends ConsumerWidget {
         Row(children: [
           Expanded(
             child: MetricCard(
-              label: 'Company Average',
+              label: context.tr('Company Average'),
               value: scores.isEmpty ? '—' : companyAvg.toStringAsFixed(1),
               subtitle: '${scores.length} scored this month',
             ),
@@ -1177,7 +1181,7 @@ class _HRDashboardView extends ConsumerWidget {
           const SizedBox(width: 14),
           Expanded(
             child: MetricCard(
-              label: 'Top Department',
+              label: context.tr('Top Department'),
               value: topDept?.key ?? '—',
               subtitle: topDept != null
                   ? '${topDept.value.toStringAsFixed(1)}/5 avg'
@@ -1187,7 +1191,7 @@ class _HRDashboardView extends ConsumerWidget {
           const SizedBox(width: 14),
           Expanded(
             child: MetricCard(
-              label: 'Lowest Department',
+              label: context.tr('Lowest Department'),
               value: lowestDept?.key ?? '—',
               subtitle: lowestDept != null
                   ? '${lowestDept.value.toStringAsFixed(1)}/5 avg'
@@ -1197,7 +1201,7 @@ class _HRDashboardView extends ConsumerWidget {
           const SizedBox(width: 14),
           Expanded(
             child: MetricCard(
-              label: 'Not Scored',
+              label: context.tr('Not Scored'),
               value: notScoredEmployees.length.toString(),
               subtitle: notScoredEmployees.isEmpty
                   ? 'All employees scored'
@@ -1218,7 +1222,7 @@ class _HRDashboardView extends ConsumerWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Department Performance',
+                      Text(context.tr('Department Performance'),
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 15,
@@ -1241,14 +1245,14 @@ class _HRDashboardView extends ConsumerWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Top Performers',
+                      Text(context.tr('Top Performers'),
                           style: TextStyle(
                               color: context.appText,
                               fontSize: 15,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 14),
                       if (top5.isEmpty)
-                        Text('No scores this month',
+                        Text(context.tr('No scores this month'),
                             style: TextStyle(
                                 color: context.appSubtext, fontSize: 15))
                       else
@@ -1484,7 +1488,7 @@ class _BranchComparisonCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: context.cardDeco(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Branch Comparison',
+        Text(context.tr('Branch Comparison'),
             style: TextStyle(
                 color: context.appText,
                 fontSize: 15,
@@ -1522,7 +1526,7 @@ class _AttentionCard extends StatelessWidget {
           const AppIcon(AppIcons.warningAmberRounded,
               color: AppColors.warningAmber, size: 18),
           const SizedBox(width: 8),
-          Text('Needs Attention (${scores.length})',
+          Text(context.trp('Needs Attention ({count})', {'count': '${scores.length}'}),
               style: const TextStyle(
                   color: AppColors.warningAmber,
                   fontSize: 15,
@@ -1586,7 +1590,7 @@ class _AutoOnlyCard extends StatelessWidget {
           const AppIcon(AppIcons.autoAwesomeRounded,
               color: AppColors.primaryBlue, size: 18),
           const SizedBox(width: 8),
-          Text('Auto-Scored Only — Manager Review Pending (${employees.length})',
+          Text(context.trp('Auto-Scored Only — Manager Review Pending ({count})', {'count': '${employees.length}'}),
               style: const TextStyle(
                   color: AppColors.primaryBlue,
                   fontSize: 15,
@@ -1594,7 +1598,7 @@ class _AutoOnlyCard extends StatelessWidget {
         ]),
         const SizedBox(height: 4),
         Text(
-          'Attendance & Punctuality computed automatically. Manager has not scored other criteria yet.',
+          context.tr('Attendance & Punctuality computed automatically. Manager has not scored other criteria yet.'),
           style: TextStyle(color: context.appSubtext, fontSize: 13),
         ),
         const SizedBox(height: 12),
@@ -1637,7 +1641,7 @@ class _NotScoredCard extends StatelessWidget {
         Row(children: [
           AppIcon(AppIcons.pendingOutlined, color: context.appSubtext, size: 18),
           const SizedBox(width: 8),
-          Text('Not Yet Scored (${employees.length})',
+          Text(context.trp('Not Yet Scored ({count})', {'count': '${employees.length}'}),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 15,

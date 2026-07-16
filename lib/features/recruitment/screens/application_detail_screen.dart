@@ -13,6 +13,7 @@ import '../models/application_model.dart';
 import '../providers/recruitment_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class ApplicationDetailScreen extends ConsumerWidget {
   const ApplicationDetailScreen({
@@ -50,7 +51,7 @@ class ApplicationDetailScreen extends ConsumerWidget {
         data: (app) {
           if (app == null) {
             return Center(
-                child: Text('Application not found',
+                child: Text(context.tr('Application not found'),
                     style: TextStyle(color: context.appSubtext)));
           }
           return _DetailBody(app: app, jobId: jobId, companyId: companyId);
@@ -105,7 +106,7 @@ class _DetailBody extends ConsumerWidget {
 
               if (app.cvUrl != null)
                 HRNovaButton(
-                  label: 'Download CV',
+                  label: context.tr('Download CV'),
                   icon: AppIcons.downloadRounded,
                   outlined: true,
                   backgroundColor: context.appSubtext,
@@ -119,7 +120,7 @@ class _DetailBody extends ConsumerWidget {
               if (app.status == 'pending' || app.status == 'shortlisted') ...[
                 if (app.status != 'shortlisted')
                   HRNovaButton(
-                    label: 'Decline',
+                    label: context.tr('Decline'),
                     outlined: true,
                     backgroundColor: AppColors.errorRed,
                     isFullWidth: false,
@@ -169,7 +170,7 @@ class _DetailBody extends ConsumerWidget {
                           // Cover Letter
                           if (app.coverLetter?.isNotEmpty == true) ...[
                             _Card(
-                              title: 'Cover Letter',
+                              title: context.tr('Cover Letter'),
                               child: Text(app.coverLetter!,
                                   style: TextStyle(
                                       fontSize: 14,
@@ -220,7 +221,7 @@ class _DetailBody extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Decline Application',
+            Text(context.tr('Decline Application'),
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
             const SizedBox(height: 15),
             Text(
@@ -232,12 +233,12 @@ class _DetailBody extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 HRNovaButton.text(
-                  label: 'Cancel',
+                  label: context.tr('Cancel'),
                   onPressed: () => Navigator.pop(context),
                   textColor: context.appSubtext,
                 ),
                 HRNovaButton(
-                  label: 'Decline',
+                  label: context.tr('Decline'),
                   isFullWidth: false,
                   backgroundColor: AppColors.errorRed,
                   onPressed: () async {
@@ -272,7 +273,7 @@ class _AiScorePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      title: 'AI Screening Analysis',
+      title: context.tr('AI Screening Analysis'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -291,13 +292,13 @@ class _AiScorePanel extends StatelessWidget {
           ],
 
           // Score bars
-          _ScoreBar(label: 'Qualification', score: app.aiQualificationScore),
+          _ScoreBar(label: context.tr('Qualification'), score: app.aiQualificationScore),
           const SizedBox(height: 10),
-          _ScoreBar(label: 'Experience', score: app.aiExperienceScore),
+          _ScoreBar(label: context.tr('Experience'), score: app.aiExperienceScore),
           const SizedBox(height: 10),
-          _ScoreBar(label: 'Skills Match', score: app.aiSkillsScore),
+          _ScoreBar(label: context.tr('Skills Match'), score: app.aiSkillsScore),
           const SizedBox(height: 10),
-          _ScoreBar(label: 'Communication', score: app.aiCommunicationScore),
+          _ScoreBar(label: context.tr('Communication'), score: app.aiCommunicationScore),
         ],
       ),
     );
@@ -364,7 +365,7 @@ class _StrengthsConcerns extends StatelessWidget {
         if (app.aiStrengths.isNotEmpty)
           Expanded(
             child: _Card(
-              title: 'Strengths',
+              title: context.tr('Strengths'),
               child: Column(
                 children: app.aiStrengths.map((s) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -391,7 +392,7 @@ class _StrengthsConcerns extends StatelessWidget {
         if (app.aiConcerns.isNotEmpty)
           Expanded(
             child: _Card(
-              title: 'Concerns',
+              title: context.tr('Concerns'),
               child: Column(
                 children: app.aiConcerns.map((c) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -426,7 +427,7 @@ class _ApplicantInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      title: 'Applicant',
+      title: context.tr('Applicant'),
       child: Column(
         children: [
           _InfoRow(icon: AppIcons.emailOutlined, label: app.email),
@@ -485,7 +486,7 @@ class _InterviewInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      title: 'Interview',
+      title: context.tr('Interview'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -539,7 +540,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
             Text('Shortlist ${widget.app.applicantName}',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: context.appText)),
             const SizedBox(height: 15),
-            Text('The applicant will be moved to Shortlisted status.',
+            Text(context.tr('The applicant will be moved to Shortlisted status.'),
                 style: TextStyle(fontSize: 13, color: context.appSubtext)),
             const SizedBox(height: 16),
             Row(
@@ -550,7 +551,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                   activeColor: AppColors.primaryBlue,
                 ),
                 const SizedBox(width: 8),
-                Text('Also send interview invitation email',
+                Text(context.tr('Also send interview invitation email'),
                     style: TextStyle(fontSize: 13, color: context.appText)),
               ],
             ),
@@ -595,14 +596,14 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
               HRNovaTextField(
                 label: '',
                 controller: _timeCtrl,
-                hint: 'Time (e.g. 10:00 AM)',
+                hint: context.tr('Time (e.g. 10:00 AM)'),
                 prefixIcon: AppIcons.accessTimeRounded,
               ),
               const SizedBox(height: 8),
               HRNovaTextField(
                 label: '',
                 controller: _locationCtrl,
-                hint: 'Location or meeting link',
+                hint: context.tr('Location or meeting link'),
                 prefixIcon: AppIcons.locationOnOutlined,
               ),
             ],
@@ -611,7 +612,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 HRNovaButton.text(
-                  label: 'Cancel',
+                  label: context.tr('Cancel'),
                   onPressed: () => Navigator.pop(context),
                   textColor: context.appSubtext,
                 ),
@@ -625,7 +626,7 @@ class _ShortlistDialogState extends ConsumerState<_ShortlistDialog> {
                       : () async {
                           if (_sendInvite && _interviewDate == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please select an interview date')));
+                                SnackBar(content: Text(context.tr('Please select an interview date'))));
                             return;
                           }
                           final ok = await ref

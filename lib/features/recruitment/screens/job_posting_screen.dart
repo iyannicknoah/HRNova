@@ -18,6 +18,7 @@ import '../providers/recruitment_provider.dart';
 import 'application_detail_screen.dart' show AiScoreBadge, RecommendationBadge;
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 // jobId == null → create form
@@ -50,7 +51,7 @@ class _JobEditLoader extends ConsumerWidget {
         if (job == null) {
           return Scaffold(
             body: Center(
-              child: Text('Job not found', style: TextStyle(color: Colors.grey)),
+              child: Text(context.tr('Job not found'), style: TextStyle(color: Colors.grey)),
             ),
           );
         }
@@ -130,7 +131,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
     if (!_formKey.currentState!.validate()) return;
     if (_department.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a department')));
+          SnackBar(content: Text(context.tr('Please select a department'))));
       return;
     }
     final data = {
@@ -155,7 +156,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
       if (!mounted) return;
       if (ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Job updated successfully')));
+            SnackBar(content: Text(context.tr('Job updated successfully'))));
         context.go('/recruitment/${widget.initialJob!.id}');
       } else {
         final err = ref.read(recruitmentNotifierProvider).error;
@@ -236,18 +237,18 @@ class _JobFormState extends ConsumerState<_JobForm> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Basic Info
-                        _Section(title: 'Basic Information', children: [
+                        _Section(title: context.tr('Basic Information'), children: [
                           HRNovaTextField(
-                            label: 'Job Title',
+                            label: context.tr('Job Title'),
                             controller: _title,
-                            hint: 'e.g. Senior Accountant',
+                            hint: context.tr('e.g. Senior Accountant'),
                             validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
                           HRNovaDropdown<String>(
-                            label: 'Department',
+                            label: context.tr('Department'),
                             value: _department.isEmpty ? null : _department,
-                            hint: 'Select department',
+                            hint: context.tr('Select department'),
                             items: _departments.map((d) => DropdownMenuItem(
                               value: d,
                               child: Text(d),
@@ -260,7 +261,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                             children: [
                               Expanded(
                                 child: HRNovaDropdown<int>(
-                                  label: 'Min. Years Experience',
+                                  label: context.tr('Min. Years Experience'),
                                   value: _minExperience,
                                   items: List.generate(11, (i) => DropdownMenuItem(
                                     value: i,
@@ -272,7 +273,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: _Field(
-                                  label: 'Application Deadline',
+                                  label: context.tr('Application Deadline'),
                                   child: InkWell(
                                     onTap: () async {
                                       final d = await showDatePicker(
@@ -317,25 +318,25 @@ class _JobFormState extends ConsumerState<_JobForm> {
                         const SizedBox(height: 20),
 
                         // Description & Requirements
-                        _Section(title: 'Job Details', children: [
+                        _Section(title: context.tr('Job Details'), children: [
                           HRNovaTextField(
-                            label: 'Job Description',
+                            label: context.tr('Job Description'),
                             controller: _description,
                             maxLines: 5,
-                            hint: 'Describe the role, responsibilities, and daily tasks...',
+                            hint: context.tr('Describe the role, responsibilities, and daily tasks...'),
                             validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
                           HRNovaTextField(
-                            label: 'Requirements',
+                            label: context.tr('Requirements'),
                             controller: _requirements,
                             maxLines: 4,
-                            hint: 'Qualifications, certifications, education...',
+                            hint: context.tr('Qualifications, certifications, education...'),
                             validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
                           _Field(
-                            label: 'Required Skills',
+                            label: context.tr('Required Skills'),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -359,7 +360,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                       child: HRNovaTextField(
                                         label: '',
                                         controller: _skillInput,
-                                        hint: 'Type a skill and press Enter',
+                                        hint: context.tr('Type a skill and press Enter'),
                                         onFieldSubmitted: (_) => _addSkill(),
                                       ),
                                     ),
@@ -378,13 +379,13 @@ class _JobFormState extends ConsumerState<_JobForm> {
                         const SizedBox(height: 20),
 
                         // Salary
-                        _Section(title: 'Salary (Optional)', children: [
+                        _Section(title: context.tr('Salary (Optional)'), children: [
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 child: HRNovaTextField(
-                                  label: 'Min Salary (RWF)',
+                                  label: context.tr('Min Salary (RWF)'),
                                   controller: _salaryMin,
                                   keyboardType: TextInputType.number,
                                   hint: 'e.g. 200000',
@@ -402,7 +403,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: HRNovaTextField(
-                                  label: 'Max Salary (RWF)',
+                                  label: context.tr('Max Salary (RWF)'),
                                   controller: _salaryMax,
                                   keyboardType: TextInputType.number,
                                   hint: 'e.g. 350000',
@@ -428,7 +429,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                                 activeColor: AppColors.primaryBlue,
                               ),
                               const SizedBox(width: 8),
-                              Text('Show salary range to applicants',
+                              Text(context.tr('Show salary range to applicants'),
                                   style: TextStyle(fontSize: 13, color: context.appText)),
                             ],
                           ),
@@ -436,9 +437,9 @@ class _JobFormState extends ConsumerState<_JobForm> {
                         const SizedBox(height: 20),
 
                         // AI Screening
-                        _Section(title: 'AI Screening Criteria', children: [
+                        _Section(title: context.tr('AI Screening Criteria'), children: [
                           Text(
-                            'Describe your ideal candidate in plain language. Nova AI will use this to score and rank applications automatically.',
+                            context.tr('Describe your ideal candidate in plain language. Nova AI will use this to score and rank applications automatically.'),
                             style: TextStyle(fontSize: 13, color: context.appSubtext, height: 1.5),
                           ),
                           const SizedBox(height: 12),
@@ -447,7 +448,7 @@ class _JobFormState extends ConsumerState<_JobForm> {
                             controller: _aiCriteria,
                             maxLines: 4,
                             hint:
-                                'e.g. Looking for someone with strong Excel skills, at least 3 years in a finance role, good communication, and experience with payroll systems...',
+                                context.tr('e.g. Looking for someone with strong Excel skills, at least 3 years in a finance role, good communication, and experience with payroll systems...'),
                           ),
                         ]),
                         const SizedBox(height: 28),
@@ -536,11 +537,11 @@ class _SuccessView extends StatelessWidget {
                       color: AppColors.successGreen, size: 40),
                 ),
                 const SizedBox(height: 20),
-                Text('Job Published!',
+                Text(context.tr('Job Published!'),
                     style: TextStyle(
                         fontSize: 22, fontWeight: FontWeight.w700, color: context.appText)),
                 const SizedBox(height: 8),
-                Text('Your job posting is live. Share the link below to start receiving applications.',
+                Text(context.tr('Your job posting is live. Share the link below to start receiving applications.'),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: context.appSubtext, height: 1.5)),
                 const SizedBox(height: 24),
@@ -568,9 +569,9 @@ class _SuccessView extends StatelessWidget {
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: publicUrl));
                           ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Link copied!')));
+                              SnackBar(content: Text(context.tr('Link copied!'))));
                         },
-                        tooltip: 'Copy link',
+                        tooltip: context.tr('Copy link'),
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
                       ),
@@ -589,7 +590,7 @@ class _SuccessView extends StatelessWidget {
                       openInNewTab('https://wa.me/?text=$msg');
                     },
                     icon: const AppIcon(AppIcons.shareRounded, size: 18),
-                    label: const Text('Share via WhatsApp'),
+                    label: Text(context.tr('Share via WhatsApp')),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -604,7 +605,7 @@ class _SuccessView extends StatelessWidget {
                   children: [
                     Expanded(
                       child: HRNovaButton(
-                        label: 'Back to Recruitment',
+                        label: context.tr('Back to Recruitment'),
                         outlined: true,
                         backgroundColor: context.appSubtext,
                         height: 44,
@@ -615,7 +616,7 @@ class _SuccessView extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: HRNovaButton(
-                          label: 'View Applications',
+                          label: context.tr('View Applications'),
                           height: 44,
                           onPressed: () => context.go('/recruitment/$jobId'),
                         ),
@@ -710,11 +711,11 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                 if (job?.publicLink.isNotEmpty == true)
                   IconButton(
                     icon: const AppIcon(AppIcons.linkRounded, color: AppColors.primaryBlue),
-                    tooltip: 'Copy public link',
+                    tooltip: context.tr('Copy public link'),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: job!.publicLink));
                       ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied!')));
+                          SnackBar(content: Text(context.tr('Link copied!'))));
                     },
                   ),
 
@@ -722,7 +723,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                 OutlinedButton.icon(
                   onPressed: () => _showEditDialog(context, job),
                   icon: const AppIcon(AppIcons.editOutlined, size: 16),
-                  label: const Text('Edit Job'),
+                  label: Text(context.tr('Edit Job')),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -765,7 +766,7 @@ class _JobApplicationsPageState extends ConsumerState<_JobApplicationsPage> {
                   color: context.appCard,
                   child: Row(
                     children: [
-                      Text('Filter:',
+                      Text(context.tr('Filter:'),
                           style: TextStyle(fontSize: 12, color: context.appSubtext)),
                       const SizedBox(width: 8),
                       ...[
@@ -890,7 +891,7 @@ class _PendingRejectionsBanner extends StatelessWidget {
           ),
           TextButton(
             onPressed: onSend,
-            child: const Text('Send Rejections',
+            child: Text(context.tr('Send Rejections'),
                 style: TextStyle(
                     color: AppColors.errorRed, fontWeight: FontWeight.w600)),
           ),
@@ -998,7 +999,7 @@ class _ApplicationCard extends ConsumerWidget {
                 children: [
                   const AppIcon(AppIcons.hourglassEmptyRounded,
                       color: AppColors.warningAmber, size: 20),
-                  Text('Screening',
+                  Text(context.tr('Screening'),
                       style: TextStyle(fontSize: 11, color: context.appSubtext)),
                 ],
               ),
@@ -1093,22 +1094,22 @@ class _EditJobDialogState extends ConsumerState<_EditJobDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Edit Job',
+          Text(context.tr('Edit Job'),
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.appText)),
-          const SizedBox(height: 15),
-          Text('Status', style: TextStyle(fontSize: 13, color: context.appSubtext)),
-          const SizedBox(height: 8),
+          SizedBox(height: 15),
+          Text(context.tr('Status'), style: TextStyle(fontSize: 13, color: context.appSubtext)),
+          SizedBox(height: 8),
           SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'draft', label: Text('Draft'), icon: AppIcon(AppIcons.editOutlined, size: 14)),
-              ButtonSegment(value: 'open', label: Text('Open'), icon: AppIcon(AppIcons.publicRounded, size: 14)),
-              ButtonSegment(value: 'closed', label: Text('Closed'), icon: AppIcon(AppIcons.lockOutline, size: 14)),
+            segments: [
+              ButtonSegment(value: 'draft', label: Text(context.tr('Draft')), icon: AppIcon(AppIcons.editOutlined, size: 14)),
+              ButtonSegment(value: 'open', label: Text(context.tr('Open')), icon: AppIcon(AppIcons.publicRounded, size: 14)),
+              ButtonSegment(value: 'closed', label: Text(context.tr('Closed')), icon: AppIcon(AppIcons.lockOutline, size: 14)),
             ],
             selected: {_status},
             onSelectionChanged: (s) => setState(() => _status = s.first),
           ),
           const SizedBox(height: 16),
-          Text('Deadline', style: TextStyle(fontSize: 13, color: context.appSubtext)),
+          Text(context.tr('Deadline'), style: TextStyle(fontSize: 13, color: context.appSubtext)),
           const SizedBox(height: 8),
           InkWell(
             borderRadius: BorderRadius.circular(12),
@@ -1147,13 +1148,13 @@ class _EditJobDialogState extends ConsumerState<_EditJobDialog> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               HRNovaButton.text(
-                label: 'Cancel',
+                label: context.tr('Cancel'),
                 onPressed: () => Navigator.pop(context),
                 textColor: context.appSubtext,
               ),
               const SizedBox(width: 4),
               HRNovaButton(
-                label: 'Save',
+                label: context.tr('Save'),
                 isLoading: notifier.loading,
                 isFullWidth: false,
                 height: 40,

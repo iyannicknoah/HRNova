@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -6,6 +7,7 @@ import '../../../core/theme/theme_ext.dart';
 import '../providers/reports_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 // ── Standalone screen (route: /nova-ai) ──────────────────────────────────────
 class NovaAiScreen extends StatelessWidget {
@@ -37,7 +39,7 @@ class NovaAiScreen extends StatelessWidget {
                           child: const Text('BETA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primaryBlue, letterSpacing: 0.4)),
                         ),
                       ]),
-                      Text('Your HR assistant, grounded in your company\'s live data', style: TextStyle(fontSize: 12, color: context.appSubtext)),
+                      Text(context.tr('Your HR assistant, grounded in your company\'s live data'), style: TextStyle(fontSize: 12, color: context.appSubtext)),
                     ],
                   ),
                 ),
@@ -98,6 +100,13 @@ class _NovaAiViewState extends ConsumerState<NovaAiView> {
 
     return Column(
       children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
+          child: Row(children: [
+            Spacer(),
+            LanguageSwitcher(size: 36),
+          ]),
+        ),
         Expanded(
           child: state.messages.isEmpty
               ? _EmptyState(onSuggestion: _send)
@@ -148,10 +157,10 @@ class _EmptyState extends StatelessWidget {
             child: const AppIcon(AppIcons.autoAwesomeRounded, color: Colors.white, size: 34),
           ),
           const SizedBox(height: 16),
-          Text('Ask Nova anything', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
+          Text(context.tr('Ask Nova anything'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText)),
           const SizedBox(height: 6),
           Text(
-            'Ask about attendance, leaves, performance, or payroll.\nNova uses your company\'s real-time data.',
+            context.tr('Ask about attendance, leaves, performance, or payroll.\nNova uses your company\'s real-time data.'),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: context.appSubtext, height: 1.6),
           ),

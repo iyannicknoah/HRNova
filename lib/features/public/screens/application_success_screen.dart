@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class ApplicationSuccessScreen extends StatelessWidget {
   const ApplicationSuccessScreen({super.key});
@@ -59,7 +60,7 @@ class ApplicationSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                const Text('Application Submitted!',
+                Text(context.tr('Application Submitted!'),
                     style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -67,8 +68,8 @@ class ApplicationSuccessScreen extends StatelessWidget {
                     textAlign: TextAlign.center),
                 const SizedBox(height: 12),
 
-                const Text(
-                  'Thank you for applying. We have received your application and will be in touch soon.\n\nPlease check your email for a confirmation.',
+                Text(
+                  context.tr('Thank you for applying. We have received your application and will be in touch soon.\n\nPlease check your email for a confirmation.'),
                   style: TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -88,22 +89,22 @@ class ApplicationSuccessScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('What happens next?',
+                      Text(context.tr('What happens next?'),
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primaryBlue)),
                       const SizedBox(height: 12),
-                      _Step(number: '1', text: 'Our team reviews your application'),
-                      _Step(number: '2', text: 'Shortlisted candidates are contacted for an interview'),
-                      _Step(number: '3', text: 'Final decision is communicated by email'),
+                      _Step(number: '1', text: context.tr('Our team reviews your application')),
+                      _Step(number: '2', text: context.tr('Shortlisted candidates are contacted for an interview')),
+                      _Step(number: '3', text: context.tr('Final decision is communicated by email')),
                     ],
                   ),
                 ),
                 const SizedBox(height: 28),
 
                 HRNovaButton(
-                  label: 'Back to Job Board',
+                  label: context.tr('Back to Job Board'),
                   outlined: true,
                   isFullWidth: false,
                   textColor: AppColors.textSecondary,

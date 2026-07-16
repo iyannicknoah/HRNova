@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
@@ -16,6 +17,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../l10n/tr.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/row_actions_menu.dart';
 
@@ -118,18 +120,18 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                       AppIcon(AppIcons.peopleOutline, size: 64, color: context.appSubtext),
                       const SizedBox(height: 12),
                       Text(
-                        isSearching ? 'No employees match your filters' : 'No employees yet',
+                        isSearching ? context.tr('No employees match your filters') : context.tr('No employees yet'),
                         style: TextStyle(color: context.appSubtext, fontSize: 16),
                       ),
                       if (!isSearching) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Get started by adding your first employee',
+                          context.tr('Get started by adding your first employee'),
                           style: TextStyle(color: context.appSubtext, fontSize: 15),
                         ),
                         const SizedBox(height: 20),
                         HRNovaButton(
-                          label: 'Add First Employee',
+                          label: context.tr('Add First Employee'),
                           onPressed: _openAdd,
                           icon: AppIcons.addRounded,
                           isFullWidth: false,
@@ -157,9 +159,10 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   Future<void> _confirmDeactivate(BuildContext context, EmployeeModel e) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Deactivate Employee?',
-      message: '${e.fullName} will be marked inactive. This does not delete their data.',
-      confirmLabel: 'Deactivate',
+      title: context.tr('Deactivate Employee?'),
+      message: context.trp('{name} will be marked inactive. This does not delete their data.',
+          {'name': e.fullName}),
+      confirmLabel: context.tr('Deactivate'),
       danger: true,
     );
     if (confirmed != true) return;
@@ -173,23 +176,24 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   Future<void> _confirmDelete(BuildContext context, EmployeeModel e) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete Employee?',
-      message: '${e.fullName} will be permanently removed from the employee list and lose access immediately. '
-          'This cannot be undone — attendance and leave records are preserved.',
-      confirmLabel: 'Delete',
+      title: context.tr('Delete Employee?'),
+      message: context.trp(
+          '{name} will be permanently removed from the employee list and lose access immediately. This cannot be undone — attendance and leave records are preserved.',
+          {'name': e.fullName}),
+      confirmLabel: context.tr('Delete'),
       danger: true,
     );
     if (confirmed != true) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(children: [
-        SizedBox(
+        const SizedBox(
           width: 16, height: 16,
           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
         ),
-        SizedBox(width: 12),
-        Text('Deleting employee…'),
+        const SizedBox(width: 12),
+        Text(context.tr('Deleting employee…')),
       ]),
-      duration: Duration(seconds: 30),
+      duration: const Duration(seconds: 30),
       behavior: SnackBarBehavior.floating,
     ));
     try {
@@ -198,7 +202,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${e.fullName} deleted'), backgroundColor: AppColors.successGreen),
+          SnackBar(content: Text(context.trp('{name} deleted', {'name': e.fullName})), backgroundColor: AppColors.successGreen),
         );
       }
     } catch (err) {
@@ -250,7 +254,7 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Employees',
+              Text(context.tr('Employees'),
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -264,7 +268,7 @@ class _Header extends StatelessWidget {
                         : context.pillBlueBg,
                     borderRadius: BorderRadius.circular(20)),
                 child: Text(
-                    hasLimit ? '$count / $max' : '$count Active',
+                    hasLimit ? '$count / $max' : context.trp('{count} Active', {'count': '$count'}),
                     style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -276,7 +280,7 @@ class _Header extends StatelessWidget {
               if (showAdd) ...[
                 if (atLimit)
                   Tooltip(
-                    message: 'Employee limit reached. Contact your administrator.',
+                    message: context.tr('Employee limit reached. Contact your administrator.'),
                     child: FilledButton.icon(
                       onPressed: null,
                       style: FilledButton.styleFrom(
@@ -286,18 +290,20 @@ class _Header extends StatelessWidget {
                         disabledForegroundColor: AppColors.errorRed,
                       ),
                       icon: const AppIcon(AppIcons.blockRounded, size: 16),
-                      label: const Text('Limit Reached',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
+                      label: Text(context.tr('Limit Reached'),
+                          style: const TextStyle(fontWeight: FontWeight.w500)),
                     ),
                   )
                 else
                   HRNovaButton(
-                    label: 'Add Employee',
+                    label: context.tr('Add Employee'),
                     onPressed: onAdd ?? () {},
                     icon: AppIcons.addRounded,
                     isFullWidth: false,
                   ),
               ],
+              const SizedBox(width: 12),
+              const LanguageSwitcher(size: 36),
             ],
           ),
           if (hasLimit) ...[
@@ -317,8 +323,8 @@ class _Header extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 atLimit
-                    ? 'Limit reached'
-                    : '${max - count} slot${max - count == 1 ? '' : 's'} remaining',
+                    ? context.tr('Limit reached')
+                    : context.trp('{count} slot(s) remaining', {'count': '${max - count}'}),
                 style: TextStyle(
                     fontSize: 13,
                     color: atLimit ? AppColors.errorRed : context.appSubtext,
@@ -372,8 +378,8 @@ class _FilterBar extends StatelessWidget {
           SizedBox(
             width: 260,
             child: HRNovaTextField(
-              label: 'Search',
-              hint: 'Search name, ID or email…',
+              label: context.tr('Search'),
+              hint: context.tr('Search name, ID or email…'),
               controller: searchCtrl,
               onChanged: onSearch,
               prefixIcon: AppIcons.search,
@@ -389,28 +395,28 @@ class _FilterBar extends StatelessWidget {
                 _DropFilter(
                   value: deptFilter,
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('All Departments')),
+                    DropdownMenuItem(value: 'all', child: Text(context.tr('All Departments'))),
                     ...departments.map((d) => DropdownMenuItem(value: d, child: Text(d))),
                   ],
                   onChanged: onDept,
                 ),
                 _DropFilter(
                   value: contractFilter,
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Contracts')),
-                    DropdownMenuItem(value: 'permanent', child: Text('Permanent')),
-                    DropdownMenuItem(value: 'fixed_term', child: Text('Fixed Term')),
-                    DropdownMenuItem(value: 'probation', child: Text('Probation')),
-                    DropdownMenuItem(value: 'part_time', child: Text('Part Time')),
+                  items: [
+                    DropdownMenuItem(value: 'all', child: Text(context.tr('All Contracts'))),
+                    DropdownMenuItem(value: 'permanent', child: Text(context.tr('Permanent'))),
+                    DropdownMenuItem(value: 'fixed_term', child: Text(context.tr('Fixed Term'))),
+                    DropdownMenuItem(value: 'probation', child: Text(context.tr('Probation'))),
+                    DropdownMenuItem(value: 'part_time', child: Text(context.tr('Part Time'))),
                   ],
                   onChanged: onContract,
                 ),
                 _DropFilter(
                   value: statusFilter,
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Statuses')),
-                    DropdownMenuItem(value: 'active', child: Text('Active')),
-                    DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                  items: [
+                    DropdownMenuItem(value: 'all', child: Text(context.tr('All Statuses'))),
+                    DropdownMenuItem(value: 'active', child: Text(context.tr('Active'))),
+                    DropdownMenuItem(value: 'inactive', child: Text(context.tr('Inactive'))),
                   ],
                   onChanged: onStatus,
                 ),
@@ -418,7 +424,7 @@ class _FilterBar extends StatelessWidget {
                   _DropFilter(
                     value: branchFilter ?? 'all',
                     items: [
-                      const DropdownMenuItem(value: 'all', child: Text('All Branches')),
+                      DropdownMenuItem(value: 'all', child: Text(context.tr('All Branches'))),
                       ...branches.map((b) => DropdownMenuItem(value: b.id as String, child: Text(b.name as String))),
                     ],
                     onChanged: (v) => onBranch(v == 'all' ? null : v),
@@ -476,9 +482,9 @@ class _EmployeeTable extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: AppTableHeader(
               columns: [
-                'EMPLOYEE', 'DEPARTMENT', 'JOB TITLE', 'CONTRACT',
-                if (canEdit) 'SALARY',
-                'STATUS', 'ACTIONS',
+                context.tr('EMPLOYEE'), context.tr('DEPARTMENT'), context.tr('JOB TITLE'), context.tr('CONTRACT'),
+                if (canEdit) context.tr('SALARY'),
+                context.tr('STATUS'), context.tr('ACTIONS'),
               ],
               flex: [30, 18, 18, 15, if (canEdit) 17, 12, 14],
             ),
@@ -502,16 +508,16 @@ class _EmployeeTable extends StatelessWidget {
                       ])),
                       Expanded(flex: 18, child: Text(e.department, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: context.appText))),
                       Expanded(flex: 18, child: Text(e.jobTitle.isEmpty ? '—' : e.jobTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: context.appText), overflow: TextOverflow.ellipsis)),
-                      Expanded(flex: 15, child: Align(alignment: Alignment.centerLeft, child: _Chip(_ctLabel(e.contractType), context.pillBlueBg, context.pillBlueText))),
+                      Expanded(flex: 15, child: Align(alignment: Alignment.centerLeft, child: _Chip(context.tr(_ctLabel(e.contractType)), context.pillBlueBg, context.pillBlueText))),
                       if (canEdit) Expanded(flex: 17, child: Text(_salaryStr(e), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: context.appText))),
                       Expanded(flex: 12, child: Align(alignment: Alignment.centerLeft, child: StatusBadge.fromString(e.status))),
                       Expanded(flex: 14, child: Align(
                         alignment: Alignment.centerRight,
                         child: RowActionsMenu(actions: [
-                          RowAction(label: 'View Profile', icon: AppIcons.visibilityOutlined, onTap: () => onView(e)),
-                          if (canEdit) RowAction(label: 'Edit', icon: AppIcons.editOutlined, onTap: () => onEdit(e)),
-                          if (canEdit && e.isActive) RowAction(label: 'Deactivate', icon: AppIcons.blockOutlined, onTap: () => onDeactivate(e)),
-                          if (canEdit) RowAction(label: 'Delete', icon: AppIcons.deleteOutlineRounded, onTap: () => onDelete(e), danger: true),
+                          RowAction(label: context.tr('View Profile'), icon: AppIcons.visibilityOutlined, onTap: () => onView(e)),
+                          if (canEdit) RowAction(label: context.tr('Edit'), icon: AppIcons.editOutlined, onTap: () => onEdit(e)),
+                          if (canEdit && e.isActive) RowAction(label: context.tr('Deactivate'), icon: AppIcons.blockOutlined, onTap: () => onDeactivate(e)),
+                          if (canEdit) RowAction(label: context.tr('Delete'), icon: AppIcons.deleteOutlineRounded, onTap: () => onDelete(e), danger: true),
                         ]),
                       )),
                     ]),

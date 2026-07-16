@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
@@ -24,6 +24,7 @@ import '../../../core/utils/download_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/row_actions_menu.dart';
+import '../../../l10n/tr.dart';
 
 final _numFmt = NumberFormat('#,##0', 'en_US');
 String _rwf(double v) => 'RWF ${_numFmt.format(v.round())}';
@@ -55,9 +56,6 @@ class PayrollScreen extends ConsumerStatefulWidget {
 
 class _PayrollScreenState extends ConsumerState<PayrollScreen> {
   bool _approving  = false;
-  bool _sending    = false;
-  int  _sendProgress = 0;
-  int  _sendTotal    = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -95,15 +93,8 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         payslipsAsync: const AsyncData([]),
                         approving:    _approving,
                         onApprove:    () => _approve(month),
-                        onSend:       null,
-                        sending:      _sending,
-                        sendProgress: _sendProgress,
-                        sendTotal:    _sendTotal,
                         onExportRra:  () => _export(month, 'rra-paye'),
-                        onExportRssb: () => _export(month, 'rssb'),
                         onExportPayroll: () => _export(month, 'payroll'),
-                        onExportPayrollPdf: () => _exportPayrollPdf(
-                            month, calcState.payslips, settings?.companyName ?? 'Company'),
                         settings:     settings,
                         onRecalculate: null,
                       );
@@ -115,15 +106,8 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                       payslipsAsync: payslipsAsync,
                       approving:     _approving,
                       onApprove:     run?.status == 'draft' ? () => _approve(month) : null,
-                      onSend:        run?.status == 'approved' ? _sendPayslips : null,
-                      sending:       _sending,
-                      sendProgress:  _sendProgress,
-                      sendTotal:     _sendTotal,
                       onExportRra:   () => _export(month, 'rra-paye'),
-                      onExportRssb:  () => _export(month, 'rssb'),
                       onExportPayroll: () => _export(month, 'payroll'),
-                      onExportPayrollPdf: () => _exportPayrollPdf(
-                          month, payslipsAsync.value ?? [], settings?.companyName ?? 'Company'),
                       settings:      settings,
                       onRecalculate: run?.status == 'draft'
                           ? () => _deleteDraftAndRecalc(month)
@@ -143,10 +127,9 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
       context: context,
       alignment: Alignment.center,
       child: _ConfirmDialog(
-        title: 'Approve & Lock Payroll?',
-        body: 'This locks the ${_monthLabel(month)} payroll permanently. '
-              'Loan balances will be updated. This cannot be undone.',
-        confirmLabel: 'Approve',
+        title: context.tr('Approve & Lock Payroll?'),
+        body: context.trp('This locks the {month} payroll permanently. Loan balances will be updated. This cannot be undone.', {'month': _monthLabel(month)}),
+        confirmLabel: context.tr('Approve'),
         confirmColor: AppColors.successGreen,
       ),
     );
@@ -166,38 +149,6 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     }
   }
 
-  Future<void> _sendPayslips() async {
-    final month    = ref.read(_selectedMonthProvider);
-    final payslips = ref.read(payslipsByMonthProvider(month)).value ?? [];
-    final settings = ref.read(companySettingsProvider).value;
-    final pending  = payslips.where((p) => !p.emailSent).toList();
-    if (pending.isEmpty) {
-      _snack('All payslips already sent', AppColors.primaryBlue);
-      return;
-    }
-
-    setState(() { _sending = true; _sendProgress = 0; _sendTotal = pending.length; });
-    int sent = 0;
-    for (final ps in pending) {
-      try {
-        final doc    = await PayslipPdfService.generatePayslip(ps, settings?.companyName ?? 'Company');
-        final bytes  = await doc.save();
-        final b64    = base64Encode(bytes);
-        await ApiService().post('/api/exports/send-payslip', data: {
-          'employeeId':   ps.employeeId,
-          'payrollMonth': month,
-          'pdfBase64':    b64,
-        });
-        sent++;
-      } catch (_) {}
-      if (mounted) setState(() => _sendProgress = sent);
-    }
-    if (mounted) {
-      setState(() => _sending = false);
-      _snack('Sent $sent of ${pending.length} payslips', AppColors.successGreen);
-    }
-  }
-
   Future<void> _export(String month, String type) async {
     final companyId = ref.read(currentCompanyIdProvider);
     if (companyId == null) return;
@@ -205,8 +156,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
       final bytes = await ApiService().getBytes('/api/exports/$type/$companyId/$month');
       final label = switch (type) {
         'rra-paye' => 'RRA_PAYE',
-        'rssb' => 'RSSB',
-        'payroll' => 'Payroll_Bank_Payment',
+        'payroll' => 'Payroll',
         _ => type,
       };
       downloadBytes(bytes, 'HRNovva_${label}_$month.xlsx',
@@ -216,29 +166,14 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     }
   }
 
-  Future<void> _exportPayrollPdf(String month, List<PayslipModel> payslips, String companyName) async {
-    if (payslips.isEmpty) {
-      _snack('No payroll data to export', AppColors.warningAmber);
-      return;
-    }
-    try {
-      final doc = await PayslipPdfService.generatePayrollBankSummary(payslips, companyName, month);
-      final bytes = await doc.save();
-      downloadBytes(bytes, 'HRNovva_Payroll_Bank_Payment_$month.pdf', 'application/pdf');
-    } catch (e) {
-      if (mounted) _snack('PDF export failed: $e', AppColors.errorRed);
-    }
-  }
-
   Future<void> _deleteDraftAndRecalc(String month) async {
     final ok = await AppDialogShell.show<bool>(
       context: context,
       alignment: Alignment.center,
       child: _ConfirmDialog(
-        title: 'Delete Draft & Recalculate?',
-        body: 'This deletes the saved ${_monthLabel(month)} draft and re-runs the calculation. '
-              'Any manual bonus or deduction adjustments will be lost.',
-        confirmLabel: 'Recalculate',
+        title: context.tr('Delete Draft & Recalculate?'),
+        body: context.trp('This deletes the saved {month} draft and re-runs the calculation. Any manual bonus or deduction adjustments will be lost.', {'month': _monthLabel(month)}),
+        confirmLabel: context.tr('Recalculate'),
         confirmColor: AppColors.warningAmber,
       ),
     );
@@ -277,10 +212,10 @@ class _TopBar extends ConsumerWidget {
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         // Title
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Payroll',
+          Text(context.tr('Payroll'),
               style: TextStyle(color: context.appText, fontSize: 20,
                   fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-          Text('Rwanda 2025 · PAYE + RSSB',
+          Text(context.tr('Rwanda 2025 · PAYE + Company Deductions'),
               style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
 
@@ -288,13 +223,14 @@ class _TopBar extends ConsumerWidget {
 
         // Status pill
         if (isApproved)
-          const StatusBadge(text: 'Approved', type: StatusType.success)
+          StatusBadge(text: context.tr('Approved'), type: StatusType.success)
         else if (isDraft)
-          const StatusBadge(text: 'Draft', type: StatusType.warning)
+          StatusBadge(text: context.tr('Draft'), type: StatusType.warning)
         else if (calcState.payslips.isNotEmpty)
-          const StatusBadge(text: 'Calculated', type: StatusType.info),
+          StatusBadge(text: context.tr('Calculated'), type: StatusType.info),
 
         const Spacer(),
+        const LanguageSwitcher(size: 36),
       ]),
     );
   }
@@ -374,6 +310,11 @@ class _PreRunLayout extends ConsumerWidget {
     final label = _monthLabel(month);
     final empCount = ref.watch(Provider.autoDispose(
         (r) => r.watch(employeesProvider).value?.where((e) => e.isActive).length ?? 0));
+    final deductionRules =
+        ref.watch(companySettingsProvider).value?.deductions.where((d) => d.active).toList() ?? [];
+    final employeeRules = deductionRules.where((d) => d.side == 'employee').toList();
+    final employerRules = deductionRules.where((d) => d.side == 'employer').toList();
+    String pct(double p) => p % 1 == 0 ? '${p.toStringAsFixed(0)}%' : '$p%';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
@@ -386,7 +327,7 @@ class _PreRunLayout extends ConsumerWidget {
             // Text
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Company Payroll — $label',
+                Text(context.trp('Company Payroll — {month}', {'month': label}),
                     style: TextStyle(
                         color: context.appText,
                         fontSize: 18,
@@ -395,8 +336,8 @@ class _PreRunLayout extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   empCount > 0
-                      ? 'Will process salaries for $empCount active employees at once'
-                      : 'Processes all active employees in one run',
+                      ? context.trp('Will process salaries for {count} active employees at once', {'count': '$empCount'})
+                      : context.tr('Processes all active employees in one run'),
                   style: TextStyle(color: context.appSubtext, fontSize: 15),
                 ),
               ]),
@@ -429,7 +370,7 @@ class _PreRunLayout extends ConsumerWidget {
                   const AppIcon(AppIcons.calculateRounded,
                       color: AppColors.primaryBlue, size: 16),
                   const SizedBox(width: 8),
-                  Text('What gets calculated for each employee',
+                  Text(context.tr('What gets calculated for each employee'),
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 15,
@@ -437,12 +378,18 @@ class _PreRunLayout extends ConsumerWidget {
                 ]),
                 const SizedBox(height: 16),
                 ...[
-                  (AppIcons.attachMoneyRounded,     AppColors.successGreen,         'Base Salary',       'Monthly, daily or hourly rate'),
-                  (AppIcons.accountBalanceRounded,  AppColors.primaryBlue,           'PAYE Tax',          'Rwanda 2025 progressive brackets'),
-                  (AppIcons.healthAndSafetyRounded, const Color(0xFF9B59B6),        'RSSB (Employee)',   'Pension 6% + Maternity 0.3%'),
-                  (AppIcons.businessRounded,         AppColors.warningAmber,          'RSSB (Employer)',   'Pension 6% + Maternity 0.3% + Occ. Hazard 2%'),
-                  (AppIcons.timerOffRounded,        AppColors.errorRed,              'Deductions',        'Absent days & late arrivals'),
-                  (AppIcons.creditCardRounded,      const Color(0xFF6C757D),         'Loan Repayments',   'Active loans deducted from net'),
+                  (AppIcons.attachMoneyRounded,     AppColors.successGreen,         context.tr('Base Salary'), context.tr('Monthly, daily or hourly rate')),
+                  (AppIcons.accountBalanceRounded,  AppColors.primaryBlue,           context.tr('PAYE Tax'), context.tr('Rwanda 2025 progressive brackets')),
+                  (AppIcons.healthAndSafetyRounded, const Color(0xFF9B59B6),        context.tr('Employee Deductions'),
+                      employeeRules.isEmpty
+                          ? context.tr('None configured — set them in Settings')
+                          : employeeRules.map((d) => '${d.title} ${pct(d.percent)}').join(' + ')),
+                  (AppIcons.businessRounded,         AppColors.warningAmber,          context.tr('Employer Contributions'),
+                      employerRules.isEmpty
+                          ? context.tr('None configured — set them in Settings')
+                          : employerRules.map((d) => '${d.title} ${pct(d.percent)}').join(' + ')),
+                  (AppIcons.timerOffRounded,        AppColors.errorRed,              context.tr('Attendance Deductions'), context.tr('Absent days & late arrivals')),
+                  (AppIcons.creditCardRounded,      const Color(0xFF6C757D),         context.tr('Loan Repayments'), context.tr('Active loans deducted from net')),
                 ].map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Row(children: [
@@ -486,7 +433,7 @@ class _PreRunLayout extends ConsumerWidget {
                     const AppIcon(AppIcons.gavelRounded,
                         color: AppColors.primaryBlue, size: 15),
                     const SizedBox(width: 8),
-                    Text('Rwanda 2025 Tax Rates',
+                    Text(context.tr('Rwanda 2025 Tax Rates'),
                         style: TextStyle(
                             color: context.appText,
                             fontSize: 15,
@@ -502,18 +449,19 @@ class _PreRunLayout extends ConsumerWidget {
                     ('> 200,000 RWF', '30%', AppColors.errorRed),
                   ], context),
 
-                  const SizedBox(height: 12),
-                  Divider(height: 1, color: context.appBorder),
-                  const SizedBox(height: 12),
+                  if (deductionRules.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: context.appBorder),
+                    const SizedBox(height: 12),
 
-                  // RSSB rates
-                  _RateSection('RSSB Contributions', [
-                    ('Employee Pension', '6%', AppColors.primaryBlue),
-                    ('Employee Maternity', '0.3%', AppColors.primaryBlue),
-                    ('Employer Pension', '6%', const Color(0xFF9B59B6)),
-                    ('Employer Maternity', '0.3%', const Color(0xFF9B59B6)),
-                    ('Employer Occ. Hazard', '2%', const Color(0xFF9B59B6)),
-                  ], context),
+                    // Company-configured deductions
+                    _RateSection(context.tr('Company Deductions'), [
+                      for (final d in employeeRules)
+                        ('${d.title} (${context.tr('Employee')})', pct(d.percent), AppColors.primaryBlue),
+                      for (final d in employerRules)
+                        ('${d.title} (${context.tr('Employer')})', pct(d.percent), const Color(0xFF9B59B6)),
+                    ], context),
+                  ],
                 ]),
               ),
 
@@ -533,14 +481,14 @@ class _PreRunLayout extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Filing Deadline',
+                      Text(context.tr('Filing Deadline'),
                           style: TextStyle(
                               color: AppColors.warningAmber,
                               fontSize: 15,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
-                      const Text(
-                        'RSSB & PAYE are due to RRA by the 15th of the following month.',
+                      Text(
+                        context.tr('Statutory contributions & PAYE are due to RRA by the 15th of the following month.'),
                         style: TextStyle(
                             color: AppColors.warningAmber,
                             fontSize: 15,
@@ -620,17 +568,17 @@ class _CalcProgress extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              isSaving ? 'Saving to database…' : 'Calculating payroll…',
+              isSaving ? context.tr('Saving to database…') : context.tr('Calculating payroll…'),
               style: TextStyle(color: context.appText, fontSize: 17,
                   fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
             Text(
               isSaving
-                  ? 'Writing payslips to Firestore'
+                  ? context.tr('Writing payslips to Firestore')
                   : state.currentName.isNotEmpty
-                      ? 'Processing: ${state.currentName}'
-                      : 'Loading employee data…',
+                      ? context.trp('Processing: {name}', {'name': state.currentName})
+                      : context.tr('Loading employee data…'),
               style: TextStyle(color: context.appSubtext, fontSize: 15),
               textAlign: TextAlign.center,
             ),
@@ -647,7 +595,7 @@ class _CalcProgress extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Employee ${state.progress} of ${state.total}',
+              Text(context.trp('Employee {i} of {n}', {'i': '${state.progress}', 'n': '${state.total}'}),
                   style: TextStyle(color: context.appSubtext, fontSize: 14)),
               Text('${(pct * 100).round()}%',
                   style: const TextStyle(color: AppColors.primaryBlue,
@@ -671,14 +619,8 @@ class _ResultLayout extends ConsumerWidget {
     required this.payslipsAsync,
     required this.approving,
     required this.onApprove,
-    required this.onSend,
-    required this.sending,
-    required this.sendProgress,
-    required this.sendTotal,
     required this.onExportRra,
-    required this.onExportRssb,
     required this.onExportPayroll,
-    required this.onExportPayrollPdf,
     required this.settings,
     this.onRecalculate,
   });
@@ -689,10 +631,7 @@ class _ResultLayout extends ConsumerWidget {
   final AsyncValue<List<PayslipModel>> payslipsAsync;
   final bool approving;
   final VoidCallback? onApprove;
-  final VoidCallback? onSend;
-  final bool sending;
-  final int sendProgress, sendTotal;
-  final VoidCallback onExportRra, onExportRssb, onExportPayroll, onExportPayrollPdf;
+  final VoidCallback onExportRra, onExportPayroll;
   final dynamic settings;
   final VoidCallback? onRecalculate;
 
@@ -721,13 +660,13 @@ class _ResultLayout extends ConsumerWidget {
 
     final hasFilter = selectedDept != null || selectedBranchId != null;
 
-    double tEarnings = 0, tGross = 0, tNet = 0, tPaye = 0, tRssb = 0;
+    double tEarnings = 0, tGross = 0, tNet = 0, tPaye = 0, tDeductions = 0;
     for (final p in list) {
-      tEarnings += p.totalEarnings;
-      tGross    += p.adjustedGross;
-      tNet      += p.netSalary;
-      tPaye     += p.paye;
-      tRssb     += p.totalEmployeeRssb;
+      tEarnings   += p.totalEarnings;
+      tGross      += p.adjustedGross;
+      tNet        += p.netSalary;
+      tPaye       += p.paye;
+      tDeductions += p.totalEmployeeDeductionLines;
     }
 
     final anomalies = list.where((p) => p.absentDays >= 5 || p.netSalary == 0).toList();
@@ -751,7 +690,7 @@ class _ResultLayout extends ConsumerWidget {
             if (onRecalculate != null) ...[
               _OutBtn(
                 icon: AppIcons.refreshRounded,
-                label: 'Recalculate',
+                label: context.tr('Recalculate'),
                 onTap: onRecalculate,
                 color: AppColors.warningAmber,
               ),
@@ -760,14 +699,14 @@ class _ResultLayout extends ConsumerWidget {
             if (run == null)
               _OutBtn(
                 icon: AppIcons.saveOutlined,
-                label: 'Save Draft',
+                label: context.tr('Save Draft'),
                 onTap: () => ref.read(payrollNotifierProvider.notifier).savePayroll(month),
               ),
             const SizedBox(width: 10),
             if (onApprove != null)
               _FillBtn(
                 icon: approving ? null : AppIcons.lockRounded,
-                label: approving ? 'Approving…' : 'Approve & Lock',
+                label: approving ? context.tr('Approving…') : context.tr('Approve & Lock'),
                 color: AppColors.successGreen,
                 onTap: approving ? null : onApprove,
                 loading: approving,
@@ -775,32 +714,12 @@ class _ResultLayout extends ConsumerWidget {
           ],
 
           if (isApproved) ...[
-            if (sending)
-              _SendingChip(progress: sendProgress, total: sendTotal)
-            else
-              _OutBtn(
-                icon: AppIcons.markEmailReadRounded,
-                label: 'Send Payslips',
-                onTap: canExport ? onSend : null,
-                color: AppColors.primaryBlue,
-                tooltip: canExport ? null : noPermissionMsg,
-              ),
-            const SizedBox(width: 8),
-            _OutBtn(icon: AppIcons.downloadRounded, label: 'RRA PAYE',
+            _OutBtn(icon: AppIcons.downloadRounded, label: context.tr('RRA PAYE'),
                 onTap: canExport ? onExportRra : null,
                 tooltip: canExport ? null : noPermissionMsg),
             const SizedBox(width: 8),
-            _OutBtn(icon: AppIcons.downloadRounded, label: 'RSSB',
-                onTap: canExport ? onExportRssb : null,
-                tooltip: canExport ? null : noPermissionMsg),
-            const SizedBox(width: 8),
-            _OutBtn(icon: AppIcons.accountBalanceRounded, label: 'Bank Payment (Excel)',
+            _OutBtn(icon: AppIcons.downloadRounded, label: context.tr('Download Payroll Excel'),
                 onTap: canExport ? onExportPayroll : null,
-                color: AppColors.successGreen,
-                tooltip: canExport ? null : noPermissionMsg),
-            const SizedBox(width: 8),
-            _OutBtn(icon: AppIcons.pictureAsPdfRounded, label: 'Bank Payment (PDF)',
-                onTap: canExport ? onExportPayrollPdf : null,
                 color: AppColors.successGreen,
                 tooltip: canExport ? null : noPermissionMsg),
           ],
@@ -827,7 +746,7 @@ class _ResultLayout extends ConsumerWidget {
           totalGross: tGross,
           totalNet: tNet,
           totalPaye: tPaye,
-          totalRssb: tRssb,
+          totalDeductions: tDeductions,
         ),
 
         const SizedBox(height: 16),
@@ -860,11 +779,11 @@ class _MetricGrid extends StatelessWidget {
     required this.totalGross,
     required this.totalNet,
     required this.totalPaye,
-    required this.totalRssb,
+    required this.totalDeductions,
   });
 
   final int employees;
-  final double totalEarnings, totalGross, totalNet, totalPaye, totalRssb;
+  final double totalEarnings, totalGross, totalNet, totalPaye, totalDeductions;
 
   @override
   Widget build(BuildContext context) {
@@ -889,12 +808,12 @@ class _MetricGrid extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Total Net Payout', style: TextStyle(color: Colors.white.withAlpha(210), fontSize: 14, fontWeight: FontWeight.w500)),
+                Text(context.tr('Total Net Payout'), style: TextStyle(color: Colors.white.withAlpha(210), fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 Text(_rwfShort(totalNet),
                     style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w700, height: 1)),
                 const SizedBox(height: 8),
-                Text('$employees employee${employees == 1 ? '' : 's'} this run',
+                Text(context.trp('{count} employee(s) this run', {'count': '$employees'}),
                     style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 13)),
               ],
             ),
@@ -906,17 +825,17 @@ class _MetricGrid extends StatelessWidget {
           child: Column(
             children: [
               Row(children: [
-                Expanded(child: MetricCard(label: 'Employees', value: employees.toString())),
+                Expanded(child: MetricCard(label: context.tr('Employees'), value: employees.toString())),
                 const SizedBox(width: 12),
-                Expanded(child: MetricCard(label: 'Total Earnings', value: _rwfShort(totalEarnings))),
+                Expanded(child: MetricCard(label: context.tr('Total Earnings'), value: _rwfShort(totalEarnings))),
                 const SizedBox(width: 12),
-                Expanded(child: MetricCard(label: 'Adj. Gross', value: _rwfShort(totalGross))),
+                Expanded(child: MetricCard(label: context.tr('Adj. Gross'), value: _rwfShort(totalGross))),
               ]),
               const SizedBox(height: 12),
               Row(children: [
-                Expanded(child: MetricCard(label: 'Total PAYE', value: _rwfShort(totalPaye))),
+                Expanded(child: MetricCard(label: context.tr('Total PAYE'), value: _rwfShort(totalPaye))),
                 const SizedBox(width: 12),
-                Expanded(child: MetricCard(label: 'Employee RSSB', value: _rwfShort(totalRssb))),
+                Expanded(child: MetricCard(label: context.tr('Employee Deductions'), value: _rwfShort(totalDeductions))),
                 const SizedBox(width: 12),
                 const Expanded(child: SizedBox()),
               ]),
@@ -955,7 +874,7 @@ class _AnomalyButton extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 16),
           const SizedBox(width: 8),
-          Text('${anomalies.length} anomaly warning${anomalies.length > 1 ? 's' : ''}',
+          Text(context.trp('{count} anomaly warning(s)', {'count': '${anomalies.length}'}),
               style: const TextStyle(color: AppColors.warningAmber,
                   fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(width: 6),
@@ -979,7 +898,7 @@ class _AnomalyDialogContent extends StatelessWidget {
           const AppIcon(AppIcons.warningAmberRounded, color: AppColors.warningAmber, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('${anomalies.length} Anomaly Warning${anomalies.length > 1 ? 's' : ''}',
+            child: Text(context.trp('{count} Anomaly Warning(s)', {'count': '${anomalies.length}'}),
                 style: TextStyle(color: context.appText, fontSize: 17, fontWeight: FontWeight.w600)),
           ),
           IconButton(
@@ -1031,14 +950,14 @@ class _PayslipTable extends StatelessWidget {
       decoration: context.cardDeco(),
       child: Column(children: [
         AppTableHeader(
-          columns: const ['Employee', 'Department', 'Earnings', 'Adj. Gross', 'PAYE', 'RSSB', 'Net Salary', ''],
+          columns: [context.tr('Employee'), context.tr('Department'), context.tr('Earnings'), context.tr('Adj. Gross'), context.tr('PAYE'), context.tr('Deductions'), context.tr('Net Salary'), ''],
           flex: const [3, 2, 2, 2, 2, 2, 2, 1],
         ),
 
         if (payslips.isEmpty)
           Padding(
             padding: const EdgeInsets.all(32),
-            child: Center(child: Text('No payslips',
+            child: Center(child: Text(context.tr('No payslips'),
                 style: TextStyle(color: context.appSubtext))),
           )
         else
@@ -1126,8 +1045,8 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
             // PAYE
             Expanded(flex: 2, child: Text(_rwf(p.paye),
                 style: TextStyle(color: context.appSubtext, fontSize: 14))),
-            // RSSB
-            Expanded(flex: 2, child: Text(_rwf(p.totalEmployeeRssb),
+            // Company-defined deductions
+            Expanded(flex: 2, child: Text(_rwf(p.totalEmployeeDeductionLines),
                 style: TextStyle(color: context.appSubtext, fontSize: 14))),
             // Net
             Expanded(flex: 2, child: Text(_rwf(p.netSalary),
@@ -1137,7 +1056,7 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
             Expanded(flex: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (widget.isLocked)
                 Tooltip(
-                  message: widget.ps.emailSent ? 'Payslip emailed' : 'Not emailed yet',
+                  message: widget.ps.emailSent ? context.tr('Payslip emailed') : context.tr('Not emailed yet'),
                   child: Padding(
                     padding: const EdgeInsets.all(4),
                     child: AppIcon(
@@ -1153,8 +1072,8 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
                 ),
               RowActionsMenu(actions: [
                 if (!widget.isLocked)
-                  RowAction(label: 'Adjust', icon: AppIcons.tuneRounded, onTap: _showAdjust),
-                RowAction(label: 'Download PDF', icon: AppIcons.pictureAsPdfRounded, onTap: _downloadPdf),
+                  RowAction(label: context.tr('Adjust'), icon: AppIcons.tuneRounded, onTap: _showAdjust),
+                RowAction(label: context.tr('Download PDF'), icon: AppIcons.pictureAsPdfRounded, onTap: _downloadPdf),
               ]),
             ])),
           ]),
@@ -1182,20 +1101,20 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ctx.appCard,
-        title: Text('Adjust — ${widget.ps.fullName}',
+        title: Text(context.trp('Adjust — {name}', {'name': widget.ps.fullName}),
             style: TextStyle(color: ctx.appText, fontWeight: FontWeight.w600)),
         content: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
-          _AdjField(ctrl: bonusCtrl, label: 'Bonus (RWF)', type: TextInputType.number),
+          _AdjField(ctrl: bonusCtrl, label: context.tr('Bonus (RWF)'), type: TextInputType.number),
           const SizedBox(height: 10),
-          _AdjField(ctrl: bonusDescCtrl, label: 'Bonus reason'),
+          _AdjField(ctrl: bonusDescCtrl, label: context.tr('Bonus reason')),
           const SizedBox(height: 16),
-          _AdjField(ctrl: deductCtrl, label: 'Extra Deduction (RWF)', type: TextInputType.number),
+          _AdjField(ctrl: deductCtrl, label: context.tr('Extra Deduction (RWF)'), type: TextInputType.number),
           const SizedBox(height: 10),
-          _AdjField(ctrl: deductDescCtrl, label: 'Deduction reason'),
+          _AdjField(ctrl: deductDescCtrl, label: context.tr('Deduction reason')),
         ])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Apply')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.tr('Cancel'))),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(context.tr('Apply'))),
         ],
       ),
     );
@@ -1291,26 +1210,6 @@ class _FillBtn extends StatelessWidget {
   );
 }
 
-class _SendingChip extends StatelessWidget {
-  const _SendingChip({required this.progress, required this.total});
-  final int progress, total;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-    decoration: BoxDecoration(
-        color: context.appTint,
-        borderRadius: BorderRadius.circular(8)),
-    child: Row(children: [
-      const SizedBox(width: 12, height: 12,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue)),
-      const SizedBox(width: 8),
-      Text('Sending $progress of $total…',
-          style: TextStyle(color: context.appSubtext, fontSize: 15)),
-    ]),
-  );
-}
-
 class _AdjField extends StatelessWidget {
   const _AdjField({required this.ctrl, required this.label,
     this.type = TextInputType.text});
@@ -1352,14 +1251,14 @@ class _FilterBar extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          const AppIcon(AppIcons.filterListRounded, size: 15, color: AppColors.textSecondary),
+          AppIcon(AppIcons.filterListRounded, size: 15, color: context.appSubtext),
           const SizedBox(width: 8),
           if (depts.length >= 2) ...[
             _DropFilter(
-              value: selectedDept ?? 'All Departments',
-              items: ['All Departments', ...depts],
+              value: selectedDept ?? context.tr('All Departments'),
+              items: [context.tr('All Departments'), ...depts],
               onChanged: (v) => ref.read(_deptFilterProvider.notifier).state =
-                  (v == 'All Departments') ? null : v,
+                  (v == context.tr('All Departments')) ? null : v,
             ),
             const SizedBox(width: 8),
           ],
@@ -1367,13 +1266,13 @@ class _FilterBar extends ConsumerWidget {
             _DropFilter(
               value: selectedBranchId != null
                   ? (branchNameById[selectedBranchId] ?? selectedBranchId!)
-                  : 'All Branches',
+                  : context.tr('All Branches'),
               items: [
-                'All Branches',
+                context.tr('All Branches'),
                 ...branchIds.map((id) => branchNameById[id] ?? id),
               ],
               onChanged: (name) {
-                if (name == 'All Branches') {
+                if (name == context.tr('All Branches')) {
                   ref.read(_branchFilterProvider.notifier).state = null;
                 } else {
                   final id = branchNameById.entries
@@ -1403,7 +1302,7 @@ class _FilterBar extends ConsumerWidget {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   AppIcon(AppIcons.closeRounded, size: 13, color: context.appSubtext),
                   const SizedBox(width: 4),
-                  Text('Clear', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                  Text(context.tr('Clear'), style: TextStyle(color: context.appSubtext, fontSize: 13)),
                 ]),
               ),
             ),
@@ -1468,7 +1367,7 @@ class _ConfirmDialog extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
+                child: Text(context.tr('Cancel'))),
             const SizedBox(width: 8),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),

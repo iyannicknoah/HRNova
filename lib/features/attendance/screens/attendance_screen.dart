@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -23,6 +24,7 @@ import '../providers/attendance_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/month_nav.dart';
+import '../../../l10n/tr.dart';
 
 // ── Joined display row ────────────────────────────────────────────────────────
 typedef _JR = ({
@@ -271,7 +273,7 @@ class _Header extends StatelessWidget {
     final size   = renderBox.size;
 
     final items = <PopupMenuEntry<String?>>[
-      const PopupMenuItem(value: null, child: Text('All Branches')),
+      PopupMenuItem(value: null, child: Text(context.tr('All Branches'))),
       const PopupMenuDivider(),
       ...branches.map((b) => PopupMenuItem(value: b.id, child: Text(b.name))),
     ];
@@ -294,14 +296,14 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 24, 24, 16),
       child: Row(children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Attendance',
+          Text(context.tr('Attendance'),
               style: TextStyle(
                   color: context.appText,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5)),
           const SizedBox(height: 2),
-          Text('Real-time employee attendance tracking',
+          Text(context.tr('Real-time employee attendance tracking'),
               style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
         const Spacer(),
@@ -321,12 +323,14 @@ class _Header extends StatelessWidget {
         ],
         const SizedBox(width: 10),
         HRNovaButton(
-          label: 'Manual Entry',
+          label: context.tr('Manual Entry'),
           icon: AppIcons.addRounded,
           isFullWidth: false,
           height: 42,
           onPressed: onManualEntry,
         ),
+        const SizedBox(width: 12),
+        const LanguageSwitcher(size: 36),
       ]),
     );
   }
@@ -440,16 +444,16 @@ class _AttTabBar extends StatelessWidget {
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: context.appSubtext,
         labelStyle:
-            const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+            TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
+            TextStyle(fontWeight: FontWeight.w400, fontSize: 15),
         indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(text: 'Today'),
-          Tab(text: 'History'),
-          Tab(text: 'Summary'),
+        tabs: [
+          Tab(text: context.tr('Today')),
+          Tab(text: context.tr('History')),
+          Tab(text: context.tr('Summary')),
         ],
       ),
     );
@@ -528,7 +532,7 @@ class _TodayTab extends StatelessWidget {
                               AppIcon(AppIcons.peopleOutline,
                                   size: 48, color: context.appSubtext),
                               const SizedBox(height: 10),
-                              Text('No employees found',
+                              Text(context.tr('No employees found'),
                                   style: TextStyle(
                                       color: context.appSubtext,
                                       fontSize: 16)),
@@ -669,7 +673,7 @@ class _AttRow extends StatelessWidget {
                                 color: AppColors.warningAmber,
                                 shape: BoxShape.circle)),
                         const SizedBox(width: 5),
-                        const Text('Still in',
+                        Text(context.tr('Still in'),
                             style: TextStyle(
                                 color: AppColors.warningAmber,
                                 fontSize: 14)),
@@ -692,7 +696,7 @@ class _AttRow extends StatelessWidget {
               if (row.isManual) ...[
                 const SizedBox(width: 4),
                 Tooltip(
-                  message: 'Manual Entry',
+                  message: context.tr('Manual Entry'),
                   child: AppIcon(AppIcons.editRounded,
                       size: 14, color: context.appSubtext),
                 ),
@@ -834,7 +838,7 @@ class _HistoryTab extends ConsumerWidget {
             ),
           ),
           const Spacer(),
-          Text('${rows.length} employees',
+          Text(context.trp('{count} employees', {'count': '${rows.length}'}),
               style: TextStyle(color: context.appSubtext, fontSize: 15)),
         ]),
       ),
@@ -887,8 +891,8 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
   Future<void> _exportPdf(List<_SRow> rows) async {
     if (_exporting) return;
     setState(() => _exporting = true);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Generating PDF…'),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(context.tr('Generating PDF…')),
       duration: Duration(seconds: 60),
       behavior: SnackBarBehavior.floating,
     ));
@@ -933,8 +937,8 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('PDF downloaded successfully ✓'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.tr('PDF downloaded successfully ✓')),
           backgroundColor: AppColors.successGreen,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 3),
@@ -1034,7 +1038,7 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
                   ? const Center(child: CircularProgressIndicator())
                   : summaryRows.isEmpty
                       ? Center(
-                          child: Text('No records for this month',
+                          child: Text(context.tr('No records for this month'),
                               style: TextStyle(
                                   color: context.appSubtext, fontSize: 15)))
                       : ListView.separated(
@@ -1194,7 +1198,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
   Future<void> _save() async {
     if (_selectedEmployee == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select an employee')));
+          SnackBar(content: Text(context.tr('Please select an employee'))));
       return;
     }
     setState(() => _saving = true);
@@ -1218,8 +1222,8 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
           );
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Attendance recorded successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('Attendance recorded successfully'))));
       }
     } catch (e) {
       if (mounted) {
@@ -1255,7 +1259,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Manual Attendance Entry',
+                  child: Text(context.tr('Manual Attendance Entry'),
                       style: TextStyle(
                           color: context.appText,
                           fontSize: 17,
@@ -1282,7 +1286,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<EmployeeModel>(
                     value: _selectedEmployee,
-                    hint: Text('Select employee',
+                    hint: Text(context.tr('Select employee'),
                         style: TextStyle(
                             color: context.appSubtext, fontSize: 15)),
                     dropdownColor: context.appCard,
@@ -1365,7 +1369,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                         : context.appSubtext,
                   ),
                   const SizedBox(width: 8),
-                  Text('Add check-out time',
+                  Text(context.tr('Add check-out time'),
                       style: TextStyle(
                           color: context.appSubtext, fontSize: 15)),
                 ]),
@@ -1401,7 +1405,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
               Row(children: [
                 Expanded(
                   child: HRNovaButton(
-                    label: 'Cancel',
+                    label: context.tr('Cancel'),
                     onPressed: () => Navigator.pop(context),
                     backgroundColor: context.isDark ? AppColors.darkCard : AppColors.backgroundBlue,
                     textColor: context.appText,
@@ -1410,7 +1414,7 @@ class _ManualEntryDialogState extends ConsumerState<_ManualEntryDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: HRNovaButton(
-                    label: 'Save Entry',
+                    label: context.tr('Save Entry'),
                     onPressed: _saving ? null : _save,
                     isLoading: _saving,
                   ),

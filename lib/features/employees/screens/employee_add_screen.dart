@@ -16,6 +16,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../l10n/tr.dart';
 import '../../../shared/widgets/app_icon.dart';
 
 class EmployeeAddScreen extends ConsumerStatefulWidget {
@@ -137,13 +138,13 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please fill all required information.')),
+        SnackBar(backgroundColor: AppColors.errorRed, content: Text(context.tr('Please fill all required information.'))),
       );
       return;
     }
     if (_dept.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please select a department. Add departments in Settings first.')),
+        SnackBar(backgroundColor: AppColors.errorRed, content: Text(context.tr('Please select a department. Add departments in Settings first.'))),
       );
       return;
     }
@@ -153,7 +154,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       // Validate branch required for group HR
       if (userRole == AppConstants.roleGroupHrAdmin && _branchId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please assign a branch for this employee.')),
+          SnackBar(backgroundColor: AppColors.errorRed, content: Text(context.tr('Please assign a branch for this employee.'))),
         );
         setState(() => _saving = false);
         return;
@@ -162,7 +163,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       final showsPassword = !isEdit && _role == AppConstants.roleManager;
       if (showsPassword && _password.text.trim().isNotEmpty && _password.text.trim().length < 6) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Password must be at least 6 characters.')),
+          SnackBar(backgroundColor: AppColors.errorRed, content: Text(context.tr('Password must be at least 6 characters.'))),
         );
         setState(() => _saving = false);
         return;
@@ -201,8 +202,8 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       if (isEdit) {
         await notifier.updateEmployee(widget.editId!, data);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Employee updated successfully'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('Employee updated successfully')),
             backgroundColor: AppColors.successGreen,
           ));
           context.pop();
@@ -220,14 +221,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
           } else if (email.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(authError != null
-                  ? 'Employee added, but the login account could not be created: $authError'
-                  : 'Employee added, but the login account could not be created. Use "Edit" to retry setting a password.'),
+                  ? context.trp('Employee added, but the login account could not be created: {error}', {'error': authError})
+                  : context.tr('Employee added, but the login account could not be created. Use "Edit" to retry setting a password.')),
               backgroundColor: AppColors.warningAmber,
               duration: const Duration(seconds: 6),
             ));
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Employee added successfully'),
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(context.tr('Employee added successfully')),
               backgroundColor: AppColors.successGreen,
             ));
           }
@@ -261,15 +262,15 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
               child: const AppIcon(AppIcons.checkCircleOutlineRounded, color: AppColors.successGreen, size: 20),
             ),
             const SizedBox(width: 12),
-            Text('Employee Added', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: context.appText)),
+            Text(context.tr('Employee Added'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: context.appText)),
           ]),
           const SizedBox(height: 15),
-          Text('Share these login credentials with the employee.',
+          Text(context.tr('Share these login credentials with the employee.'),
               style: TextStyle(fontSize: 15, color: context.appSubtext)),
           const SizedBox(height: 16),
-          _CredRow(label: 'Email', value: email, ctx: context),
+          _CredRow(label: context.tr('Email'), value: email, ctx: context),
           const SizedBox(height: 10),
-          _CredRow(label: 'Password', value: tempPassword, ctx: context),
+          _CredRow(label: context.tr('Password'), value: tempPassword, ctx: context),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -283,7 +284,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'The employee must change this password after their first login.',
+                  context.tr('The employee must change this password after their first login.'),
                   style: TextStyle(fontSize: 14, color: context.appText),
                 ),
               ),
@@ -293,7 +294,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: HRNovaButton(
-              label: 'Done',
+              label: context.tr('Done'),
               isFullWidth: false,
               onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             ),
@@ -346,87 +347,87 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSection('Personal Information', [
+                    _buildSection(context.tr('Personal Information'), [
                       _row2(
-                        _field('First Name', _firstName, required: true),
-                        _field('Last Name', _lastName, required: true),
+                        _field(context.tr('First Name'), _firstName, required: true),
+                        _field(context.tr('Last Name'), _lastName, required: true),
                       ),
                       _row2(
-                        _field('National ID', _nationalId,
+                        _field(context.tr('National ID'), _nationalId,
                             required: true,
                             keyboard: TextInputType.number,
-                            hint: '16 digits',
+                            hint: context.tr('16 digits'),
                             validator: _validateNationalId),
-                        _field('Phone (+250)', _phone,
+                        _field(context.tr('Phone (+250)'), _phone,
                             keyboard: TextInputType.number,
                             hint: '07XXXXXXXX',
                             validator: _validatePhone),
                       ),
-                      _field('Email Address', _email, hint: 'employee@company.com'),
+                      _field(context.tr('Email Address'), _email, hint: 'employee@company.com'),
                       _row2(
-                        _datefield('Date of Birth', _dob),
-                        _field('Emergency Contact', _emergency, hint: 'Name & phone'),
+                        _datefield(context.tr('Date of Birth'), _dob),
+                        _field(context.tr('Emergency Contact'), _emergency, hint: context.tr('Name & phone')),
                       ),
                     ]),
                     const SizedBox(height: 24),
-                    _buildSection('Employment Details', [
+                    _buildSection(context.tr('Employment Details'), [
                       _row2(
-                        _dropField('Department', _dept, [
-                          if (departments.isEmpty) const DropdownMenuItem(value: '', child: Text('No departments — add in Settings')),
+                        _dropField(context.tr('Department'), _dept, [
+                          if (departments.isEmpty) DropdownMenuItem(value: '', child: Text(context.tr('No departments — add in Settings'))),
                           ...departments.map((d) => DropdownMenuItem(value: d, child: Text(d))),
                         ], (v) => setState(() => _dept = v ?? '')),
-                        _field('Job Title', _jobTitle, required: true),
+                        _field(context.tr('Job Title'), _jobTitle, required: true),
                       ),
                       if (isMultiBranch)
-                        _dropFieldN('Branch', _branchId, [
-                          const DropdownMenuItem(value: null, child: Text('Select branch…')),
+                        _dropFieldN(context.tr('Branch'), _branchId, [
+                          DropdownMenuItem(value: null, child: Text(context.tr('Select branch…'))),
                           ...?branchesAsync.value?.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))),
                         ], (v) => setState(() => _branchId = v)),
                       _row2(
-                        _dropField('Contract Type', _contract,
-                          AppConstants.contractTypes.map((c) => DropdownMenuItem(value: c, child: Text(_ctLabel(c)))).toList(),
+                        _dropField(context.tr('Contract Type'), _contract,
+                          AppConstants.contractTypes.map((c) => DropdownMenuItem(value: c, child: Text(context.tr(_ctLabel(c))))).toList(),
                           (v) => setState(() => _contract = v ?? _contract)),
-                        _datefield('Start Date', _startDate, required: true),
+                        _datefield(context.tr('Start Date'), _startDate, required: true),
                       ),
-                      if (_contract == 'fixed_term') _datefield('End Date', _endDate),
-                      _field('Insurance Number', _rssb),
+                      if (_contract == 'fixed_term') _datefield(context.tr('End Date'), _endDate),
+                      _field(context.tr('Insurance Number'), _rssb),
                     ]),
                     const SizedBox(height: 24),
-                    _buildSection('Salary & Allowances', [
-                      _dropField('Salary Type', _salaryType,
-                        AppConstants.salaryTypes.map((s) => DropdownMenuItem(value: s, child: Text(_stLabel(s)))).toList(),
+                    _buildSection(context.tr('Salary & Allowances'), [
+                      _dropField(context.tr('Salary Type'), _salaryType,
+                        AppConstants.salaryTypes.map((s) => DropdownMenuItem(value: s, child: Text(context.tr(_stLabel(s))))).toList(),
                         (v) => setState(() => _salaryType = v ?? _salaryType)),
                       if (_salaryType == AppConstants.salaryTypeFixedMonthly)
-                        _field('Monthly Salary (RWF)', _salaryAmt, hint: '0', keyboard: TextInputType.number),
+                        _field(context.tr('Monthly Salary (RWF)'), _salaryAmt, hint: '0', keyboard: TextInputType.number),
                       if (_salaryType == AppConstants.salaryTypeDailyRate)
-                        _field('Daily Rate (RWF)', _dailyRate, hint: '0', keyboard: TextInputType.number),
+                        _field(context.tr('Daily Rate (RWF)'), _dailyRate, hint: '0', keyboard: TextInputType.number),
                       if (_salaryType == AppConstants.salaryTypeHourlyRate)
-                        _field('Hourly Rate (RWF)', _hourlyRate, hint: '0', keyboard: TextInputType.number),
+                        _field(context.tr('Hourly Rate (RWF)'), _hourlyRate, hint: '0', keyboard: TextInputType.number),
                       _row2(
-                        _field('Transport Allowance (RWF)', _transport, hint: '0', keyboard: TextInputType.number),
-                        _field('Housing Allowance (RWF)', _housing, hint: '0', keyboard: TextInputType.number),
+                        _field(context.tr('Transport Allowance (RWF)'), _transport, hint: '0', keyboard: TextInputType.number),
+                        _field(context.tr('Housing Allowance (RWF)'), _housing, hint: '0', keyboard: TextInputType.number),
                       ),
                       _row2(
                         HRNovaDropdown<String?>(
-                          label: 'Bank',
+                          label: context.tr('Bank'),
                           value: _bankCode,
-                          hint: 'Select bank',
+                          hint: context.tr('Select bank'),
                           items: RwandaBanks.all
                               .map((b) => DropdownMenuItem(value: b.code, child: Text(b.name, overflow: TextOverflow.ellipsis)))
                               .toList(),
                           onChanged: (v) => setState(() => _bankCode = v),
                         ),
-                        _field('Bank Account Number', _bank,
-                            hint: 'Account number',
+                        _field(context.tr('Bank Account Number'), _bank,
+                            hint: context.tr('Account number'),
                             keyboard: TextInputType.number,
                             validator: _validateBankAccount),
                       ),
                     ]),
                     const SizedBox(height: 24),
-                    _buildSection('System Access', _buildSystemAccessFields(isEdit)),
+                    _buildSection(context.tr('System Access'), _buildSystemAccessFields(isEdit)),
                     const SizedBox(height: 24),
-                    _buildSection('Notes', [
-                      _field('Additional Notes', _notes, hint: 'Any additional information…', maxLines: 3),
+                    _buildSection(context.tr('Notes'), [
+                      _field(context.tr('Additional Notes'), _notes, hint: context.tr('Any additional information…'), maxLines: 3),
                     ]),
                   ],
                 ),
@@ -463,11 +464,11 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isEdit ? 'Edit Employee' : 'Add New Employee',
+                isEdit ? context.tr('Edit Employee') : context.tr('Add New Employee'),
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: context.appText),
               ),
               Text(
-                isEdit ? 'Update employee information' : 'Fill in the details to create a new employee record',
+                isEdit ? context.tr('Update employee information') : context.tr('Fill in the details to create a new employee record'),
                 style: TextStyle(fontSize: 15, color: context.appSubtext),
               ),
             ],
@@ -493,7 +494,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                 color: context.appField,
                 borderRadius: BorderRadius.circular(100),
               ),
-              child: Text('Cancel', style: TextStyle(color: context.appText, fontWeight: FontWeight.w500, fontSize: 15)),
+              child: Text(context.tr('Cancel'), style: TextStyle(color: context.appText, fontWeight: FontWeight.w500, fontSize: 15)),
             ),
           ),
           const Spacer(),
@@ -509,7 +510,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
               child: _saving
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
-                      isEdit ? 'Save Changes' : 'Add Employee',
+                      isEdit ? context.tr('Save Changes') : context.tr('Add Employee'),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                     ),
             ),
@@ -559,7 +560,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
       keyboardType: keyboard,
       maxLines: maxLines,
       validator: validator ??
-          (required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
+          (required ? (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null : null),
     );
   }
 
@@ -571,18 +572,18 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   /// verifiable are enforced here.
   String? _validateNationalId(String? v) {
     final value = (v ?? '').trim();
-    if (value.isEmpty) return 'National ID is required';
+    if (value.isEmpty) return context.tr('National ID is required');
     if (!RegExp(r'^\d{16}$').hasMatch(value)) {
-      return 'National ID must be exactly 16 digits';
+      return context.tr('National ID must be exactly 16 digits');
     }
     final birthYear = int.tryParse(value.substring(1, 5));
     final currentYear = DateTime.now().year;
     if (birthYear == null || birthYear < 1900 || birthYear > currentYear) {
-      return 'Invalid National ID — the year segment (digits 2–5) is not a valid birth year';
+      return context.tr('Invalid National ID — the year segment (digits 2–5) is not a valid birth year');
     }
     final genderDigit = value[5];
     if (genderDigit != '7' && genderDigit != '8') {
-      return 'Invalid National ID — the 6th digit must be 7 or 8';
+      return context.tr('Invalid National ID — the 6th digit must be 7 or 8');
     }
     return null;
   }
@@ -592,7 +593,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     final value = (v ?? '').trim();
     if (value.isEmpty) return null;
     if (!RegExp(r'^07\d{8}$').hasMatch(value)) {
-      return 'Phone must start with 07 and be exactly 10 digits';
+      return context.tr('Phone must start with 07 and be exactly 10 digits');
     }
     return null;
   }
@@ -602,7 +603,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     final value = (v ?? '').trim();
     if (value.isEmpty) return null;
     if (!RegExp(r'^\d+$').hasMatch(value)) {
-      return 'Bank account number must contain digits only';
+      return context.tr('Bank account number must contain digits only');
     }
     return null;
   }
@@ -610,7 +611,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   Widget _datefield(String label, TextEditingController ctrl, {bool required = false}) {
     return HRNovaTextField(
       label: required ? '$label *' : label,
-      hint: 'Select date',
+      hint: context.tr('Select date'),
       controller: ctrl,
       readOnly: true,
       suffixIcon: AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
@@ -623,7 +624,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         );
         if (picked != null) ctrl.text = EmployeeModel.fmtDate(picked);
       },
-      validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
+      validator: required ? (v) => (v == null || v.isEmpty) ? context.tr('Required') : null : null,
     );
   }
 
@@ -651,7 +652,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     final isMultiBranch = ref.read(currentCompanyTypeProvider) == AppConstants.companyMultiBranch;
     final showPassword = !isEdit && _role == AppConstants.roleManager;
     final fields = <Widget>[
-      _dropField('Role', _role,
+      _dropField(context.tr('Role'), _role,
         _buildRoleItems(userRole ?? AppConstants.roleEmployee, isMultiBranch),
         (v) => setState(() { _role = v ?? _role; _password.clear(); })),
     ];
@@ -662,12 +663,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(10)),
-        child: const Row(children: [
-          AppIcon(AppIcons.infoOutline, size: 16, color: AppColors.primaryBlue),
-          SizedBox(width: 8),
+        child: Row(children: [
+          const AppIcon(AppIcons.infoOutline, size: 16, color: AppColors.primaryBlue),
+          const SizedBox(width: 8),
           Expanded(child: Text(
-            'If an email is provided, a temporary password is auto-generated so the employee can log in to the app.',
-            style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
+            context.tr('If an email is provided, a temporary password is auto-generated so the employee can log in to the app.'),
+            style: const TextStyle(fontSize: 14, color: AppColors.primaryBlue),
           )),
         ]),
       ));
@@ -678,8 +679,8 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   Widget _passwordField() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       HRNovaTextField(
-        label: 'Login Password',
-        hint: 'Leave blank to auto-generate',
+        label: context.tr('Login Password'),
+        hint: context.tr('Leave blank to auto-generate'),
         controller: _password,
         obscureText: _obscurePassword,
         suffixIcon: IconButton(
@@ -689,35 +690,35 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         ),
       ),
       const SizedBox(height: 6),
-      Text('Leave blank to auto-generate a password. You will see it after saving.',
+      Text(context.tr('Leave blank to auto-generate a password. You will see it after saving.'),
           style: TextStyle(fontSize: 13, color: context.appSubtext)),
     ]);
   }
 
   List<DropdownMenuItem<String>> _buildRoleItems(String userRole, bool isMultiBranch) {
     if (isMultiBranch && userRole == AppConstants.roleGroupHrAdmin) {
-      return const [
-        DropdownMenuItem(value: 'branch_hr_admin', child: Text('Branch HR Admin')),
-        DropdownMenuItem(value: 'manager', child: Text('Manager')),
+      return [
+        DropdownMenuItem(value: 'branch_hr_admin', child: Text(context.tr('Branch HR Admin'))),
+        DropdownMenuItem(value: 'manager', child: Text(context.tr('Manager'))),
       ];
     }
     // Branch HR admin can never create another HR admin
     if (userRole == AppConstants.roleBranchHrAdmin) {
-      return const [
-        DropdownMenuItem(value: 'employee', child: Text('Employee')),
-        DropdownMenuItem(value: 'manager', child: Text('Manager')),
-        DropdownMenuItem(value: 'director', child: Text('Director')),
-        DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
-        DropdownMenuItem(value: 'administration', child: Text('Administration')),
+      return [
+        DropdownMenuItem(value: 'employee', child: Text(context.tr('Employee'))),
+        DropdownMenuItem(value: 'manager', child: Text(context.tr('Manager'))),
+        DropdownMenuItem(value: 'director', child: Text(context.tr('Director'))),
+        DropdownMenuItem(value: 'finance_manager', child: Text(context.tr('Finance Manager'))),
+        DropdownMenuItem(value: 'administration', child: Text(context.tr('Administration'))),
       ];
     }
-    return const [
-      DropdownMenuItem(value: 'employee', child: Text('Employee')),
-      DropdownMenuItem(value: 'manager', child: Text('Manager')),
-      DropdownMenuItem(value: 'director', child: Text('Director')),
-      DropdownMenuItem(value: 'finance_manager', child: Text('Finance Manager')),
-      DropdownMenuItem(value: 'administration', child: Text('Administration')),
-      DropdownMenuItem(value: 'hr_admin', child: Text('HR Admin')),
+    return [
+      DropdownMenuItem(value: 'employee', child: Text(context.tr('Employee'))),
+      DropdownMenuItem(value: 'manager', child: Text(context.tr('Manager'))),
+      DropdownMenuItem(value: 'director', child: Text(context.tr('Director'))),
+      DropdownMenuItem(value: 'finance_manager', child: Text(context.tr('Finance Manager'))),
+      DropdownMenuItem(value: 'administration', child: Text(context.tr('Administration'))),
+      DropdownMenuItem(value: 'hr_admin', child: Text(context.tr('HR Admin'))),
     ];
   }
 

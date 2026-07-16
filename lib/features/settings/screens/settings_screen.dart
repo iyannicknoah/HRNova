@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,8 +14,10 @@ import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/deductions_editor.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -53,9 +56,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // Expansion state (visual grouping only — one Save button for everything)
   final Map<String, bool> _expanded = {
-    'schedule': true, 'leave': false, 'payroll': false,
+    'schedule': true, 'leave': false, 'payroll': false, 'deductions': false,
     'notifications': false, 'performance': false,
   };
+
+  // Company-defined payroll deductions
+  List<DeductionRule> _deductions = List.of(DeductionRule.rssbDefaults);
 
   // Performance criteria
   List<PerformanceCriterion> _criteria = PerformanceCriterion.defaults;
@@ -137,6 +143,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _criteria = s.performanceCriteria.isEmpty
         ? PerformanceCriterion.defaults
         : s.performanceCriteria;
+    _deductions = List.of(s.deductions);
   }
 
   TimeOfDay _parseTime(String hhmm) {
@@ -210,11 +217,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final Map<String, dynamic> data;
     try {
       if (_criteria.isEmpty) {
-        throw Exception('Add at least one performance criterion.');
+        throw Exception(context.tr('Add at least one performance criterion.'));
       }
       final totalWeight = _criteria.fold<double>(0, (s, c) => s + c.weight);
       if ((totalWeight - 100).abs() > 0.5) {
-        throw Exception('Performance criteria weights must total 100% (currently ${totalWeight.toStringAsFixed(0)}%).');
+        throw Exception(context.trp('Performance criteria weights must total 100% (currently {w}%).', {'w': totalWeight.toStringAsFixed(0)}));
+      }
+      if (_deductions.any((d) => d.title.trim().isEmpty)) {
+        throw Exception(context.tr('Every deduction needs a title.'));
+      }
+      if (_deductions.any((d) => d.percent <= 0 || d.percent > 100)) {
+        throw Exception(context.tr('Deduction rates must be between 0 and 100%.'));
       }
       data = {
         'workStartTime': _fmtTime(_startTime),
@@ -237,6 +250,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'notificationMethod': _notif,
         'rraTinNumber': _tinCtrl.text.trim(),
         'performanceCriteria': _criteria.map((c) => c.toMap()).toList(),
+        'deductions': _deductions.map((d) => d.toMap()).toList(),
       };
     } catch (e) {
       if (mounted) {
@@ -253,8 +267,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       await ref.read(settingsNotifierProvider.notifier).updateSettings(data);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Settings saved successfully'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.tr('Settings saved successfully')),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.successGreen,
           duration: Duration(seconds: 2),
@@ -293,10 +307,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Settings', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-                const SizedBox(height: 2),
-                Text('Configure your company preferences', style: TextStyle(color: context.appSubtext, fontSize: 15)),
+              Row(children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(context.tr('Settings'), style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                  const SizedBox(height: 2),
+                  Text(context.tr('Configure your company preferences'), style: TextStyle(color: context.appSubtext, fontSize: 15)),
+                ]),
+                const Spacer(),
+                const LanguageSwitcher(size: 36),
               ]),
               if (!canEdit) ...[
                 const SizedBox(height: 16),
@@ -310,22 +328,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const AppIcon(AppIcons.lockOutlineRounded, color: AppColors.warningAmber, size: 18),
                     const SizedBox(width: 10),
                     Expanded(child: Text(
-                      'Settings can only be changed by the company HR Admin. Contact them to update policies.',
+                      context.tr('Settings can only be changed by the company HR Admin. Contact them to update policies.'),
                       style: TextStyle(color: context.appSubtext, fontSize: 14),
                     )),
                   ]),
                 ),
               ],
               const SizedBox(height: 24),
-              _section('schedule', AppIcons.scheduleRounded, 'Work Schedule', 'Work hours, grace period and working days', _scheduleBody()),
+              _section('schedule', AppIcons.scheduleRounded, context.tr('Work Schedule'), context.tr('Work hours, grace period and working days'), _scheduleBody()),
               const SizedBox(height: 14),
-              _section('leave', AppIcons.beachAccessRounded, 'Leave Policy', 'Annual and sick leave entitlements', _leaveBody()),
+              _section('leave', AppIcons.beachAccessRounded, context.tr('Leave Policy'), context.tr('Annual and sick leave entitlements'), _leaveBody()),
               const SizedBox(height: 14),
-              _section('payroll', AppIcons.accountBalanceWalletRounded, 'Payroll Rules', 'Salary payment day, overtime and late deduction', _payrollBody()),
+              _section('payroll', AppIcons.accountBalanceWalletRounded, context.tr('Payroll Rules'), context.tr('Salary payment day, overtime and late deduction'), _payrollBody()),
               const SizedBox(height: 14),
-              _section('notifications', AppIcons.notificationsRounded, 'Notifications & Contacts', 'Emergency contacts and notification preferences', _notificationsBody()),
+              _section('deductions', AppIcons.healthAndSafetyRounded, context.tr('Payroll Deductions'), context.tr('Company-defined deductions applied on every payroll run'), _deductionsBody()),
               const SizedBox(height: 14),
-              _section('performance', AppIcons.trendingUpRounded, 'Performance Criteria', 'Weighted criteria used for performance reviews', _performanceBody()),
+              _section('notifications', AppIcons.notificationsRounded, context.tr('Notifications & Contacts'), context.tr('Emergency contacts and notification preferences'), _notificationsBody()),
+              const SizedBox(height: 14),
+              _section('performance', AppIcons.trendingUpRounded, context.tr('Performance Criteria'), context.tr('Weighted criteria used for performance reviews'), _performanceBody()),
               const SizedBox(height: 28),
               if (canEdit)
                 Align(
@@ -391,11 +411,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Expanded(child: _timeField('Work End', _endTime, () => _pickTime(false))),
     ]),
     const SizedBox(height: 16),
-    _field('Grace Period', _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
+    _field(context.tr('Grace Period'), _graceCtrl, hint: '10', suffix: 'minutes', type: TextInputType.number),
     const SizedBox(height: 16),
-    _field('Minimum Hours Before Checkout', _minHoursCtrl, hint: '0 = no minimum', suffix: 'hours', type: TextInputType.number, allowDecimal: true),
+    _field(context.tr('Minimum Hours Before Checkout'), _minHoursCtrl, hint: context.tr('0 = no minimum'), suffix: 'hours', type: TextInputType.number, allowDecimal: true),
     const SizedBox(height: 16),
-    Text('Working Days', style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
+    Text(context.tr('Working Days'), style: TextStyle(color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400)),
     const SizedBox(height: 10),
     Wrap(spacing: 8, runSpacing: 8, children: _allDays.map((d) {
       final sel = _days.contains(d);
@@ -417,28 +437,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _leaveBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
-      Expanded(child: _field('Annual Leave Days', _annualCtrl, hint: '18', suffix: 'days', type: TextInputType.number)),
+      Expanded(child: _field(context.tr('Annual Leave Days'), _annualCtrl, hint: '18', suffix: 'days', type: TextInputType.number)),
       const SizedBox(width: 16),
-      Expanded(child: _field('Sick Leave Days', _sickCtrl, hint: '10', suffix: 'days', type: TextInputType.number)),
+      Expanded(child: _field(context.tr('Sick Leave Days'), _sickCtrl, hint: '10', suffix: 'days', type: TextInputType.number)),
     ]),
     const SizedBox(height: 14),
     Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primaryBlue.withAlpha(60))),
-      child: Row(children: const [
+      child: Row(children: [
         AppIcon(AppIcons.infoOutlineRounded, color: AppColors.primaryBlue, size: 16),
         SizedBox(width: 10),
-        Expanded(child: Text('Maternity: 84 days  •  Paternity: 4 days — Fixed by Rwanda Law', style: TextStyle(color: AppColors.primaryBlue, fontSize: 14, height: 1.4))),
+        Expanded(child: Text(context.tr('Maternity: 84 days  •  Paternity: 4 days — Fixed by Rwanda Law'), style: TextStyle(color: AppColors.primaryBlue, fontSize: 14, height: 1.4))),
       ]),
     ),
   ]);
 
   Widget _payrollBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
-      Expanded(child: _field('Salary Payment Day', _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
+      Expanded(child: _field(context.tr('Salary Payment Day'), _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
       Expanded(child: HRNovaDropdown<String>(
-        label: 'Overtime Multiplier',
+        label: context.tr('Overtime Multiplier'),
         value: _overtime,
         items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
           value: v,
@@ -449,36 +469,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ]),
     const SizedBox(height: 14),
     Row(children: [
-      Expanded(child: _field('Late Deduction / Hour', _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
+      Expanded(child: _field(context.tr('Late Deduction / Hour'), _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
       const SizedBox(width: 16),
-      Expanded(child: _field('Max Late Before Warning', _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
+      Expanded(child: _field(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
     ]),
   ]);
+
+  Widget _deductionsBody() => DeductionsEditor(
+    deductions: _deductions,
+    onChanged: (rules) => setState(() => _deductions = rules),
+  );
 
   Widget _notificationsBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
-      Expanded(child: _field('Manager WhatsApp', _mgrPhone, hint: '+250 788 000 000')),
+      Expanded(child: _field(context.tr('Manager WhatsApp'), _mgrPhone, hint: '+250 788 000 000')),
       const SizedBox(width: 16),
-      Expanded(child: _field('HR Admin WhatsApp', _hrPhone, hint: '+250 788 000 001')),
+      Expanded(child: _field(context.tr('HR Admin WhatsApp'), _hrPhone, hint: '+250 788 000 001')),
     ]),
     const SizedBox(height: 14),
     Row(children: [
-      Expanded(child: _field('Manager Email', _mgrEmail, hint: 'manager@company.com', type: TextInputType.emailAddress)),
+      Expanded(child: _field(context.tr('Manager Email'), _mgrEmail, hint: context.tr('manager@company.com'), type: TextInputType.emailAddress)),
       const SizedBox(width: 16),
-      Expanded(child: _field('HR Admin Email', _hrEmail, hint: 'hr@company.com', type: TextInputType.emailAddress)),
+      Expanded(child: _field(context.tr('HR Admin Email'), _hrEmail, hint: context.tr('hr@company.com'), type: TextInputType.emailAddress)),
     ]),
     const SizedBox(height: 14),
     Row(children: [
-      Expanded(child: _field('Director Email', _directorEmail, hint: 'director@company.rw', type: TextInputType.emailAddress)),
+      Expanded(child: _field(context.tr('Director Email'), _directorEmail, hint: context.tr('director@company.rw'), type: TextInputType.emailAddress)),
       const SizedBox(width: 16),
-      Expanded(child: _field('Director Phone', _directorPhone, hint: '+250 7XX XXX XXX')),
+      Expanded(child: _field(context.tr('Director Phone'), _directorPhone, hint: '+250 7XX XXX XXX')),
     ]),
     const SizedBox(height: 14),
-    _field('RRA TIN Number', _tinCtrl, hint: '102XXXXXXXXX (for RRA payroll export)'),
+    _field(context.tr('RRA TIN Number'), _tinCtrl, hint: context.tr('102XXXXXXXXX (for RRA payroll export)')),
   ]);
 
   Widget _performanceBody() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Weights must total 100%.', style: TextStyle(color: context.appSubtext, fontSize: 14)),
+    Text(context.tr('Weights must total 100%.'), style: TextStyle(color: context.appSubtext, fontSize: 14)),
     const SizedBox(height: 12),
     ..._criteria.asMap().entries.map((e) => _CriterionRow(
       criterion: e.value,
@@ -562,7 +587,7 @@ class _CriterionRowState extends State<_CriterionRow> {
       child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Expanded(flex: 5, child: Text(widget.criterion.name, style: TextStyle(color: widget.appText, fontSize: 15))),
         Expanded(flex: 2, child: HRNovaTextField(
-          label: 'Weight',
+          label: context.tr('Weight'),
           controller: _ctrl,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'\d'))],
@@ -583,7 +608,7 @@ class _CriterionRowState extends State<_CriterionRow> {
         IconButton(
           onPressed: widget.onRemove,
           icon: const AppIcon(AppIcons.removeCircleOutlineRounded, size: 20, color: AppColors.errorRed),
-          tooltip: 'Remove',
+          tooltip: context.tr('Remove'),
         ),
       ]),
     );
@@ -617,21 +642,21 @@ class _AddCriterionRowState extends State<_AddCriterionRow> {
   Widget build(BuildContext context) {
     return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
       Expanded(flex: 5, child: HRNovaTextField(
-        label: 'Criterion Name',
+        label: context.tr('Criterion Name'),
         controller: _nameCtrl,
-        hint: 'New criterion name...',
+        hint: context.tr('New criterion name...'),
       )),
       const SizedBox(width: 10),
       Expanded(flex: 2, child: HRNovaTextField(
-        label: 'Weight',
+        label: context.tr('Weight'),
         controller: _weightCtrl,
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'\d'))],
-        hint: 'Weight%',
+        hint: context.tr('Weight%'),
       )),
       const SizedBox(width: 8),
       HRNovaButton(
-        label: 'Add',
+        label: context.tr('Add'),
         icon: AppIcons.addRounded,
         isFullWidth: false,
         onPressed: _add,

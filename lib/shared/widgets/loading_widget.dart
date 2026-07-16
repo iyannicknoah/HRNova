@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_ext.dart';
 
 class LoadingWidget extends StatelessWidget {
   const LoadingWidget({super.key, this.message});
@@ -38,8 +39,8 @@ class LoadingWidget extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message!,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appSubtext,
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),

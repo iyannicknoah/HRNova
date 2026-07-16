@@ -125,7 +125,14 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
       final (eh, em) = _parseHHMM(workEndStr,   defaultH: 17);
 
       final workStart = DateTime(now.year, now.month, now.day, sh, sm);
-      final workEnd   = DateTime(now.year, now.month, now.day, eh, em);
+      // Overnight shift (end clock-time earlier than start, e.g. 22:00→05:00):
+      // the shift that starts today ends TOMORROW at eh:em. Building workEnd
+      // on the same calendar day would put it before workStart and wrongly
+      // flag every on-time overnight check-in as after-hours/absent.
+      final isOvernight = eh < sh || (eh == sh && em < sm);
+      final workEnd = isOvernight
+          ? DateTime(now.year, now.month, now.day + 1, eh, em)
+          : DateTime(now.year, now.month, now.day, eh, em);
 
       // Check-in AFTER work hours end → still record the actual attempt
       // time, but mark as absent

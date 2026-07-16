@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../core/theme/theme_ext.dart';
+import '../../l10n/tr.dart';
 
 enum StatusType { success, warning, error, info, neutral }
 
@@ -41,7 +42,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
-        _capitalize(text),
+        context.tr(_capitalize(text)),
         style: TextStyle(
           color: colors.$2,
           fontSize: 13,

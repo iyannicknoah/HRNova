@@ -100,11 +100,12 @@ async function generateRRAPayeExport(companyId, month) {
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
 
-// ── RSSB Declaration ──────────────────────────────────────────────────────────
-// Spec columns: Employee Name | National ID | RSSB Number | Gross Salary | Pension Base |
-//               Emp Pension 6% | Emr Pension 6% | Emp Maternity 0.3% | Emr Maternity 0.3% |
-//               Emr Occ Hazard 2% | Total Employee Deductions | Total Employer Contributions
-async function generateRSSBExport(companyId, month) {
+// ── Full Payroll Export ───────────────────────────────────────────────────────
+// One comprehensive sheet with everything about each employee's payroll:
+// identity + bank, attendance, full earnings breakdown, every company-defined
+// deduction as its own column (titles come from the payslip snapshots), PAYE,
+// loans, net salary and employer contributions.
+async function generatePayrollExcelExport(companyId, month) {
   const [paysnap, settingsSnap] = await Promise.all([
     payslipsRef(companyId, month).orderBy('lastName').get(),
     settingsRef(companyId).get(),
@@ -112,167 +113,123 @@ async function generateRSSBExport(companyId, month) {
 
   const payslips = paysnap.docs.map(d => d.data());
   const settings = settingsSnap.data() || {};
-  const tin = settings.rraTinNumber || '—';
-  const rssbCompanyNo = settings.rssbNumber || '—';
   const companyName = settings.companyName || companyId;
   const monthLabel = _monthLabel(month);
 
+  // Normalize deduction lines. Payslips saved before company-defined
+  // deductions existed only carry the fixed RSSB fields — map those to the
+  // same {title: amount} shape so both generations export identically.
+  const norm = payslips.map(ps => {
+    const emp = {};
+    const emr = {};
+    if (Array.isArray(ps.employeeDeductions)) {
+      ps.employeeDeductions.forEach(l => { emp[l.title] = (emp[l.title] || 0) + (l.amount || 0); });
+    } else {
+      if (ps.pensionEmployee) emp['RSSB Pension'] = ps.pensionEmployee;
+      if (ps.maternityEmployee) emp['RSSB Maternity'] = ps.maternityEmployee;
+    }
+    if (Array.isArray(ps.employerContributions)) {
+      ps.employerContributions.forEach(l => { emr[l.title] = (emr[l.title] || 0) + (l.amount || 0); });
+    } else {
+      if (ps.pensionEmployer) emr['RSSB Pension'] = ps.pensionEmployer;
+      if (ps.maternityEmployer) emr['RSSB Maternity'] = ps.maternityEmployer;
+      if (ps.occupationalHazard) emr['RSSB Occupational Hazard'] = ps.occupationalHazard;
+    }
+    return { ps, emp, emr };
+  });
+
+  // Union of deduction titles across all payslips → dynamic columns
+  const empTitles = [...new Set(norm.flatMap(n => Object.keys(n.emp)))];
+  const emrTitles = [...new Set(norm.flatMap(n => Object.keys(n.emr)))];
+
+  const headers = [
+    'No.', 'Employee Name', 'National ID', 'RSSB Number', 'Department', 'Job Title',
+    'Bank', 'Account Number',
+    'Working Days', 'Present Days', 'Absent Days',
+    'Base Salary (RWF)', 'Transport Allow. (RWF)', 'Housing Allow. (RWF)',
+    'Overtime Pay (RWF)', 'Bonuses (RWF)', 'Total Earnings (RWF)',
+    'Absent Deduction (RWF)', 'Late Deduction (RWF)', 'Adjusted Gross (RWF)',
+    ...empTitles.map(t => `${t} — Employee (RWF)`),
+    'PAYE (RWF)', 'Loan Deductions (RWF)', 'Other Deductions (RWF)',
+    'Total Deductions (RWF)', 'NET SALARY (RWF)',
+    ...emrTitles.map(t => `${t} — Employer (RWF)`),
+    'Total Employer Cost (RWF)',
+  ];
+
   const wb = XLSX.utils.book_new();
   const ws = {};
-  ws['!cols'] = [5, 28, 18, 16, 20, 20, 24, 24, 26, 26, 24, 26, 28].map(w => ({ wch: w }));
+  ws['!cols'] = headers.map((h, i) =>
+    ({ wch: i === 1 ? 28 : Math.max(14, Math.min(30, h.length + 2)) }));
 
   let row = 1;
 
   // ── Title block ───────────────────────────────────────────────────────────
-  _setCell(ws, row++, 1, `RSSB DECLARATION — ${monthLabel}`, true);
+  _setCell(ws, row++, 1, `PAYROLL — ${monthLabel}`, true);
   _setCell(ws, row++, 1, companyName);
-  _setCell(ws, row++, 1, `TIN: ${tin}   |   RSSB Employer No: ${rssbCompanyNo}`);
   row++;
 
   // ── Header ────────────────────────────────────────────────────────────────
-  const headers = [
-    'No.', 'Employee Name', 'National ID', 'RSSB Number',
-    'Gross Salary (RWF)', 'Pension Base (RWF)',
-    'Employee Pension 6% (RWF)', 'Employer Pension 6% (RWF)',
-    'Employee Maternity 0.3% (RWF)', 'Employer Maternity 0.3% (RWF)',
-    'Employer Occ. Hazard 2% (RWF)',
-    'Total Employee Deductions (RWF)', 'Total Employer Contributions (RWF)',
-  ];
   headers.forEach((h, c) => _setCell(ws, row, c + 1, h, true));
   row++;
 
   // ── Data rows ─────────────────────────────────────────────────────────────
-  let t = Array(9).fill(0); // gross, penBase, pEmp, pEmr, mEmp, mEmr, occH, empTot, emrTot
+  const totals = new Array(headers.length).fill(0);
 
-  payslips.forEach((ps, i) => {
-    const gross      = ps.adjustedGross ?? ps.grossSalary ?? 0; // pension base = adjustedGross
-    const penBase    = gross; // same value, shown as separate column per spec
-    const pEmp       = ps.pensionEmployee ?? 0;
-    const pEmr       = ps.pensionEmployer ?? 0;
-    const mEmp       = ps.maternityEmployee ?? 0;
-    const mEmr       = ps.maternityEmployer ?? 0;
-    const occH       = ps.occupationalHazard ?? 0;
-    const empTotal   = pEmp + mEmp;
-    const emrTotal   = pEmr + mEmr + occH;
-
-    t[0] += gross; t[1] += penBase; t[2] += pEmp; t[3] += pEmr;
-    t[4] += mEmp;  t[5] += mEmr;   t[6] += occH;
-    t[7] += empTotal; t[8] += emrTotal;
-
+  norm.forEach(({ ps, emp, emr }, i) => {
+    const bankName = nameForCode(ps.bankCode);
     const cols = [
       i + 1,
       `${ps.lastName ?? ''} ${ps.firstName ?? ''}`.trim(),
       ps.nationalId ?? '',
       ps.rssbNumber ?? '',
-      _r(gross), _r(penBase),
-      _r(pEmp), _r(pEmr),
-      _r(mEmp), _r(mEmr),
-      _r(occH),
-      _r(empTotal), _r(emrTotal),
-    ];
-    cols.forEach((v, c) => _setCell(ws, row, c + 1, v));
-    row++;
-  });
-
-  // ── Totals row ────────────────────────────────────────────────────────────
-  const totRow = ['', 'TOTAL', '', '',
-    _r(t[0]), _r(t[1]), _r(t[2]), _r(t[3]),
-    _r(t[4]), _r(t[5]), _r(t[6]), _r(t[7]), _r(t[8])];
-  totRow.forEach((v, c) => _setCell(ws, row, c + 1, v, true));
-  row += 2;
-
-  // ── Footer / declaration ──────────────────────────────────────────────────
-  _setCell(ws, row++, 1, `TIN: ${tin}   |   RSSB Employer No: ${rssbCompanyNo}`);
-  _setCell(ws, row++, 1, `Payroll Month: ${monthLabel}`);
-  _setCell(ws, row++, 1, 'Rates: Pension 6% employee + 6% employer | Maternity 0.3% each | Occ. Hazard 2% employer only');
-  _setCell(ws, row++, 1, 'RSSB contributions are due by the 15th of the following month.');
-  _setCell(ws, row++, 1, 'I declare that all information provided above is true and correct to the best of my knowledge.');
-  _setCell(ws, row++, 1, `Generated by HRNovva on ${new Date().toLocaleDateString('en-GB')}`);
-
-  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: row, c: 12 } });
-  XLSX.utils.book_append_sheet(wb, ws, 'RSSB Declaration');
-  wb.Props = { Title: `RSSB — ${month}`, Author: 'HRNovva', CreatedDate: new Date() };
-
-  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-}
-
-// ── Bank Payment / Payroll Export ──────────────────────────────────────────────
-// The file HR/Finance actually hands to the bank to run the salary batch —
-// every employee's identity, bank, account number, and the exact amount to
-// pay, so a misspelled bank name can never cause a failed transfer.
-// Spec columns: Employee Name | National ID | Department | Job Title | Bank |
-//               Bank Account Number | Net Salary (Amount to Pay)
-async function generatePayrollBankExport(companyId, month) {
-  const [paysnap, settingsSnap] = await Promise.all([
-    payslipsRef(companyId, month).orderBy('lastName').get(),
-    settingsRef(companyId).get(),
-  ]);
-
-  const payslips = paysnap.docs.map(d => d.data());
-  const settings = settingsSnap.data() || {};
-  const companyName = settings.companyName || companyId;
-  const monthLabel = _monthLabel(month);
-
-  const wb = XLSX.utils.book_new();
-  const ws = {};
-  ws['!cols'] = [5, 28, 18, 20, 22, 30, 22, 22].map(w => ({ wch: w }));
-
-  let row = 1;
-
-  // ── Title block ───────────────────────────────────────────────────────────
-  _setCell(ws, row++, 1, `PAYROLL BANK PAYMENT FILE — ${monthLabel}`, true);
-  _setCell(ws, row++, 1, companyName);
-  row++;
-
-  // ── Header ────────────────────────────────────────────────────────────────
-  const headers = [
-    'No.', 'Employee Name', 'National ID', 'Department', 'Job Title',
-    'Bank', 'Bank Account Number', 'Net Salary — Amount to Pay (RWF)',
-  ];
-  headers.forEach((h, c) => _setCell(ws, row, c + 1, h, true));
-  row++;
-
-  // ── Data rows ─────────────────────────────────────────────────────────────
-  let totNet = 0;
-  let missingBankCount = 0;
-
-  payslips.forEach((ps, i) => {
-    const net = ps.netSalary ?? 0;
-    totNet += net;
-    const bankName = nameForCode(ps.bankCode);
-    const bankAccount = ps.bankAccountNumber ?? '';
-    if (!bankName || !bankAccount) missingBankCount++;
-
-    const cols = [
-      i + 1,
-      `${ps.lastName ?? ''} ${ps.firstName ?? ''}`.trim(),
-      ps.nationalId ?? '',
       ps.department ?? '',
       ps.position ?? '',
-      bankName || 'MISSING — verify with employee',
-      bankAccount || 'MISSING — verify with employee',
-      _r(net),
+      bankName || '—',
+      ps.bankAccountNumber || '—',
+      ps.workingDays ?? 0,
+      ps.presentDays ?? 0,
+      ps.absentDays ?? 0,
+      _r(ps.baseSalary ?? 0),
+      _r(ps.transportAllowance ?? 0),
+      _r(ps.housingAllowance ?? 0),
+      _r(ps.overtimePay ?? 0),
+      _r(ps.bonuses ?? 0),
+      _r(ps.totalEarnings ?? 0),
+      _r(ps.absentDeduction ?? 0),
+      _r(ps.lateDeduction ?? 0),
+      _r(ps.adjustedGross ?? 0),
+      ...empTitles.map(t => _r(emp[t] ?? 0)),
+      _r(ps.paye ?? 0),
+      _r(ps.loanDeductions ?? 0),
+      _r(ps.extraDeductions ?? 0),
+      _r(ps.totalDeductions ?? 0),
+      _r(ps.netSalary ?? 0),
+      ...emrTitles.map(t => _r(emr[t] ?? 0)),
+      _r(ps.totalEmployerCost ?? 0),
     ];
-    cols.forEach((v, c) => _setCell(ws, row, c + 1, v));
+    cols.forEach((v, c) => {
+      _setCell(ws, row, c + 1, v);
+      if (typeof v === 'number' && c >= 8) totals[c] += v;
+    });
     row++;
   });
 
-  // ── Totals row ────────────────────────────────────────────────────────────
-  const totals = ['', 'TOTAL', '', '', '', '', '', _r(totNet)];
-  totals.forEach((v, c) => _setCell(ws, row, c + 1, v, true));
+  // ── Totals row (numeric columns only) ─────────────────────────────────────
+  const totalRow = headers.map((h, c) => {
+    if (c === 1) return 'TOTAL';
+    return c >= 8 ? _r(totals[c]) : '';
+  });
+  totalRow.forEach((v, c) => _setCell(ws, row, c + 1, v, true));
   row += 2;
 
   // ── Footer ────────────────────────────────────────────────────────────────
-  _setCell(ws, row++, 1, `Total employees: ${payslips.length}   |   Total to pay: ${_r(totNet)} RWF`);
-  if (missingBankCount > 0) {
-    _setCell(ws, row++, 1, `⚠ ${missingBankCount} employee(s) have missing or incomplete bank details — verify before submitting to the bank.`);
-  }
-  _setCell(ws, row++, 1, 'Verify all bank names and account numbers before submitting to the bank — HRNovva cannot confirm account ownership.');
+  _setCell(ws, row++, 1, `Total employees: ${payslips.length}`);
+  _setCell(ws, row++, 1, 'Statutory contributions and PAYE are due to RRA by the 15th of the following month.');
   _setCell(ws, row++, 1, `Generated by HRNovva on ${new Date().toLocaleDateString('en-GB')}`);
 
-  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: row, c: 7 } });
-  XLSX.utils.book_append_sheet(wb, ws, 'Bank Payment');
-  wb.Props = { Title: `Payroll Bank Payment — ${month}`, Author: 'HRNovva', CreatedDate: new Date() };
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: row, c: headers.length - 1 } });
+  XLSX.utils.book_append_sheet(wb, ws, 'Payroll');
+  wb.Props = { Title: `Payroll — ${month}`, Author: 'HRNovva', CreatedDate: new Date() };
 
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
@@ -293,4 +250,4 @@ function _setCell(ws, row, col, value, bold = false) {
   if (bold) ws[addr].s = { font: { bold: true } };
 }
 
-module.exports = { generateRRAPayeExport, generateRSSBExport, generatePayrollBankExport };
+module.exports = { generateRRAPayeExport, generatePayrollExcelExport };

@@ -216,7 +216,7 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
       totalGross += ps.adjustedGross;
       totalNet += ps.netSalary;
       totalPaye += ps.paye;
-      totalRssb += ps.totalEmployeeRssb + ps.pensionEmployer + ps.maternityEmployer;
+      totalRssb += ps.totalEmployeeDeductionLines + ps.totalEmployerContributionLines;
       totalEmployerCost += ps.totalEmployerCost;
     }
 
@@ -384,7 +384,7 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
       tg += ps.adjustedGross;
       tn += ps.netSalary;
       tp += ps.paye;
-      tr += ps.totalEmployeeRssb + ps.pensionEmployer + ps.maternityEmployer;
+      tr += ps.totalEmployeeDeductionLines + ps.totalEmployerContributionLines;
       tc += ps.totalEmployerCost;
     }
     await FirebaseService.payrollRef(companyId).doc(month).update({

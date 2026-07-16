@@ -7,6 +7,7 @@ import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class JobBoardScreen extends StatefulWidget {
   const JobBoardScreen({super.key, required this.companySlug});
@@ -168,7 +169,7 @@ class _CompanyHeader extends StatelessWidget {
                           fontSize: 13, color: AppColors.primaryBlue)),
                 ),
               const SizedBox(height: 16),
-              const Text('We are hiring! Browse our open positions below and apply today.',
+              Text(context.tr('We are hiring! Browse our open positions below and apply today.'),
                   style: TextStyle(
                       fontSize: 15, color: Color(0xFF94A3B8), height: 1.5)),
             ],
@@ -268,13 +269,13 @@ class _JobListCard extends StatelessWidget {
             const SizedBox(width: 16),
             if (!isExpired)
               HRNovaButton(
-                label: 'Apply Now',
+                label: context.tr('Apply Now'),
                 isFullWidth: false,
                 height: 42,
                 onPressed: () => context.go('/apply/$companySlug/$jobSlug'),
               )
             else
-              const StatusBadge(text: 'Closed', type: StatusType.neutral),
+              StatusBadge(text: context.tr('Closed'), type: StatusType.neutral),
           ],
         ),
       ),
@@ -293,20 +294,20 @@ class _NoJobs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 60),
       child: Column(
         children: [
           AppIcon(AppIcons.workOffOutlined,
               size: 56, color: AppColors.textSecondary),
           SizedBox(height: 16),
-          Text('No open positions right now',
+          Text(context.tr('No open positions right now'),
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary)),
           SizedBox(height: 8),
-          Text('Check back later for new opportunities.',
+          Text(context.tr('Check back later for new opportunities.'),
               style: TextStyle(
                   fontSize: 14, color: AppColors.textSecondary)),
         ],
@@ -330,7 +331,7 @@ class _ErrorView extends StatelessWidget {
             const AppIcon(AppIcons.errorOutlineRounded,
                 size: 48, color: AppColors.errorRed),
             const SizedBox(height: 16),
-            const Text('Could not load job board',
+            Text(context.tr('Could not load job board'),
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -356,15 +357,15 @@ class _Footer extends StatelessWidget {
       color: AppColors.darkNavy,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
-      child: const Column(
+      child: Column(
         children: [
-          Text('Powered by HRNovva',
+          Text(context.tr('Powered by HRNovva'),
               style: TextStyle(
                   color: Color(0xFF475569),
                   fontSize: 12,
                   fontWeight: FontWeight.w400)),
           SizedBox(height: 4),
-          Text('Your HR Team, Supercharged',
+          Text(context.tr('Your HR Team, Supercharged'),
               style: TextStyle(color: Color(0xFF334155), fontSize: 11)),
         ],
       ),

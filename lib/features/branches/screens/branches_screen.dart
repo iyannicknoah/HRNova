@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/language_switcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -19,6 +20,7 @@ import '../models/branch_model.dart';
 import '../providers/branches_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class BranchesScreen extends ConsumerStatefulWidget {
   const BranchesScreen({super.key});
@@ -66,18 +68,20 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                 Row(
                   children: [
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Branches', style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                      Text(context.tr('Branches'), style: TextStyle(color: context.appText, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
                       const SizedBox(height: 2),
-                      Text('Manage your company branches', style: TextStyle(color: context.appSubtext, fontSize: 15)),
+                      Text(context.tr('Manage your company branches'), style: TextStyle(color: context.appSubtext, fontSize: 15)),
                     ]),
                     const Spacer(),
                     if (!isSingle)
                       HRNovaButton(
-                        label: 'Add Branch',
+                        label: context.tr('Add Branch'),
                         icon: AppIcons.addRounded,
                         isFullWidth: false,
                         onPressed: _showAddDialog,
                       ),
+                    const SizedBox(width: 12),
+                    const LanguageSwitcher(size: 36),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -109,7 +113,7 @@ class _BranchesScreenState extends ConsumerState<BranchesScreen> {
                     child: filtered.isEmpty
                         ? Center(
                             child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              const AppIcon(AppIcons.businessOutlined, size: 48, color: AppColors.textSecondary),
+                              AppIcon(AppIcons.businessOutlined, size: 48, color: context.appSubtext),
                               const SizedBox(height: 12),
                               Text(
                                 branches.isEmpty ? 'No branches yet — add one to get started' : 'No branches match your search',
@@ -165,12 +169,12 @@ class _SingleCompanyEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Single Location Company',
+            context.tr('Single Location Company'),
             style: TextStyle(color: context.appText, fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
-            'This company is set up as a single location.\nBranch management is not available.',
+            context.tr('This company is set up as a single location.\nBranch management is not available.'),
             textAlign: TextAlign.center,
             style: TextStyle(color: context.appSubtext, fontSize: 15, height: 1.5),
           ),
@@ -179,7 +183,7 @@ class _SingleCompanyEmptyState extends StatelessWidget {
             const AppIcon(AppIcons.infoOutlineRounded, color: AppColors.primaryBlue, size: 18),
             const SizedBox(width: 10),
             Text(
-              'Contact us to upgrade for Multi-Branch',
+              context.tr('Contact us to upgrade for Multi-Branch'),
               style: TextStyle(color: AppColors.primaryBlue, fontSize: 15, fontWeight: FontWeight.w400),
             ),
           ]),
@@ -260,9 +264,9 @@ class _BranchCardContent extends ConsumerWidget {
                   Text('$employeeCount',
                       style: TextStyle(color: context.appText, fontSize: 22, fontWeight: FontWeight.w700, height: 1)),
                   const SizedBox(width: 6),
-                  Text('employees', style: TextStyle(color: context.appSubtext, fontSize: 13)),
+                  Text(context.tr('employees'), style: TextStyle(color: context.appSubtext, fontSize: 13)),
                   const Spacer(),
-                  Text('View details', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(context.tr('View details'), style: TextStyle(color: AppColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
                   const SizedBox(width: 2),
                   const AppIcon(AppIcons.chevronRightRounded, size: 13, color: AppColors.primaryBlue),
                 ]),
@@ -347,7 +351,7 @@ class _BranchDetailDialog extends ConsumerWidget {
             ],
             Divider(color: context.appBorder, height: 28),
             // Employee stats
-            Text('Employees', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
+            Text(context.tr('Employees'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
             const SizedBox(height: 10),
             Row(children: [
               _DetailStat('Total', '${branchEmployees.length}', AppColors.primaryBlue),
@@ -369,7 +373,7 @@ class _BranchDetailDialog extends ConsumerWidget {
             ]),
             const SizedBox(height: 20),
             // Leave summary
-            Text('Leave Requests', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
+            Text(context.tr('Leave Requests'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.appText)),
             const SizedBox(height: 10),
             Row(children: [
               _DetailStat('Pending', '$pendingLeaves', AppColors.warningAmber),
@@ -380,7 +384,7 @@ class _BranchDetailDialog extends ConsumerWidget {
             // Attendance rate progress
             if (activeCount > 0) ...[
               Row(children: [
-                Text('Attendance Rate Today', style: TextStyle(fontSize: 14, color: context.appSubtext)),
+                Text(context.tr('Attendance Rate Today'), style: TextStyle(fontSize: 14, color: context.appSubtext)),
                 const Spacer(),
                 Text('${(((presentCount + lateCount) / activeCount) * 100).round()}%',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
@@ -579,11 +583,11 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       _dialogHeader(context, 'Add New Branch', 'Step 1 of 2 — Branch Details'),
       const SizedBox(height: 24),
-      _dlgField('Branch Name *', _nameCtrl, hint: 'e.g. Musanze Branch'),
+      _dlgField('Branch Name *', _nameCtrl, hint: context.tr('e.g. Musanze Branch')),
       const SizedBox(height: 14),
-      _dlgField('Location', _locCtrl, hint: 'e.g. Musanze District'),
+      _dlgField('Location', _locCtrl, hint: context.tr('e.g. Musanze District')),
       const SizedBox(height: 14),
-      _dlgField('Branch Code', _codeCtrl, hint: 'e.g. MSZ-001'),
+      _dlgField('Branch Code', _codeCtrl, hint: context.tr('e.g. MSZ-001')),
       _errorBox(),
       const SizedBox(height: 24),
       Row(children: [
@@ -616,7 +620,7 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
       const SizedBox(height: 20),
 
       if (_useExisting) ...[
-        Text('Choose an HR admin to assign to this branch:',
+        Text(context.tr('Choose an HR admin to assign to this branch:'),
             style: TextStyle(fontSize: 14, color: context.appSubtext)),
         const SizedBox(height: 10),
         if (unassignedHrs.isEmpty)
@@ -631,16 +635,16 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
               AppIcon(AppIcons.infoOutlineRounded, size: 16, color: context.appSubtext),
               const SizedBox(width: 10),
               Expanded(child: Text(
-                'No unassigned HR admins found. Use "Add New HR" or skip and assign later.',
+                context.tr('No unassigned HR admins found. Use "Add New HR" or skip and assign later.'),
                 style: TextStyle(fontSize: 14, color: context.appSubtext),
               )),
             ]),
           )
         else
           HRNovaDropdown<String>(
-            label: 'HR Admin',
+            label: context.tr('HR Admin'),
             value: _selectedEmployeeId,
-            hint: 'Select HR admin…',
+            hint: context.tr('Select HR admin…'),
             items: unassignedHrs.map((e) => DropdownMenuItem(
               value: e.id,
               child: Text('${e.fullName} · ${e.email}',
@@ -650,17 +654,17 @@ class _AddBranchDialogState extends ConsumerState<_AddBranchDialog> {
             onChanged: (v) => setState(() => _selectedEmployeeId = v),
           ),
       ] else ...[
-        _dlgField('First Name *', _hrFirstCtrl, hint: 'First name'),
+        _dlgField('First Name *', _hrFirstCtrl, hint: context.tr('First name')),
         const SizedBox(height: 12),
-        _dlgField('Last Name', _hrLastCtrl, hint: 'Last name'),
+        _dlgField('Last Name', _hrLastCtrl, hint: context.tr('Last name')),
         const SizedBox(height: 12),
-        _dlgField('Email *', _hrEmailCtrl, hint: 'hr@company.rw', type: TextInputType.emailAddress),
+        _dlgField('Email *', _hrEmailCtrl, hint: context.tr('hr@company.rw'), type: TextInputType.emailAddress),
         const SizedBox(height: 12),
         HRNovaTextField(
-          label: 'Password *',
+          label: context.tr('Password *'),
           controller: _hrPassCtrl,
           obscureText: _obscure,
-          hint: 'Min 6 characters',
+          hint: context.tr('Min 6 characters'),
           suffixIcon: IconButton(
             onPressed: () => setState(() => _obscure = !_obscure),
             icon: AppIcon(_obscure ? AppIcons.visibilityOutlined : AppIcons.visibilityOffOutlined,

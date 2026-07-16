@@ -13,6 +13,7 @@ import '../../branches/providers/branches_provider.dart';
 import '../models/employee_model.dart';
 import '../providers/employees_provider.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../l10n/tr.dart';
 import '../../../shared/widgets/app_icon.dart';
 
 class EmployeeFormPanel extends ConsumerStatefulWidget {
@@ -118,7 +119,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: AppColors.errorRed, content: Text('Please fill all required information.')),
+        SnackBar(backgroundColor: AppColors.errorRed, content: Text(context.tr('Please fill all required information.'))),
       );
       return;
     }
@@ -173,7 +174,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     final value = (v ?? '').trim();
     if (value.isEmpty) return null;
     if (!RegExp(r'^07\d{8}$').hasMatch(value)) {
-      return 'Phone must start with 07 and be exactly 10 digits';
+      return context.tr('Phone must start with 07 and be exactly 10 digits');
     }
     return null;
   }
@@ -183,7 +184,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     final value = (v ?? '').trim();
     if (value.isEmpty) return null;
     if (!RegExp(r'^\d+$').hasMatch(value)) {
-      return 'Bank account number must contain digits only';
+      return context.tr('Bank account number must contain digits only');
     }
     return null;
   }
@@ -196,18 +197,18 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
   /// verifiable are enforced here.
   String? _validateNationalId(String? v) {
     final value = (v ?? '').trim();
-    if (value.isEmpty) return 'National ID is required';
+    if (value.isEmpty) return context.tr('National ID is required');
     if (!RegExp(r'^\d{16}$').hasMatch(value)) {
-      return 'National ID must be exactly 16 digits';
+      return context.tr('National ID must be exactly 16 digits');
     }
     final birthYear = int.tryParse(value.substring(1, 5));
     final currentYear = DateTime.now().year;
     if (birthYear == null || birthYear < 1900 || birthYear > currentYear) {
-      return 'Invalid National ID — the year segment (digits 2–5) is not a valid birth year';
+      return context.tr('Invalid National ID — the year segment (digits 2–5) is not a valid birth year');
     }
     final genderDigit = value[5];
     if (genderDigit != '7' && genderDigit != '8') {
-      return 'Invalid National ID — the 6th digit must be 7 or 8';
+      return context.tr('Invalid National ID — the 6th digit must be 7 or 8');
     }
     return null;
   }
@@ -221,7 +222,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appCard,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(35),
@@ -236,16 +237,16 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
           // Panel header
           Container(
             padding: const EdgeInsets.fromLTRB(20, 20, 14, 16),
-            decoration: const BoxDecoration(
-              color: AppColors.lightBlue50,
-              border: Border(bottom: BorderSide(color: AppColors.cardBorder)),
+            decoration: BoxDecoration(
+              color: context.pillBlueBg,
+              border: Border(bottom: BorderSide(color: context.appBorder)),
             ),
             child: Row(children: [
               Expanded(child: Text(
-                isEdit ? 'Edit Employee' : 'Add New Employee',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                isEdit ? context.tr('Edit Employee') : context.tr('Add New Employee'),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: context.appText),
               )),
-              IconButton(onPressed: widget.onClose, icon: const AppIcon(AppIcons.close, size: 22), color: AppColors.textSecondary),
+              IconButton(onPressed: widget.onClose, icon: const AppIcon(AppIcons.close, size: 22), color: context.appSubtext),
             ]),
           ),
 
@@ -254,119 +255,124 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
               padding: const EdgeInsets.all(20),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 // Personal Info
-                _SecTitle('Personal Information'),
+                _SecTitle(context.tr('Personal Information')),
                 const SizedBox(height: 12),
                 _Row2(
-                  left: _PField('First Name', _firstName, required: true),
-                  right: _PField('Last Name', _lastName, required: true),
+                  left: _PField(context.tr('First Name'), _firstName, required: true),
+                  right: _PField(context.tr('Last Name'), _lastName, required: true),
                 ),
                 const SizedBox(height: 12),
                 _Row2(
-                  left: _PField('National ID', _nationalId,
+                  left: _PField(context.tr('National ID'), _nationalId,
                       required: true,
                       keyboardType: TextInputType.number,
-                      hint: '16 digits',
+                      hint: context.tr('16 digits'),
                       validator: _validateNationalId),
-                  right: _PField('Phone (+250)', _phone,
+                  right: _PField(context.tr('Phone (+250)'), _phone,
                       hint: '07XXXXXXXX',
                       keyboardType: TextInputType.number,
                       validator: _validatePhone),
                 ),
                 const SizedBox(height: 12),
-                _PField('Email Address', _email, hint: 'employee@company.com'),
+                _PField(context.tr('Email Address'), _email, hint: 'employee@company.com'),
                 const SizedBox(height: 12),
                 _Row2(
-                  left: _DatePField('Date of Birth', _dob),
-                  right: _PField('Emergency Contact', _emergency, hint: 'Name & phone'),
+                  left: _DatePField(context.tr('Date of Birth'), _dob),
+                  right: _PField(context.tr('Emergency Contact'), _emergency, hint: context.tr('Name & phone')),
                 ),
                 const SizedBox(height: 20),
 
                 // Employment
-                _SecTitle('Employment Details'),
+                _SecTitle(context.tr('Employment Details')),
                 const SizedBox(height: 12),
-                _Row2(
-                  left: _DropPField('Department', _dept, [
-                    if (widget.departments.isEmpty) const DropdownMenuItem(value: '', child: Text('No departments')),
-                    ...widget.departments.map((d) => DropdownMenuItem(value: d, child: Text(d))),
-                  ], (v) => setState(() => _dept = v ?? '')),
-                  right: _PField('Job Title', _jobTitle, required: true),
-                ),
+                // Super-admin completion flow (companyId override) has no
+                // department list — the HR admin organizes departments later.
+                if (widget.companyId != null)
+                  _PField(context.tr('Job Title'), _jobTitle, required: true)
+                else
+                  _Row2(
+                    left: _DropPField(context.tr('Department'), _dept, [
+                      if (widget.departments.isEmpty) DropdownMenuItem(value: '', child: Text(context.tr('No departments'))),
+                      ...widget.departments.map((d) => DropdownMenuItem(value: d, child: Text(d))),
+                    ], (v) => setState(() => _dept = v ?? '')),
+                    right: _PField(context.tr('Job Title'), _jobTitle, required: true),
+                  ),
                 const SizedBox(height: 12),
                 if (isMultiBranch) ...[
-                  _DropPField('Branch', _branchId, [
-                    const DropdownMenuItem(value: null, child: Text('Select branch…')),
+                  _DropPField(context.tr('Branch'), _branchId, [
+                    DropdownMenuItem(value: null, child: Text(context.tr('Select branch…'))),
                     ...branches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))),
                   ], (v) => setState(() => _branchId = v)),
                   const SizedBox(height: 12),
                 ],
                 _Row2(
-                  left: _DropPField('Contract Type', _contract,
-                    AppConstants.contractTypes.map((c) => DropdownMenuItem(value: c, child: Text(_ctLabel(c)))).toList(),
+                  left: _DropPField(context.tr('Contract Type'), _contract,
+                    AppConstants.contractTypes.map((c) => DropdownMenuItem(value: c, child: Text(context.tr(_ctLabel(c))))).toList(),
                     (v) => setState(() => _contract = v ?? _contract)),
-                  right: _DatePField('Start Date', _startDate, required: true),
+                  right: _DatePField(context.tr('Start Date'), _startDate, required: true),
                 ),
                 if (_contract == 'fixed_term') ...[
                   const SizedBox(height: 12),
-                  _DatePField('End Date', _endDate),
+                  _DatePField(context.tr('End Date'), _endDate),
                 ],
                 const SizedBox(height: 12),
-                _PField('Insurance Number', _rssb),
+                _PField(context.tr('Insurance Number'), _rssb),
                 const SizedBox(height: 20),
 
                 // Salary
-                _SecTitle('Salary & Allowances'),
+                _SecTitle(context.tr('Salary & Allowances')),
                 const SizedBox(height: 12),
-                _DropPField('Salary Type', _salaryType,
-                  AppConstants.salaryTypes.map((s) => DropdownMenuItem(value: s, child: Text(_stLabel(s)))).toList(),
+                _DropPField(context.tr('Salary Type'), _salaryType,
+                  AppConstants.salaryTypes.map((s) => DropdownMenuItem(value: s, child: Text(context.tr(_stLabel(s))))).toList(),
                   (v) => setState(() => _salaryType = v ?? _salaryType)),
                 const SizedBox(height: 12),
                 if (_salaryType == AppConstants.salaryTypeFixedMonthly)
-                  _PField('Monthly Salary (RWF)', _salaryAmt, keyboardType: TextInputType.number),
+                  _PField(context.tr('Monthly Salary (RWF)'), _salaryAmt, keyboardType: TextInputType.number),
                 if (_salaryType == AppConstants.salaryTypeDailyRate)
-                  _PField('Daily Rate (RWF)', _dailyRate, keyboardType: TextInputType.number),
+                  _PField(context.tr('Daily Rate (RWF)'), _dailyRate, keyboardType: TextInputType.number),
                 if (_salaryType == AppConstants.salaryTypeHourlyRate)
-                  _PField('Hourly Rate (RWF)', _hourlyRate, keyboardType: TextInputType.number),
+                  _PField(context.tr('Hourly Rate (RWF)'), _hourlyRate, keyboardType: TextInputType.number),
                 const SizedBox(height: 12),
                 _Row2(
-                  left: _PField('Transport Allowance (RWF)', _transport, keyboardType: TextInputType.number),
-                  right: _PField('Housing Allowance (RWF)', _housing, keyboardType: TextInputType.number),
+                  left: _PField(context.tr('Transport Allowance (RWF)'), _transport, keyboardType: TextInputType.number),
+                  right: _PField(context.tr('Housing Allowance (RWF)'), _housing, keyboardType: TextInputType.number),
                 ),
                 const SizedBox(height: 12),
                 _Row2(
                   left: HRNovaDropdown<String?>(
-                    label: 'Bank',
+                    label: context.tr('Bank'),
                     value: _bankCode,
-                    hint: 'Select bank',
+                    hint: context.tr('Select bank'),
                     items: RwandaBanks.all
                         .map((b) => DropdownMenuItem(value: b.code, child: Text(b.name, overflow: TextOverflow.ellipsis)))
                         .toList(),
                     onChanged: (v) => setState(() => _bankCode = v),
                   ),
-                  right: _PField('Bank Account Number', _bank,
-                      hint: 'Account number',
+                  right: _PField(context.tr('Bank Account Number'), _bank,
+                      hint: context.tr('Account number'),
                       keyboardType: TextInputType.number,
                       validator: _validateBankAccount),
                 ),
                 const SizedBox(height: 20),
 
                 // System Access
-                _SecTitle('System Access'),
+                _SecTitle(context.tr('System Access')),
                 const SizedBox(height: 12),
-                _DropPField('Role', _role, const [
-                  DropdownMenuItem(value: 'employee', child: Text('Employee')),
-                  DropdownMenuItem(value: 'manager', child: Text('Manager (gets app login)')),
+                _DropPField(context.tr('Role'), _role, [
+                  DropdownMenuItem(value: 'employee', child: Text(context.tr('Employee'))),
+                  DropdownMenuItem(value: 'manager', child: Text(context.tr('Manager (gets app login)'))),
                 ], (v) => setState(() => _role = v ?? _role)),
                 if (_role == 'manager') ...[
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(color: context.pillBlueBg, borderRadius: BorderRadius.circular(8)),
-                    child: const Row(children: [
-                      AppIcon(AppIcons.infoOutline, size: 16, color: AppColors.primaryBlue),
-                      SizedBox(width: 8),
+                    child: Row(children: [
+                      const AppIcon(AppIcons.infoOutline, size: 16, color: AppColors.primaryBlue),
+                      const SizedBox(width: 8),
                       Expanded(child: Text(
-                        'A temporary password will be auto-generated and sent to the employee email.',
-                        style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
+                        context.tr('A temporary password will be auto-generated and sent to the employee email.'),
+                        style: const TextStyle(fontSize: 14, color: AppColors.primaryBlue),
                       )),
                     ]),
                   ),
@@ -379,16 +385,16 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
           // Footer
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.cardBorder))),
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: context.appBorder))),
             child: Row(children: [
               Expanded(child: HRNovaButton(
-                label: 'Cancel',
+                label: context.tr('Cancel'),
                 outlined: true,
                 onPressed: widget.onClose,
               )),
               const SizedBox(width: 12),
               Expanded(flex: 2, child: HRNovaButton(
-                label: isEdit ? 'Save Changes' : 'Add Employee',
+                label: isEdit ? context.tr('Save Changes') : context.tr('Add Employee'),
                 isLoading: _saving,
                 onPressed: _saving ? null : _save,
               )),
@@ -415,7 +421,7 @@ class _SecTitle extends StatelessWidget {
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text(t, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
     const SizedBox(height: 6),
-    const Divider(color: AppColors.cardBorder, height: 1),
+    Divider(color: context.appBorder, height: 1),
   ]);
 }
 
@@ -444,7 +450,7 @@ class _PField extends StatelessWidget {
     controller: ctrl,
     keyboardType: keyboardType,
     validator: validator ??
-        (required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null),
+        (required ? (v) => (v == null || v.trim().isEmpty) ? context.tr('Required') : null : null),
   );
 }
 
@@ -457,19 +463,29 @@ class _DatePField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => HRNovaTextField(
     label: label,
-    hint: 'Select date',
+    hint: context.tr('Select date'),
     controller: ctrl,
     readOnly: true,
-    suffixIcon: const AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: AppColors.textSecondary),
+    suffixIcon: AppIcon(AppIcons.calendarTodayOutlined, size: 16, color: context.appSubtext),
     onTap: () async {
       final picked = await showDatePicker(
         context: context,
         initialDate: DateTime.now(),
         firstDate: DateTime(1950), lastDate: DateTime(2100),
+        builder: (ctx, child) => Theme(
+          data: (ctx.isDark ? ThemeData.dark() : ThemeData.light()).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primaryBlue,
+              brightness: ctx.isDark ? Brightness.dark : Brightness.light,
+              primary: AppColors.primaryBlue,
+            ),
+          ),
+          child: child!,
+        ),
       );
       if (picked != null) ctrl.text = EmployeeModel.fmtDate(picked);
     },
-    validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
+    validator: required ? (v) => (v == null || v.isEmpty) ? context.tr('Required') : null : null,
   );
 }
 

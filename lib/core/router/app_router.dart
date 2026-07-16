@@ -38,6 +38,7 @@ import '../../features/super_admin/screens/super_admin_screen.dart';
 import '../../features/branches/screens/branches_screen.dart';
 import '../../features/departments/screens/departments_screen.dart';
 import '../../shared/widgets/hrnova_sidebar.dart';
+import '../../l10n/tr.dart';
 import '../../core/theme/app_icons.dart';
 import '../../shared/widgets/app_icon.dart';
 
@@ -385,9 +386,9 @@ class _RouterErrorScreen extends StatelessWidget {
             const AppIcon(AppIcons.errorOutlineRounded,
                 color: Color(0xFFE5534B), size: 48),
             const SizedBox(height: 16),
-            const Text(
-              'Something went wrong',
-              style: TextStyle(
+            Text(
+              context.tr('Something went wrong'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -405,8 +406,8 @@ class _RouterErrorScreen extends StatelessWidget {
             const SizedBox(height: 24),
             TextButton(
               onPressed: () => context.go('/login'),
-              child: const Text('Back to Login',
-                  style: TextStyle(color: Color(0xFF4A9EFF))),
+              child: Text(context.tr('Back to Login'),
+                  style: const TextStyle(color: Color(0xFF4A9EFF))),
             ),
           ],
         ),

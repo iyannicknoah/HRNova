@@ -1,0 +1,41 @@
+{
+  "@@locale": "en",
+
+  "language": "Language",
+  "languageEnglish": "English",
+  "languageFrench": "Français",
+
+  "navDashboard": "Dashboard",
+  "navEmployees": "Employees",
+  "navAttendance": "Attendance",
+  "navLeave": "Leave",
+  "navPayroll": "Payroll",
+  "navPerformance": "Performance",
+  "navReports": "Reports",
+  "navNovaAi": "Nova AI",
+  "navRecruitment": "Recruitment",
+  "navBranches": "Branches",
+  "navDepartments": "Departments",
+  "navSettings": "Settings",
+
+  "lightMode": "Light Mode",
+  "darkMode": "Dark Mode",
+  "signOut": "Sign Out",
+  "logOutTitle": "Log out?",
+  "logOutMessage": "Are you sure you want to log out of your account?",
+  "logOutConfirm": "Log Out",
+  "cancel": "Cancel",
+
+  "loginStarting": "Starting HRNovva…",
+  "loginWelcomeBack": "Welcome back",
+  "loginSubtitle": "Sign in to your account",
+  "loginEmailLabel": "Email address",
+  "loginEmailRequired": "Please enter your email address",
+  "loginPasswordLabel": "Password",
+  "loginPasswordRequired": "Please enter your password",
+  "loginSignIn": "Sign In",
+
+  "suspTitle": "Account Suspended",
+  "suspBody": "Your company's HRNovva account has been suspended. This may be due to a billing issue or a policy violation.",
+  "suspSignOut": "Sign Out"
+}

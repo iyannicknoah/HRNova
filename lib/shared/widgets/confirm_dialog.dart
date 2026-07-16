@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_ext.dart';
+import '../../l10n/tr.dart';
 import 'app_dialog_shell.dart';
 import 'hrnova_button.dart';
 
@@ -35,7 +36,7 @@ Future<bool> showConfirmDialog(
             Row(children: [
               Expanded(
                 child: HRNovaButton(
-                  label: cancelLabel,
+                  label: ctx.tr(cancelLabel),
                   outlined: true,
                   onPressed: () => Navigator.of(ctx).pop(false),
                 ),
@@ -43,7 +44,7 @@ Future<bool> showConfirmDialog(
               const SizedBox(width: 12),
               Expanded(
                 child: HRNovaButton(
-                  label: confirmLabel,
+                  label: ctx.tr(confirmLabel),
                   backgroundColor: danger ? AppColors.errorRed : null,
                   onPressed: () => Navigator.of(ctx).pop(true),
                 ),

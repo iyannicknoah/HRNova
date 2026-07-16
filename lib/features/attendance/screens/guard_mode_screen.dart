@@ -8,6 +8,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../providers/attendance_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 // ── State machine ─────────────────────────────────────────────────────────────
 enum _ScanState {
@@ -312,7 +313,7 @@ class _TopBar extends StatelessWidget {
           const AppIcon(AppIcons.shieldRounded,
               color: AppColors.primaryBlue, size: 20),
           const SizedBox(width: 8),
-          const Text('Guard Mode',
+          Text(context.tr('Guard Mode'),
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 17,
@@ -342,7 +343,7 @@ class _TopBar extends StatelessWidget {
               decoration: const BoxDecoration(
                   color: AppColors.successGreen, shape: BoxShape.circle)),
           const SizedBox(width: 6),
-          Text('Today: $checkedIn checked in',
+          Text(context.trp('Today: {count} checked in', {'count': '$checkedIn'}),
               style: const TextStyle(color: Colors.white60, fontSize: 14)),
         ]),
       ]),
@@ -356,11 +357,15 @@ class _ScanOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _FramePainter());
+    return CustomPaint(painter: _FramePainter(
+        hint: context.tr('Position employee QR code inside the frame')));
   }
 }
 
 class _FramePainter extends CustomPainter {
+  _FramePainter({required this.hint});
+  final String hint;
+
   @override
   void paint(Canvas canvas, Size size) {
     const frameW = 260.0;
@@ -413,9 +418,9 @@ class _FramePainter extends CustomPainter {
     }
 
     final tp = TextPainter(
-      text: const TextSpan(
-        text: 'Position employee QR code inside the frame',
-        style: TextStyle(
+      text: TextSpan(
+        text: hint,
+        style: const TextStyle(
             color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w400),
       ),
       textAlign: TextAlign.center,
@@ -441,13 +446,13 @@ class _BottomHint extends StatelessWidget {
       child: AnimatedOpacity(
         opacity: active ? 1.0 : 0.3,
         duration: const Duration(milliseconds: 300),
-        child: const Row(
+        child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AppIcon(AppIcons.qrCodeScannerRounded,
                   color: AppColors.primaryBlue, size: 18),
               SizedBox(width: 8),
-              Text('Scan QR code to check in / check out',
+              Text(context.tr('Scan QR code to check in / check out'),
                   style: TextStyle(color: Colors.white54, fontSize: 15)),
             ]),
       ),
@@ -478,7 +483,7 @@ class _NotFoundOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFFE5534B),
-      child: const Center(
+      child: Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           CircleAvatar(
             radius: 40,
@@ -487,13 +492,13 @@ class _NotFoundOverlay extends StatelessWidget {
                 AppIcon(AppIcons.personOffRounded, size: 40, color: Colors.white),
           ),
           SizedBox(height: 20),
-          Text('Employee Not Found',
+          Text(context.tr('Employee Not Found'),
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 8),
-          Text('Please contact HR Admin',
+          Text(context.tr('Please contact HR Admin'),
               style: TextStyle(color: Colors.white70, fontSize: 17)),
         ]),
       ),
@@ -544,7 +549,7 @@ class _CheckInOverlay extends StatelessWidget {
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(30),
                   borderRadius: BorderRadius.circular(100)),
-              child: const Text('CHECK IN',
+              child: Text(context.tr('CHECK IN'),
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -553,7 +558,7 @@ class _CheckInOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (isLate) ...[
-              Text('LATE — ${result.lateMinutes} minutes',
+              Text(context.trp('LATE — {min} minutes', {'min': '${result.lateMinutes}'}),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -575,7 +580,7 @@ class _CheckInOverlay extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: Colors.white.withAlpha(30),
                     borderRadius: BorderRadius.circular(100)),
-                child: const Text('ON TIME',
+                child: Text(context.tr('ON TIME'),
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -632,7 +637,7 @@ class _CheckOutOverlay extends StatelessWidget {
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(30),
                   borderRadius: BorderRadius.circular(100)),
-              child: const Text('CHECK OUT',
+              child: Text(context.tr('CHECK OUT'),
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -646,7 +651,7 @@ class _CheckOutOverlay extends StatelessWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-            Text('Worked: ${h}h ${m}m today',
+            Text(context.trp('Worked: {h}h {m}m today', {'h': '$h', 'm': '$m'}),
                 style: const TextStyle(color: Colors.white70, fontSize: 20)),
           ]),
         ),
@@ -675,10 +680,10 @@ class _AlreadyDoneOverlay extends StatelessWidget {
                   fontSize: 24,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          const Text('Already completed today',
+          Text(context.tr('Already completed today'),
               style: TextStyle(color: Colors.white70, fontSize: 17)),
           const SizedBox(height: 6),
-          Text('Checked in at ${result.checkInTimeStr}',
+          Text(context.trp('Checked in at {time}', {'time': result.checkInTimeStr}),
               style: const TextStyle(color: Colors.white54, fontSize: 15)),
         ]),
       ),
@@ -722,7 +727,7 @@ class _AfterHoursOverlay extends StatelessWidget {
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(25),
                   borderRadius: BorderRadius.circular(100)),
-              child: const Text('ABSENT — AFTER HOURS',
+              child: Text(context.tr('ABSENT — AFTER HOURS'),
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -730,13 +735,13 @@ class _AfterHoursOverlay extends StatelessWidget {
                       letterSpacing: 2)),
             ),
             const SizedBox(height: 16),
-            Text('Work ended at ${result.checkInTimeStr}',
+            Text(context.trp('Work ended at {time}', {'time': result.checkInTimeStr}),
                 style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 18,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
-            const Text('Check-in is no longer accepted for today',
+            Text(context.tr('Check-in is no longer accepted for today'),
                 style: TextStyle(color: Colors.white54, fontSize: 15)),
           ]),
         ),
@@ -781,7 +786,7 @@ class _TooEarlyOverlay extends StatelessWidget {
               decoration: BoxDecoration(
                   color: Colors.white.withAlpha(25),
                   borderRadius: BorderRadius.circular(100)),
-              child: const Text('TOO EARLY TO CHECK OUT',
+              child: Text(context.tr('TOO EARLY TO CHECK OUT'),
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -799,7 +804,7 @@ class _TooEarlyOverlay extends StatelessWidget {
                       fontWeight: FontWeight.w500)),
             ),
             const SizedBox(height: 8),
-            Text('Checked in at ${result.checkInTimeStr}',
+            Text(context.trp('Checked in at {time}', {'time': result.checkInTimeStr}),
                 style: const TextStyle(color: Colors.white54, fontSize: 15)),
           ]),
         ),

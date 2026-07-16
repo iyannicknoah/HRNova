@@ -12,6 +12,7 @@ import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../l10n/tr.dart';
 
 class ApplyScreen extends StatefulWidget {
   const ApplyScreen({
@@ -363,7 +364,7 @@ class _JobSidebar extends StatelessWidget {
           ],
           const Divider(height: 24),
           if ((job!['description'] as String?)?.isNotEmpty == true) ...[
-            const Text('About the Role',
+            Text(context.tr('About the Role'),
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -377,7 +378,7 @@ class _JobSidebar extends StatelessWidget {
             const Divider(height: 24),
           ],
           if (skills.isNotEmpty) ...[
-            const Text('Required Skills',
+            Text(context.tr('Required Skills'),
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -458,21 +459,21 @@ class _ApplicationForm extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Your Application',
+            Text(context.tr('Your Application'),
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 4),
-            const Text('All fields marked * are required.',
+            Text(context.tr('All fields marked * are required.'),
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 20),
 
             // Name
             HRNovaTextField(
-              label: 'Full Name *',
+              label: context.tr('Full Name *'),
               controller: name,
-              hint: 'Your full name',
+              hint: context.tr('Your full name'),
               validator: (v) =>
                   v?.trim().isEmpty == true ? 'Name is required' : null,
             ),
@@ -480,10 +481,10 @@ class _ApplicationForm extends StatelessWidget {
 
             // Email
             HRNovaTextField(
-              label: 'Email Address *',
+              label: context.tr('Email Address *'),
               controller: email,
               keyboardType: TextInputType.emailAddress,
-              hint: 'your@email.com',
+              hint: context.tr('your@email.com'),
               validator: (v) {
                 if (v?.trim().isEmpty == true) return 'Email is required';
                 if (!RegExp(r'^.+@.+\..+$').hasMatch(v!.trim())) {
@@ -496,7 +497,7 @@ class _ApplicationForm extends StatelessWidget {
 
             // Phone
             HRNovaTextField(
-              label: 'Phone Number *',
+              label: context.tr('Phone Number *'),
               controller: phone,
               keyboardType: TextInputType.phone,
               hint: '+250 7XX XXX XXX',
@@ -507,7 +508,7 @@ class _ApplicationForm extends StatelessWidget {
 
             // Experience
             HRNovaTextField(
-              label: 'Years of Experience *',
+              label: context.tr('Years of Experience *'),
               controller: experience,
               keyboardType: TextInputType.number,
               hint: 'e.g. 3',
@@ -527,10 +528,10 @@ class _ApplicationForm extends StatelessWidget {
 
             // Cover letter
             HRNovaTextField(
-              label: 'Cover Letter (Optional)',
+              label: context.tr('Cover Letter (Optional)'),
               controller: coverLetter,
               maxLines: 5,
-              hint: 'Tell us why you are the right person for this role...',
+              hint: context.tr('Tell us why you are the right person for this role...'),
             ),
             const SizedBox(height: 14),
 
@@ -542,7 +543,7 @@ class _ApplicationForm extends StatelessWidget {
               fileUrl: cvUrl,
               error: cvError,
               onPick: onPickCv,
-              hint: 'Click to upload PDF',
+              hint: context.tr('Click to upload PDF'),
             ),
             const SizedBox(height: 14),
 
@@ -554,7 +555,7 @@ class _ApplicationForm extends StatelessWidget {
               fileUrl: certUrl,
               error: certError,
               onPick: onPickCert,
-              hint: 'Click to upload PDF or image',
+              hint: context.tr('Click to upload PDF or image'),
             ),
             const SizedBox(height: 24),
 
@@ -575,7 +576,7 @@ class _ApplicationForm extends StatelessWidget {
             ],
 
             HRNovaButton(
-              label: 'Submit Application',
+              label: context.tr('Submit Application'),
               isLoading: submitting,
               onPressed: (submitting || uploadingCv) ? null : onSubmit,
               height: 52,
@@ -632,13 +633,13 @@ class _CvUploadBox extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.cardBorder),
         ),
-        child: const Row(
+        child: Row(
           children: [
             SizedBox(
                 width: 16, height: 16,
                 child: CircularProgressIndicator(strokeWidth: 2)),
             SizedBox(width: 10),
-            Text('Uploading...', style: TextStyle(fontSize: 13)),
+            Text(context.tr('Uploading...'), style: TextStyle(fontSize: 13)),
           ],
         ),
       );
@@ -665,7 +666,7 @@ class _CvUploadBox extends StatelessWidget {
             ),
             TextButton(
               onPressed: onPick,
-              child: const Text('Change',
+              child: Text(context.tr('Change'),
                   style: TextStyle(
                       fontSize: 12, color: AppColors.primaryBlue)),
             ),
@@ -730,13 +731,13 @@ class _LoadError extends StatelessWidget {
           const AppIcon(AppIcons.errorOutlineRounded,
               size: 48, color: AppColors.errorRed),
           const SizedBox(height: 16),
-          const Text('Job not found',
+          Text(context.tr('Job not found'),
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 8),
-          Text('This job may have been closed or the link has expired.',
+          Text(context.tr('This job may have been closed or the link has expired.'),
               style: const TextStyle(
                   fontSize: 13, color: AppColors.textSecondary)),
         ],

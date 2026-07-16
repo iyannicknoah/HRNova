@@ -1,6 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Expanded payslip — all line items needed for PDF, RRA/RSSB exports, display.
+/// One applied deduction line, snapshotted onto the payslip at calculation
+/// time so the payslip renders identically forever, even after the company
+/// later changes its deduction settings.
+class PayslipDeductionLine {
+  const PayslipDeductionLine({
+    required this.title,
+    required this.percent,
+    required this.amount,
+  });
+
+  final String title;
+  final double percent; // 6 means 6%
+  final double amount; // RWF, computed on adjusted gross
+
+  factory PayslipDeductionLine.fromMap(Map<String, dynamic> m) =>
+      PayslipDeductionLine(
+        title: m['title'] as String? ?? '',
+        percent: (m['percent'] as num?)?.toDouble() ?? 0,
+        amount: (m['amount'] as num?)?.toDouble() ?? 0,
+      );
+
+  Map<String, dynamic> toMap() =>
+      {'title': title, 'percent': percent, 'amount': amount};
+}
+
+/// Expanded payslip — all line items needed for PDF, exports, display.
 class PayslipModel {
   const PayslipModel({
     required this.id,
@@ -31,10 +56,9 @@ class PayslipModel {
     required this.lateDeduction,
     // adjustedGross = totalEarnings - absentDeduction - lateDeduction
     required this.adjustedGross,
-    // Statutory employee deductions on adjustedGross
-    required this.pensionEmployee,
-    required this.maternityEmployee,
-    required this.totalEmployeeRssb,
+    // Company-defined deductions on adjustedGross (snapshotted lines)
+    this.employeeDeductions = const [],
+    this.employerContributions = const [],
     required this.paye,
     // Other deductions
     required this.loanDeductions,
@@ -42,10 +66,6 @@ class PayslipModel {
     // Totals
     required this.totalDeductions,
     required this.netSalary,
-    // Employer costs
-    required this.pensionEmployer,
-    required this.maternityEmployer,
-    required this.occupationalHazard,
     required this.totalEmployerCost,
     // Metadata
     required this.workingDays,
@@ -92,14 +112,18 @@ class PayslipModel {
   final int totalLateMinutes;
   final double lateDeduction;
 
-  // PAYE / RSSB base
+  // PAYE / deduction base
   final double adjustedGross; // totalEarnings - absentDeduction - lateDeduction
 
-  // Employee statutory deductions (on adjustedGross)
-  final double pensionEmployee; // 6%
-  final double maternityEmployee; // 0.3%
-  final double totalEmployeeRssb;
+  // Company-defined deductions on adjustedGross, snapshotted at calc time
+  final List<PayslipDeductionLine> employeeDeductions;
+  final List<PayslipDeductionLine> employerContributions; // info only
   final double paye;
+
+  double get totalEmployeeDeductionLines =>
+      employeeDeductions.fold(0.0, (s, l) => s + l.amount);
+  double get totalEmployerContributionLines =>
+      employerContributions.fold(0.0, (s, l) => s + l.amount);
 
   // Other employee deductions
   final double loanDeductions;
@@ -107,13 +131,9 @@ class PayslipModel {
   final String? extraDeductionsDescription;
 
   // Summary
-  final double totalDeductions; // rssb + paye + loans + extra
+  final double totalDeductions; // deduction lines + paye + loans + extra
   final double netSalary;
 
-  // Employer contributions (info only)
-  final double pensionEmployer; // 6%
-  final double maternityEmployer; // 0.3%
-  final double occupationalHazard; // 2%
   final double totalEmployerCost;
 
   // Metadata
@@ -158,11 +178,10 @@ class PayslipModel {
       lateDeduction: (map['lateDeduction'] as num?)?.toDouble() ?? 0,
       adjustedGross: (map['adjustedGross'] as num?)?.toDouble() ??
           (map['grossSalary'] as num?)?.toDouble() ?? 0,
-      pensionEmployee: (map['pensionEmployee'] as num?)?.toDouble() ?? 0,
-      maternityEmployee: (map['maternityEmployee'] as num?)?.toDouble() ?? 0,
-      totalEmployeeRssb: (map['totalEmployeeRssb'] as num?)?.toDouble() ??
-          ((map['pensionEmployee'] as num?)?.toDouble() ?? 0) +
-              ((map['maternityEmployee'] as num?)?.toDouble() ?? 0),
+      employeeDeductions: _parseLines(map['employeeDeductions']) ??
+          _legacyLines(map, employer: false),
+      employerContributions: _parseLines(map['employerContributions']) ??
+          _legacyLines(map, employer: true),
       paye: (map['paye'] as num?)?.toDouble() ?? 0,
       loanDeductions: (map['loanDeductions'] as num?)?.toDouble() ?? 0,
       extraDeductions: (map['extraDeductions'] as num?)?.toDouble() ??
@@ -170,9 +189,6 @@ class PayslipModel {
       extraDeductionsDescription: map['extraDeductionsDescription'] as String?,
       totalDeductions: (map['totalDeductions'] as num?)?.toDouble() ?? 0,
       netSalary: (map['netSalary'] as num?)?.toDouble() ?? 0,
-      pensionEmployer: (map['pensionEmployer'] as num?)?.toDouble() ?? 0,
-      maternityEmployer: (map['maternityEmployer'] as num?)?.toDouble() ?? 0,
-      occupationalHazard: (map['occupationalHazard'] as num?)?.toDouble() ?? 0,
       totalEmployerCost: (map['totalEmployerCost'] as num?)?.toDouble() ?? 0,
       workingDays: map['workingDays'] as int? ?? 0,
       presentDays: map['presentDays'] as int? ?? 0,
@@ -212,9 +228,10 @@ class PayslipModel {
         'lateDeduction': lateDeduction,
         'adjustedGross': adjustedGross,
         'grossSalary': adjustedGross, // compat key for RRA exports
-        'pensionEmployee': pensionEmployee,
-        'maternityEmployee': maternityEmployee,
-        'totalEmployeeRssb': totalEmployeeRssb,
+        'employeeDeductions': employeeDeductions.map((l) => l.toMap()).toList(),
+        'employerContributions': employerContributions.map((l) => l.toMap()).toList(),
+        'totalEmployeeDeductionLines': totalEmployeeDeductionLines,
+        'totalEmployerContributionLines': totalEmployerContributionLines,
         'paye': paye,
         'loanDeductions': loanDeductions,
         'extraDeductions': extraDeductions,
@@ -222,9 +239,6 @@ class PayslipModel {
           'extraDeductionsDescription': extraDeductionsDescription,
         'totalDeductions': totalDeductions,
         'netSalary': netSalary,
-        'pensionEmployer': pensionEmployer,
-        'maternityEmployer': maternityEmployer,
-        'occupationalHazard': occupationalHazard,
         'totalEmployerCost': totalEmployerCost,
         'workingDays': workingDays,
         'presentDays': presentDays,
@@ -246,6 +260,31 @@ class PayslipModel {
     }
   }
 
+  static List<PayslipDeductionLine>? _parseLines(dynamic raw) {
+    if (raw == null) return null;
+    return (raw as List)
+        .map((e) => PayslipDeductionLine.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  /// Payslips saved before company-defined deductions existed stored fixed
+  /// RSSB fields — rebuild them as lines so old payslips render unchanged.
+  static List<PayslipDeductionLine> _legacyLines(Map<String, dynamic> map,
+      {required bool employer}) {
+    double d(String k) => (map[k] as num?)?.toDouble() ?? 0;
+    final lines = employer
+        ? [
+            PayslipDeductionLine(title: 'RSSB Pension', percent: 6, amount: d('pensionEmployer')),
+            PayslipDeductionLine(title: 'RSSB Maternity', percent: 0.3, amount: d('maternityEmployer')),
+            PayslipDeductionLine(title: 'RSSB Occupational Hazard', percent: 2, amount: d('occupationalHazard')),
+          ]
+        : [
+            PayslipDeductionLine(title: 'RSSB Pension', percent: 6, amount: d('pensionEmployee')),
+            PayslipDeductionLine(title: 'RSSB Maternity', percent: 0.3, amount: d('maternityEmployee')),
+          ];
+    return lines.where((l) => l.amount > 0).toList();
+  }
+
   PayslipModel copyWith({
     double? bonuses,
     String? bonusDescription,
@@ -260,16 +299,24 @@ class PayslipModel {
     final newExtraDeductions = extraDeductions ?? this.extraDeductions;
     final newTotalEarnings = baseSalary + transportAllowance + housingAllowance + newBonuses + overtimePay;
     final newAdjustedGross = newTotalEarnings - absentDeduction - lateDeduction;
-    final newPensionEmp = _r(newAdjustedGross * 0.06);
-    final newMaternityEmp = _r(newAdjustedGross * 0.003);
-    final newTotalRssb = newPensionEmp + newMaternityEmp;
+    // Re-apply each snapshotted deduction percent on the new adjusted gross
+    List<PayslipDeductionLine> reapply(List<PayslipDeductionLine> lines) => lines
+        .map((l) => PayslipDeductionLine(
+              title: l.title,
+              percent: l.percent,
+              amount: _r(newAdjustedGross * l.percent / 100),
+            ))
+        .toList();
+    final newEmployeeLines = reapply(employeeDeductions);
+    final newEmployerLines = reapply(employerContributions);
+    final newEmployeeLinesTotal =
+        newEmployeeLines.fold(0.0, (s, l) => s + l.amount);
     final newPaye = _calcPaye(newAdjustedGross);
-    final newTotalDeductions = newTotalRssb + newPaye + loanDeductions + newExtraDeductions;
+    final newTotalDeductions =
+        newEmployeeLinesTotal + newPaye + loanDeductions + newExtraDeductions;
     final newNet = newAdjustedGross - newTotalDeductions;
-    final newPensionEmr = _r(newAdjustedGross * 0.06);
-    final newMaternityEmr = _r(newAdjustedGross * 0.003);
-    final newOccHazard = _r(newAdjustedGross * 0.02);
-    final newEmployerCost = newAdjustedGross + newPensionEmr + newMaternityEmr + newOccHazard;
+    final newEmployerCost = newAdjustedGross +
+        newEmployerLines.fold(0.0, (s, l) => s + l.amount);
 
     return PayslipModel(
       id: id,
@@ -298,18 +345,14 @@ class PayslipModel {
       totalLateMinutes: totalLateMinutes,
       lateDeduction: lateDeduction,
       adjustedGross: newAdjustedGross,
-      pensionEmployee: newPensionEmp,
-      maternityEmployee: newMaternityEmp,
-      totalEmployeeRssb: newTotalRssb,
+      employeeDeductions: newEmployeeLines,
+      employerContributions: newEmployerLines,
       paye: newPaye,
       loanDeductions: loanDeductions,
       extraDeductions: newExtraDeductions,
       extraDeductionsDescription: extraDeductionsDescription ?? this.extraDeductionsDescription,
       totalDeductions: newTotalDeductions,
       netSalary: newNet,
-      pensionEmployer: newPensionEmr,
-      maternityEmployer: newMaternityEmr,
-      occupationalHazard: newOccHazard,
       totalEmployerCost: newEmployerCost,
       workingDays: workingDays,
       presentDays: presentDays,
