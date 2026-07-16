@@ -436,7 +436,7 @@ class _DailyLiveSection extends ConsumerWidget {
         ? emps.where((e) => onLeaveIds.contains(e.id)).length
         : onLeaveIds.length;
     final absent = (totalActive - present - onLeave).clamp(0, totalActive);
-    final rate = totalActive > 0 ? ((present / totalActive) * 100).round() : 0;
+    final rate = totalActive > 0 ? ((present / totalActive) * 100).round().clamp(0, 100) : 0;
 
     final rateColor = rate >= 80 ? AppColors.successGreen : rate >= 60 ? AppColors.warningAmber : AppColors.errorRed;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -520,7 +520,7 @@ class _WeeklyLiveSection extends ConsumerWidget {
     }
     final workingDays = weekDays.length;
     final maxPossible = workingDays * (totalActive == 0 ? 1 : totalActive);
-    final avgRate = maxPossible > 0 ? ((totalPresent / maxPossible) * 100).round() : 0;
+    final avgRate = maxPossible > 0 ? ((totalPresent / maxPossible) * 100).round().clamp(0, 100) : 0;
     final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
     final avgRateColor = avgRate >= 80 ? AppColors.successGreen : avgRate >= 60 ? AppColors.warningAmber : AppColors.errorRed;
@@ -595,7 +595,7 @@ class _MonthlyLiveSection extends ConsumerWidget {
       if (DateTime(month.year, month.month, d).weekday <= 5) workDays++;
     }
     final maxPossible = workDays * (totalActive == 0 ? 1 : totalActive);
-    final rate = maxPossible > 0 ? ((present / maxPossible) * 100).round() : 0;
+    final rate = maxPossible > 0 ? ((present / maxPossible) * 100).round().clamp(0, 100) : 0;
 
     // Leave breakdown
     final allLeaves = (leavesAsync.valueOrNull ?? []).where((l) {
@@ -1642,7 +1642,7 @@ class _WeeklyPdfButtonState extends ConsumerState<_WeeklyPdfButton> {
       }
     }
     final maxPossible = 5 * (emps.isEmpty ? 1 : emps.length);
-    final avgRate = maxPossible > 0 ? ((totalPresent / maxPossible) * 100).round() : 0;
+    final avgRate = maxPossible > 0 ? ((totalPresent / maxPossible) * 100).round().clamp(0, 100) : 0;
     final dayStats = List.generate(5, (i) {
       final present = dayStatMap[weekDays[i].weekday]?.$1 ?? 0;
       return (dayLabels[i], present, emps.isEmpty ? 1 : emps.length);
@@ -1732,7 +1732,7 @@ class _MonthlyPdfButtonState extends ConsumerState<_MonthlyPdfButton> {
       if (DateTime(widget.month.year, widget.month.month, d).weekday <= 5) workDays++;
     }
     final maxPossible = workDays * (totalActive == 0 ? 1 : totalActive);
-    final rate = maxPossible > 0 ? ((present / maxPossible) * 100).round() : 0;
+    final rate = maxPossible > 0 ? ((present / maxPossible) * 100).round().clamp(0, 100) : 0;
     final absent = (workDays * totalActive - present).clamp(0, workDays * totalActive);
 
     final allLeaves = (leavesAsync.valueOrNull ?? []).where((l) =>
@@ -1902,7 +1902,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
     final lateCount = records.where((r) => r.isLate && isPresent(r)).length;
     final absentCount = (totalDays * emps.length - presentCount).clamp(0, totalDays * emps.length);
     final rate = (totalDays * emps.length) > 0
-        ? ((presentCount / (totalDays * emps.length)) * 100).round()
+        ? ((presentCount / (totalDays * emps.length)) * 100).round().clamp(0, 100)
         : 0;
 
     // Per-employee summary
@@ -2804,7 +2804,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                 final brRecs = allRecords.where((r) => r.branchId == b.id).toList();
                 final pres = brRecs.where((r) => isPresent(r)).length;
                 final maxP = totalDays * (empCount == 0 ? 1 : empCount);
-                final rate = maxP > 0 ? (pres / maxP * 100).roundToDouble() : 0.0;
+                final rate = maxP > 0 ? (pres / maxP * 100).roundToDouble().clamp(0.0, 100.0) : 0.0;
                 final c = rate >= 80 ? AppColors.successGreen : rate >= 60 ? AppColors.warningAmber : AppColors.errorRed;
                 return (b.name, rate, 100.0, c);
               }).toList();
@@ -2866,7 +2866,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
                   final late = brRecs.where((r) => r.isLate && isPresent(r)).length;
                   final maxP = totalDays * (empCount == 0 ? 1 : empCount);
                   final absent = (maxP - present).clamp(0, maxP);
-                  final rate = maxP > 0 ? ((present / maxP) * 100).round() : 0;
+                  final rate = maxP > 0 ? ((present / maxP) * 100).round().clamp(0, 100) : 0;
                   final rateColor = rate >= 80
                       ? AppColors.successGreen
                       : rate >= 60
@@ -3128,7 +3128,11 @@ class _TrendBarChart extends StatelessWidget {
                   maxY: 100,
                   minY: 0,
                   barGroups: days.asMap().entries.map((e) {
-                    final rate = e.value.$3 > 0 ? (e.value.$2 / e.value.$3 * 100) : 0.0;
+                    // Clamp: present can exceed the active-employee denominator
+                    // (e.g. records for since-deactivated employees), which
+                    // would otherwise draw the rod past the chart bounds.
+                    final rate = (e.value.$3 > 0 ? (e.value.$2 / e.value.$3 * 100) : 0.0)
+                        .clamp(0.0, 100.0);
                     final c = rate >= 80 ? AppColors.successGreen
                         : rate >= 60 ? AppColors.warningAmber
                         : AppColors.errorRed;

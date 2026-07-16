@@ -896,6 +896,40 @@ const Map<String, String> frDictionary = {
   'Download Payslip PDF': 'Télécharger le bulletin PDF',
   'HRNovva Payslip': 'Bulletin de paie HRNovva',
 
+  // ── Cost analytics ────────────────────────────────────────────────────────
+  'Cost Analytics': 'Analyse des coûts',
+  'Live Firebase usage & profitability': 'Utilisation Firebase en direct et rentabilité',
+  'Updated {time} · refreshes every 60s': 'Mis à jour à {time} · actualisé toutes les 60 s',
+  'Refresh': 'Actualiser',
+  'Retry': 'Réessayer',
+  'Reads today': 'Lectures aujourd\'hui',
+  'Writes today': 'Écritures aujourd\'hui',
+  'Deletes today': 'Suppressions aujourd\'hui',
+  'Est. cost today': 'Coût estimé aujourd\'hui',
+  'after daily free tier': 'après le quota gratuit quotidien',
+  'Est. cost this month': 'Coût estimé ce mois-ci',
+  'Earnings this month': 'Revenus ce mois-ci',
+  '50% = {amount}': '50 % = {amount}',
+  'Profitable this month': 'Rentable ce mois-ci',
+  'Cost exceeds 50% of earnings': 'Le coût dépasse 50 % des revenus',
+  '{sign}{amount} after Firebase cost vs 50% of earnings':
+      '{sign}{amount} après coût Firebase vs 50 % des revenus',
+  'Daily estimated cost — last 30 days': 'Coût quotidien estimé — 30 derniers jours',
+  'Project cost vs 50% of earnings — monthly': 'Coût du projet vs 50 % des revenus — mensuel',
+  'Est. project cost': 'Coût estimé du projet',
+  '50% of earnings': '50 % des revenus',
+  '50% earnings': '50 % des revenus',
+  'Cost': 'Coût',
+  '{pct}% of free tier ({limit}/day)': '{pct} % du quota gratuit ({limit}/jour)',
+  'Usage is live from Cloud Monitoring (minutes of delay). Cost is estimated at Blaze prices after the daily free tier — on the current Spark plan the real bill is \$0. Conversion: 1 USD = {rate} RWF.':
+      'Utilisation en direct via Cloud Monitoring (délai de quelques minutes). Coût estimé aux tarifs Blaze après le quota gratuit quotidien — sur le plan Spark actuel, la facture réelle est de 0 \$. Conversion : 1 USD = {rate} RWF.',
+
+  'Live usage requires billing to be enabled on the Google Cloud project (Blaze plan). Earnings below are still live; usage and cost will activate automatically once billing is enabled.':
+      'L\'utilisation en direct nécessite l\'activation de la facturation sur le projet Google Cloud (plan Blaze). Les revenus ci-dessous restent en direct ; l\'utilisation et le coût s\'activeront automatiquement une fois la facturation activée.',
+  'Usage metrics unavailable: {reason}': 'Métriques d\'utilisation indisponibles : {reason}',
+
+  'Contacts for support': 'Contacts pour l\'assistance',
+
   // ── Nova AI ───────────────────────────────────────────────────────────────
   'Ask Nova anything': 'Demandez tout à Nova',
   'Your HR assistant, grounded in your company\'s live data':

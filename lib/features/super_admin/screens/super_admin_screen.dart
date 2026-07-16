@@ -21,6 +21,7 @@ import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/language_switcher.dart';
+import 'cost_analytics_view.dart';
 import '../../../l10n/tr.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -391,15 +392,15 @@ class _CoAvatar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR
 // ─────────────────────────────────────────────────────────────────────────────
-enum _View { dashboard, companies, billing }
+enum _View { dashboard, companies, billing, cost }
 
 class _Sidebar extends StatelessWidget {
   final _View view;
   final bool panelOpen;
-  final VoidCallback onDashboard, onCompanies, onBilling;
+  final VoidCallback onDashboard, onCompanies, onBilling, onCost;
   const _Sidebar({required this.view, required this.panelOpen,
     required this.onDashboard, required this.onCompanies,
-    required this.onBilling});
+    required this.onBilling, required this.onCost});
 
   @override
   Widget build(BuildContext context) {
@@ -446,6 +447,8 @@ class _Sidebar extends StatelessWidget {
                 active: view == _View.companies || panelOpen,  onTap: onCompanies),
               _SItem(icon: AppIcons.receiptLongRounded, label: context.tr('Billing'),
                 active: view == _View.billing && !panelOpen,   onTap: onBilling),
+              _SItem(icon: AppIcons.trendingUpRounded,   label: context.tr('Cost Analytics'),
+                active: view == _View.cost && !panelOpen,      onTap: onCost),
             ],
           ),
         ),
@@ -572,6 +575,7 @@ class _TopBar extends ConsumerWidget {
       _View.dashboard => 'Dashboard',
       _View.companies => 'Companies',
       _View.billing   => 'Billing',
+      _View.cost      => 'Cost Analytics',
     };
     const showSearch = true;
     return Container(
@@ -699,6 +703,7 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
             onDashboard: () => _nav(_View.dashboard),
             onCompanies: () => _nav(_View.companies),
             onBilling:   () => _nav(_View.billing),
+            onCost:      () => _nav(_View.cost),
           )),
 
         Positioned(left: 220, top: 0, right: 0, height: 64,
@@ -764,6 +769,7 @@ class _SAState extends ConsumerState<SuperAdminScreen> {
         onDetail: _openDetail,
       ),
     _View.billing => _BillingView(searchQuery: _searchQ),
+    _View.cost => const CostAnalyticsView(),
   };
 }
 

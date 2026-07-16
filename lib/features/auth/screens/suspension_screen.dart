@@ -6,6 +6,7 @@ import '../../../shared/widgets/hrnova_button.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/tr.dart';
 import '../../../shared/widgets/app_icon.dart';
 
 class SuspensionScreen extends ConsumerWidget {
@@ -24,33 +25,6 @@ class SuspensionScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'HR',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: context.appText,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const TextSpan(
-                          text: 'Nova',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryBlue,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-
                   // Warning icon
                   Container(
                     width: 80,
@@ -91,7 +65,7 @@ class SuspensionScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Support contact
+                  // Support contacts
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 14),
@@ -100,19 +74,50 @@ class SuspensionScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: context.alternate),
                     ),
-                    child: const Row(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        AppIcon(AppIcons.mailOutlineRounded,
-                            color: AppColors.primaryBlue, size: 18),
-                        SizedBox(width: 8),
                         Text(
-                          'support@hrnova.rw',
+                          context.tr('Contacts for support'),
                           style: TextStyle(
-                            color: AppColors.primaryBlue,
+                            color: context.appText,
                             fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppIcon(AppIcons.mailOutlineRounded,
+                                color: AppColors.primaryBlue, size: 18),
+                            SizedBox(width: 8),
+                            SelectableText(
+                              'yannick@icyerekezodigital.com',
+                              style: TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppIcon(AppIcons.mailOutlineRounded,
+                                color: AppColors.primaryBlue, size: 18),
+                            SizedBox(width: 8),
+                            SelectableText(
+                              'icyerekezodigitalinnovationltd@gmail.com',
+                              style: TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
