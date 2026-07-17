@@ -343,9 +343,20 @@ class EmployeesNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final companyId = _companyId;
       if (companyId == null) throw Exception('Not authenticated.');
+      // Normalize so the payroll engine can pick the loan up: it deducts only
+      // when status == 'active' and remainingAmount > 0.
+      final total = (loan['totalAmount'] as num?)?.toDouble() ?? 0;
+      final paid = (loan['amountPaid'] as num?)?.toDouble() ?? 0;
+      final normalized = {
+        ...loan,
+        'amountPaid': paid,
+        'remainingAmount':
+            (loan['remainingAmount'] as num?)?.toDouble() ?? (total - paid).clamp(0.0, total),
+        'status': loan['status'] as String? ?? 'active',
+      };
       await FirebaseService.employeesRef(companyId)
           .doc(employeeId)
-          .update({'loans': FieldValue.arrayUnion([loan])});
+          .update({'loans': FieldValue.arrayUnion([normalized])});
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

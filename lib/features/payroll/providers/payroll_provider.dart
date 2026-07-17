@@ -339,7 +339,12 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
           final updatedLoans = rawLoans.map((loan) {
             if (remaining <= 0) return loan;
             final status = loan['status'] as String? ?? 'active';
-            final rem = (loan['remainingAmount'] as num?)?.toDouble() ?? 0;
+            // Same fallback as PayrollEngine: legacy loans saved without
+            // remainingAmount derive it from totalAmount - amountPaid.
+            final total = (loan['totalAmount'] as num?)?.toDouble() ?? 0;
+            final paid = (loan['amountPaid'] as num?)?.toDouble() ?? 0;
+            final rem = (loan['remainingAmount'] as num?)?.toDouble() ??
+                (total - paid).clamp(0.0, total);
             final monthly = (loan['monthlyDeduction'] as num?)?.toDouble() ?? 0;
             if (status != 'active' || rem <= 0 || monthly <= 0) return loan;
 
@@ -348,6 +353,7 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
             final newRem = rem - deducted;
             return {
               ...loan,
+              'amountPaid': paid + deducted,
               'remainingAmount': newRem,
               if (newRem <= 0) 'status': 'paid',
             };

@@ -160,7 +160,7 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
 
       final gracedStart = workStart.add(Duration(minutes: gracePeriod));
       final isLate = now.isAfter(gracedStart);
-      final lateMinutes = isLate ? now.difference(workStart).inMinutes : 0;
+      final lateMinutes = isLate ? now.difference(gracedStart).inMinutes : 0;
 
       final data = <String, dynamic>{
         'companyId': companyId,
@@ -257,7 +257,7 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
       final gracedStart = workStart.add(Duration(minutes: gracePeriod));
       final isLate = checkInTime.isAfter(gracedStart);
       final lateMinutes =
-          isLate ? checkInTime.difference(workStart).inMinutes : 0;
+          isLate ? checkInTime.difference(gracedStart).inMinutes : 0;
 
       double? workingHours;
       if (checkOutTime != null) {

@@ -206,7 +206,7 @@ class PayrollEngine {
     for (final loan in employee.loans) {
       final loanMap = loan as Map<String, dynamic>? ?? {};
       final status = loanMap['status'] as String? ?? 'active';
-      final remaining = (loanMap['remainingAmount'] as num?)?.toDouble() ?? 0;
+      final remaining = _loanRemaining(loanMap);
       final monthly = (loanMap['monthlyDeduction'] as num?)?.toDouble() ?? 0;
       if (status == 'active' && remaining > 0 && monthly > 0) {
         loanDeductions += monthly.clamp(0, remaining);
@@ -268,6 +268,16 @@ class PayrollEngine {
   }
 
   static double _r(double v) => v.roundToDouble();
+
+  /// Remaining balance of a loan. Falls back to totalAmount - amountPaid for
+  /// loans recorded before remainingAmount was persisted at creation.
+  static double _loanRemaining(Map<String, dynamic> loanMap) {
+    final stored = (loanMap['remainingAmount'] as num?)?.toDouble();
+    if (stored != null) return stored;
+    final total = (loanMap['totalAmount'] as num?)?.toDouble() ?? 0;
+    final paid = (loanMap['amountPaid'] as num?)?.toDouble() ?? 0;
+    return (total - paid).clamp(0.0, total);
+  }
 
   /// Parse a time string like "08:00" or "17:30" to decimal hours.
   static double _parseTimeH(String t) {

@@ -2148,9 +2148,14 @@ class _LoanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final description = loan['description'] as String? ?? 'Loan';
     final total = (loan['totalAmount'] as num?)?.toDouble() ?? 0;
-    final paid = (loan['amountPaid'] as num?)?.toDouble() ?? 0;
+    final storedPaid = (loan['amountPaid'] as num?)?.toDouble() ?? 0;
     final monthly = (loan['monthlyDeduction'] as num?)?.toDouble() ?? 0;
-    final remaining = (total - paid).clamp(0.0, total);
+    // remainingAmount is the authoritative balance (decremented on payroll
+    // approval); fall back to total - amountPaid for legacy loans without it.
+    final remaining = ((loan['remainingAmount'] as num?)?.toDouble() ??
+            (total - storedPaid))
+        .clamp(0.0, total);
+    final paid = total - remaining;
     final progress = total > 0 ? paid / total : 0.0;
 
     return Container(
