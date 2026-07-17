@@ -26,14 +26,10 @@ import '../../../shared/widgets/month_nav.dart';
 import '../../../l10n/tr.dart';
 
 // ── Attendance helpers (mirror attendance_screen logic) ───────────────────────
-DateTime _endOfWorkDt(DateTime day, String workEndTime) {
-  final parts = workEndTime.split(':');
-  return DateTime(day.year, day.month, day.day,
-      int.parse(parts[0]), parts.length > 1 ? int.parse(parts[1]) : 0);
-}
-
-bool _wasPresent(AttendanceModel r, String wet) =>
-    r.checkInTime != null && r.checkInTime!.isBefore(_endOfWorkDt(r.date, wet));
+// Present = checked in and not flagged absent — the stored flag is the
+// single authority (overnight-shift aware); do not re-derive from workEndTime.
+bool _wasPresent(AttendanceModel r) =>
+    r.checkInTime != null && !r.isAbsent;
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -410,7 +406,6 @@ class _DailyLiveSection extends ConsumerWidget {
     final empsAsync = ref.watch(employeesProvider);
     final onLeaveIds =
         ref.watch(approvedLeavesByDateProvider(dateKey)).valueOrNull ?? const <String>{};
-    final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     final allEmps = empsAsync.valueOrNull ?? [];
     final emps = allEmps.where((e) =>
@@ -430,8 +425,8 @@ class _DailyLiveSection extends ConsumerWidget {
               child: CircularProgressIndicator(color: AppColors.primaryBlue)));
     }
 
-    final present = records.where((r) => _wasPresent(r, wet)).length;
-    final late = records.where((r) => r.isLate && _wasPresent(r, wet)).length;
+    final present = records.where((r) => _wasPresent(r)).length;
+    final late = records.where((r) => r.isLate && _wasPresent(r)).length;
     final onLeave = branchId != null
         ? emps.where((e) => onLeaveIds.contains(e.id)).length
         : onLeaveIds.length;
@@ -481,7 +476,6 @@ class _WeeklyLiveSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final empsAsync = ref.watch(employeesProvider);
-    final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
     // Fetch attendance for the month(s) of this week
     final monthAsync = ref.watch(
         attendanceByMonthProvider((year: weekStart.year, month: weekStart.month)));
@@ -510,7 +504,7 @@ class _WeeklyLiveSection extends ConsumerWidget {
     int totalPresent = 0, totalLate = 0;
     final Map<int, (int, int)> dayStats = {};   // weekday → (present, late)
     for (final r in weekRecords) {
-      if (_wasPresent(r, wet)) {
+      if (_wasPresent(r)) {
         totalPresent++;
         if (r.isLate) totalLate++;
         final wd = r.date.weekday;
@@ -567,7 +561,6 @@ class _MonthlyLiveSection extends ConsumerWidget {
     final leavesAsync = ref.watch(allLeaveRequestsProvider);
     final payrollAsync = ref.watch(payrollRunByMonthProvider(monthKey));
     final empsAsync = ref.watch(employeesProvider);
-    final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     if (attAsync.isLoading || empsAsync.isLoading) {
       return const Center(child: Padding(
@@ -582,8 +575,8 @@ class _MonthlyLiveSection extends ConsumerWidget {
     final records = branchId != null
         ? allRecords.where((r) => r.branchId == branchId).toList()
         : allRecords;
-    final present = records.where((r) => _wasPresent(r, wet)).length;
-    final late = records.where((r) => r.isLate && _wasPresent(r, wet)).length;
+    final present = records.where((r) => _wasPresent(r)).length;
+    final late = records.where((r) => r.isLate && _wasPresent(r)).length;
 
     // Count elapsed working days this month
     final now = DateTime.now();
@@ -624,7 +617,7 @@ class _MonthlyLiveSection extends ConsumerWidget {
     // Per-day trend data
     final byDay = <int, int>{};
     for (final r in records) {
-      if (_wasPresent(r, wet)) {
+      if (_wasPresent(r)) {
         byDay[r.date.day] = (byDay[r.date.day] ?? 0) + 1;
       }
     }
@@ -1536,7 +1529,6 @@ class _DailyPdfButtonState extends ConsumerState<_DailyPdfButton> {
     final onLeaveIds   = ref.watch(
         approvedLeavesByDateProvider(leaveDateKey(widget.date))).valueOrNull
         ?? const <String>{};
-    final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     final emps = (empsAsync.valueOrNull ?? [])
         .where((e) => e.isActive && (widget.branchId == null || e.branchId == widget.branchId))
@@ -1544,8 +1536,8 @@ class _DailyPdfButtonState extends ConsumerState<_DailyPdfButton> {
     final recs = widget.branchId != null
         ? (recordsAsync.valueOrNull ?? []).where((r) => r.branchId == widget.branchId).toList()
         : (recordsAsync.valueOrNull ?? []);
-    final present  = recs.where((r) => _wasPresent(r, wet)).length;
-    final late     = recs.where((r) => r.isLate && _wasPresent(r, wet)).length;
+    final present  = recs.where((r) => _wasPresent(r)).length;
+    final late     = recs.where((r) => r.isLate && _wasPresent(r)).length;
     final onLeave  = widget.branchId != null
         ? emps.where((e) => onLeaveIds.contains(e.id)).length
         : onLeaveIds.length;
@@ -1615,7 +1607,6 @@ class _WeeklyPdfButtonState extends ConsumerState<_WeeklyPdfButton> {
     final empsAsync   = ref.watch(employeesProvider);
     final monthAsync  = ref.watch(
         attendanceByMonthProvider((year: widget.weekStart.year, month: widget.weekStart.month)));
-    final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     final emps = (empsAsync.valueOrNull ?? [])
         .where((e) => e.isActive && (widget.branchId == null || e.branchId == widget.branchId))
@@ -1633,7 +1624,7 @@ class _WeeklyPdfButtonState extends ConsumerState<_WeeklyPdfButton> {
     int totalPresent = 0, totalLate = 0;
     final dayStatMap = <int, (int, int)>{};
     for (final r in weekRecs) {
-      if (_wasPresent(r, wet)) {
+      if (_wasPresent(r)) {
         totalPresent++;
         if (r.isLate) totalLate++;
         final wd  = r.date.weekday;
@@ -1711,7 +1702,6 @@ class _MonthlyPdfButtonState extends ConsumerState<_MonthlyPdfButton> {
     final leavesAsync  = ref.watch(allLeaveRequestsProvider);
     final payrollAsync = ref.watch(payrollRunByMonthProvider(monthKey));
     final empsAsync    = ref.watch(employeesProvider);
-    final wet = ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     final totalActive = (empsAsync.valueOrNull ?? [])
         .where((e) => e.isActive && (widget.branchId == null || e.branchId == widget.branchId))
@@ -1720,8 +1710,8 @@ class _MonthlyPdfButtonState extends ConsumerState<_MonthlyPdfButton> {
     final records    = widget.branchId != null
         ? allRecords.where((r) => r.branchId == widget.branchId).toList()
         : allRecords;
-    final present = records.where((r) => _wasPresent(r, wet)).length;
-    final late    = records.where((r) => r.isLate && _wasPresent(r, wet)).length;
+    final present = records.where((r) => _wasPresent(r)).length;
+    final late    = records.where((r) => r.isLate && _wasPresent(r)).length;
 
     final now    = DateTime.now();
     final lastDay = (widget.month.year == now.year && widget.month.month == now.month)
@@ -1894,8 +1884,7 @@ class _AttendanceReportTabState extends ConsumerState<_AttendanceReportTab> {
         ? allRecords.where((r) => r.branchId == _branchId).toList()
         : allRecords;
 
-    bool isPresent(AttendanceModel r) =>
-        r.checkInTime != null && r.checkInTime!.isBefore(_endOfWorkDt(r.date, wet));
+    bool isPresent(AttendanceModel r) => _wasPresent(r);
 
     final totalDays = records.isNotEmpty ? records.map((r) => r.date).toSet().length : 0;
     final presentCount = records.where((r) => isPresent(r)).length;
@@ -2659,8 +2648,7 @@ class _BranchesReportTabState extends ConsumerState<_BranchesReportTab> {
     final allEmps = empsAsync.valueOrNull ?? [];
     final allRecords = attAsync.valueOrNull ?? [];
 
-    bool isPresent(AttendanceModel r) =>
-        r.checkInTime != null && r.checkInTime!.isBefore(_endOfWorkDt(r.date, wet));
+    bool isPresent(AttendanceModel r) => _wasPresent(r);
 
     final totalDays = allRecords.isNotEmpty
         ? allRecords.map((r) => r.date).toSet().length

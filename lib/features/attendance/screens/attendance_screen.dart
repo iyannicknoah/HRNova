@@ -43,24 +43,18 @@ typedef _JR = ({
 String _fmt(DateTime t) =>
     '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-// Returns the DateTime representing end of work on the same day as [day]
-DateTime _endOfWorkDt(DateTime day, String workEndTime) {
-  final parts = workEndTime.split(':');
-  return DateTime(day.year, day.month, day.day,
-      int.parse(parts[0]), parts.length > 1 ? int.parse(parts[1]) : 0);
-}
+// Present = checked in and not flagged absent. The check-in provider is the
+// single authority on "checked in after hours" (it understands overnight
+// shifts where the end time is earlier on the clock than the start time);
+// re-deriving it here from workEndTime wrongly marked valid overnight
+// check-ins as absent.
+bool _wasPresent(AttendanceModel r) =>
+    r.checkInTime != null && !r.isAbsent;
 
-// Present = checked in before work ended (includes late arrivals)
-bool _wasPresent(AttendanceModel r, String workEndTime) =>
-    r.checkInTime != null &&
-    r.checkInTime!.isBefore(_endOfWorkDt(r.date, workEndTime));
-
-String _statusFromRecord(AttendanceModel? r, String workEndTime) {
+String _statusFromRecord(AttendanceModel? r) {
   if (r == null) return 'absent';
   if (r.isOnLeave) return 'on_leave';
   if (r.isAbsent) return 'absent';
-  // Checked in at or after work ended → absent
-  if (r.checkInTime != null && !_wasPresent(r, workEndTime)) return 'absent';
   if (r.isLate) return 'late';
   if (r.checkInTime != null) return 'on_time';
   return 'absent';
@@ -69,8 +63,7 @@ String _statusFromRecord(AttendanceModel? r, String workEndTime) {
 List<_JR> _buildRows(
     List<EmployeeModel> employees,
     List<AttendanceModel> records,
-    Set<String> onLeaveIds,
-    String workEndTime) {
+    Set<String> onLeaveIds) {
   final recMap = {for (final r in records) r.employeeId: r};
   final rows = <_JR>[];
   for (final emp in employees.where((e) => e.isActive)) {
@@ -79,7 +72,7 @@ List<_JR> _buildRows(
     if (r == null && onLeaveIds.contains(emp.id)) {
       status = 'on_leave';
     } else {
-      status = _statusFromRecord(r, workEndTime);
+      status = _statusFromRecord(r);
     }
     rows.add((
       employeeId: emp.id,
@@ -147,8 +140,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     final isTopHr = role == AppConstants.roleGroupHrAdmin || role == AppConstants.roleHrAdmin;
     final showBranchFilter = isMultiBranch && isTopHr;
     final branches = showBranchFilter ? (ref.watch(branchesStreamProvider).value ?? <BranchModel>[]) : <BranchModel>[];
-    final workEndTime =
-        ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
 
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(_selectedDate));
@@ -164,9 +155,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
             ? allEmps
             : allEmps.where((e) => e.branchId == _branchFilter).toList();
         return recordsAsync.when(
-          data: (records) => _buildRows(employees, records, onLeaveIds, workEndTime),
-          loading: () => _buildRows(employees, [], onLeaveIds, workEndTime),
-          error: (_, __) => _buildRows(employees, [], onLeaveIds, workEndTime),
+          data: (records) => _buildRows(employees, records, onLeaveIds),
+          loading: () => _buildRows(employees, [], onLeaveIds),
+          error: (_, __) => _buildRows(employees, [], onLeaveIds),
         );
       },
       loading: () => <_JR>[],
@@ -794,12 +785,10 @@ class _HistoryTab extends ConsumerWidget {
     final onLeaveIds =
         ref.watch(approvedLeavesByDateProvider(dateKey)).value ?? const <String>{};
 
-    final workEndTime =
-        ref.watch(companySettingsProvider).value?.workEndTime ?? '17:00';
     final rows = employeesAsync.when(
       data: (employees) => recordsAsync.when(
-        data: (records) => _buildRows(employees, records, onLeaveIds, workEndTime),
-        loading: () => _buildRows(employees, [], onLeaveIds, workEndTime),
+        data: (records) => _buildRows(employees, records, onLeaveIds),
+        loading: () => _buildRows(employees, [], onLeaveIds),
         error: (_, __) => <_JR>[],
       ),
       loading: () => <_JR>[],
@@ -1066,11 +1055,11 @@ class _SummaryTabState extends ConsumerState<_SummaryTab> {
       final recs = byEmp[emp.id] ?? [];
       if (recs.isEmpty) continue;
       // Present = checked in before work ended (includes late arrivals)
-      final present = recs.where((r) => _wasPresent(r, workEndTime)).length;
-      final late = recs.where((r) => r.isLate && _wasPresent(r, workEndTime)).length;
+      final present = recs.where((r) => _wasPresent(r)).length;
+      final late = recs.where((r) => r.isLate && _wasPresent(r)).length;
       // Absent = explicit isAbsent flag OR checked in after work ended
       final absent = recs.where((r) =>
-          r.isAbsent || (r.checkInTime != null && !_wasPresent(r, workEndTime))).length;
+          r.isAbsent).length;
       final onLeave = recs.where((r) => r.isOnLeave).length;
       final totalHours = recs.fold<double>(0, (s, r) => s + (r.workingHours ?? 0));
       result.add((

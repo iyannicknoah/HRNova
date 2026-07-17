@@ -33,14 +33,9 @@ class AttendancePdfService {
   }) async {
     final pdf = pw.Document();
 
-    DateTime endDtA(DateTime day) {
-      final p = workEndTime.split(':');
-      return DateTime(day.year, day.month, day.day,
-          int.parse(p[0]), p.length > 1 ? int.parse(p[1]) : 0);
-    }
-
+    // Stored isAbsent flag is the single authority (overnight-shift aware)
     bool isPresent(AttendanceModel r) =>
-        r.checkInTime != null && r.checkInTime!.isBefore(endDtA(r.date));
+        r.checkInTime != null && !r.isAbsent;
 
     final timeFmt = DateFormat('HH:mm');
     final dateFmt = DateFormat('d MMM');
@@ -425,14 +420,9 @@ class BranchesReportPdfService {
   }) async {
     final pdf = pw.Document();
 
-    DateTime endDtB(DateTime day) {
-      final p = workEndTime.split(':');
-      return DateTime(day.year, day.month, day.day,
-          int.parse(p[0]), p.length > 1 ? int.parse(p[1]) : 0);
-    }
-
+    // Stored isAbsent flag is the single authority (overnight-shift aware)
     bool isPresent(AttendanceModel r) =>
-        r.checkInTime != null && r.checkInTime!.isBefore(endDtB(r.date));
+        r.checkInTime != null && !r.isAbsent;
 
     final totalDays = records.isNotEmpty
         ? records.map((r) => r.date).toSet().length
