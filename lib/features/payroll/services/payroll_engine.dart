@@ -174,7 +174,9 @@ class PayrollEngine {
           absentDays++;
         }
       }
-      if (absentDays > 0) {
+      // absentDays is always counted (shown on payslips); money is only
+      // docked when the company opted into absent-day deductions.
+      if (absentDays > 0 && settings.deductAbsentDays) {
         absentDeduction = _r((employee.salaryAmount / totalWorkingDays) * absentDays);
       }
     }

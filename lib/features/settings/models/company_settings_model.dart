@@ -89,6 +89,7 @@ class CompanySettingsModel {
     this.sickLeaveDays = 10,
     this.lateDeductionPerHourRwf = 500,
     this.maxLateBeforeWarning = 3,
+    this.deductAbsentDays = false,
     this.salaryPaymentDay = 28,
     this.overtimeMultiplier = 1.5,
     this.transportAllowanceRwf = 0,
@@ -149,6 +150,9 @@ class CompanySettingsModel {
   // Payroll rules
   final int lateDeductionPerHourRwf;
   final int maxLateBeforeWarning;
+  /// When true, fixed-monthly employees lose one day's pay per unexcused
+  /// absent day. Off by default — companies opt in.
+  final bool deductAbsentDays;
   final int salaryPaymentDay;
   final double overtimeMultiplier;
   final int transportAllowanceRwf;
@@ -221,6 +225,7 @@ class CompanySettingsModel {
       sickLeaveDays: map['sickLeaveDays'] as int? ?? 10,
       lateDeductionPerHourRwf: map['lateDeductionPerHourRwf'] as int? ?? 500,
       maxLateBeforeWarning: map['maxLateBeforeWarning'] as int? ?? 3,
+      deductAbsentDays: map['deductAbsentDays'] as bool? ?? false,
       salaryPaymentDay: map['salaryPaymentDay'] as int? ?? 28,
       overtimeMultiplier: (map['overtimeMultiplier'] as num?)?.toDouble() ?? 1.5,
       transportAllowanceRwf: map['transportAllowanceRwf'] as int? ?? 0,
@@ -285,6 +290,7 @@ class CompanySettingsModel {
     'sickLeaveDays': sickLeaveDays,
     'lateDeductionPerHourRwf': lateDeductionPerHourRwf,
     'maxLateBeforeWarning': maxLateBeforeWarning,
+    'deductAbsentDays': deductAbsentDays,
     'salaryPaymentDay': salaryPaymentDay,
     'overtimeMultiplier': overtimeMultiplier,
     'transportAllowanceRwf': transportAllowanceRwf,
@@ -328,6 +334,7 @@ class CompanySettingsModel {
     int? sickLeaveDays,
     int? lateDeductionPerHourRwf,
     int? maxLateBeforeWarning,
+    bool? deductAbsentDays,
     int? salaryPaymentDay,
     double? overtimeMultiplier,
     int? transportAllowanceRwf,
@@ -368,6 +375,7 @@ class CompanySettingsModel {
         sickLeaveDays: sickLeaveDays ?? this.sickLeaveDays,
         lateDeductionPerHourRwf: lateDeductionPerHourRwf ?? this.lateDeductionPerHourRwf,
         maxLateBeforeWarning: maxLateBeforeWarning ?? this.maxLateBeforeWarning,
+        deductAbsentDays: deductAbsentDays ?? this.deductAbsentDays,
         salaryPaymentDay: salaryPaymentDay ?? this.salaryPaymentDay,
         overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
         transportAllowanceRwf: transportAllowanceRwf ?? this.transportAllowanceRwf,

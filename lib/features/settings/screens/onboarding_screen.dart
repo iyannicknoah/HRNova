@@ -42,6 +42,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _overtime = '1.5x';
   final _lateCtrl = TextEditingController(text: '500');
   final _maxLateCtrl = TextEditingController(text: '3');
+  bool _deductAbsent = false;
 
   // Step 4 — Payroll Deductions (pre-filled with standard RSSB, fully editable)
   List<DeductionRule> _deductions = List.of(DeductionRule.rssbDefaults);
@@ -145,6 +146,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'overtimeMultiplier': _parseMultiplier(_overtime),
         'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
         'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
+        'deductAbsentDays': _deductAbsent,
         'managerPhone': _mgrPhone.text.trim(),
         'hrAdminPhone': _hrPhone.text.trim(),
         'managerEmail': _mgrEmail.text.trim(),
@@ -392,6 +394,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const SizedBox(width: 16),
         Expanded(child: _textField(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
       ]),
+      const SizedBox(height: 20),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.appBorder),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(context.tr('Deduct salary for absent days'),
+                style: TextStyle(color: context.appText, fontSize: 15, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 2),
+            Text(context.tr('When on, fixed-monthly employees lose one day\'s pay for each unexcused absent day'),
+                style: TextStyle(color: context.appSubtext, fontSize: 13)),
+          ])),
+          Switch(
+            value: _deductAbsent,
+            activeThumbColor: AppColors.primaryBlue,
+            onChanged: (v) => setState(() => _deductAbsent = v),
+          ),
+        ]),
+      ),
     ],
   );
 
