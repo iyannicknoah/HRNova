@@ -1336,7 +1336,13 @@ class _DropFilter extends StatelessWidget {
           dropdownColor: context.appCard,
           icon: AppIcon(AppIcons.keyboardArrowDownRounded, size: 16, color: context.appSubtext),
           items: items
-              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+              .map((i) => DropdownMenuItem(
+                    value: i,
+                    // An employee with no department (e.g. an HR admin
+                    // profile created before departments existed) would
+                    // otherwise render as a blank, invisible-looking row.
+                    child: Text(i.isEmpty ? context.tr('Unassigned') : i),
+                  ))
               .toList(),
           onChanged: onChanged,
         ),

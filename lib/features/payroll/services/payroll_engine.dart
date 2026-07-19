@@ -63,6 +63,30 @@ class PayrollEngine {
         _ => '',
       };
 
+  /// Dates within the month that would be a working day (matches the
+  /// company's configured days-of-week) but are excluded from
+  /// [workingDayKeysForMonth] because they're a Rwanda public holiday.
+  /// Used to credit fixed-monthly employees for holidays as paid days —
+  /// daily/hourly pay is untouched by this list.
+  static List<String> holidayWorkingDayKeysForMonth(
+      int year, int month, List<String> workingDays) {
+    final first = DateTime(year, month, 1);
+    final last = DateTime(year, month + 1, 0);
+    final keys = <String>[];
+    var cur = first;
+    while (!cur.isAfter(last)) {
+      final dayName = _dayName(cur.weekday);
+      final mmdd =
+          '${cur.month.toString().padLeft(2, '0')}-${cur.day.toString().padLeft(2, '0')}';
+      if (workingDays.contains(dayName) && _rwandaHolidays.contains(mmdd)) {
+        keys.add(
+            '${cur.year}-${cur.month.toString().padLeft(2, '0')}-${cur.day.toString().padLeft(2, '0')}');
+      }
+      cur = cur.add(const Duration(days: 1));
+    }
+    return keys;
+  }
+
   // ── Full payslip calculation — 10 steps ──────────────────────────────────
   /// [attendanceMap]: date key → AttendanceModel for the month.
   /// [approvedLeaveKeys]: date keys where employee had an approved leave request.
@@ -78,8 +102,18 @@ class PayrollEngine {
     String? bonusDescription,
     double extraDeductions = 0,
     String? extraDeductionsDescription,
+    /// Dates that would be a working day but fall on a public holiday
+    /// (see [holidayWorkingDayKeysForMonth]). Fixed-monthly employees are
+    /// credited for these as paid present days; daily/hourly pay ignores
+    /// this list entirely, unchanged from before.
+    List<String> holidayKeys = const [],
   }) {
     final totalWorkingDays = workingDayKeys.length;
+    // Fixed-monthly only: holidays count as paid days, so they widen the
+    // "how many days is a month's salary spread over" denominator — without
+    // this, excluding holidays from the denominator makes every real
+    // absence cost more than it should.
+    final totalPayableDaysForFixedMonthly = totalWorkingDays + holidayKeys.length;
 
     // ── Step 1 — Base salary ────────────────────────────────────────────────
     double baseSalary;
@@ -123,6 +157,10 @@ class PayrollEngine {
             presentDays++;
           }
         }
+        // Holidays are paid days regardless of attendance — credit them as
+        // present so the count (and the deduction math below) reflects that
+        // the employee is entitled to pay for those days.
+        presentDays += holidayKeys.length;
     }
 
     // ── Step 1b — Overtime ──────────────────────────────────────────────────
@@ -175,9 +213,13 @@ class PayrollEngine {
         }
       }
       // absentDays is always counted (shown on payslips); money is only
-      // docked when the company opted into absent-day deductions.
+      // docked when the company opted into absent-day deductions. The
+      // per-day rate is spread over working days PLUS holidays (holidays
+      // are paid days too), so excluding holidays never inflates the cost
+      // of a real absence.
       if (absentDays > 0 && settings.deductAbsentDays) {
-        absentDeduction = _r((employee.salaryAmount / totalWorkingDays) * absentDays);
+        absentDeduction = _r(
+            (employee.salaryAmount / totalPayableDaysForFixedMonthly) * absentDays);
       }
     }
 
@@ -263,7 +305,12 @@ class PayrollEngine {
       totalDeductions: totalDeductions,
       netSalary: netSalary,
       totalEmployerCost: totalEmployerCost,
-      workingDays: totalWorkingDays,
+      // Fixed-monthly shows holidays included in the day count (matches the
+      // presentDays credit above and the deduction denominator); daily/
+      // hourly keep the plain working-day count, unchanged from before.
+      workingDays: employee.salaryType == 'fixed_monthly'
+          ? totalPayableDaysForFixedMonthly
+          : totalWorkingDays,
       presentDays: presentDays,
       status: 'draft',
     );

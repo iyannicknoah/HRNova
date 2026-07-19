@@ -120,6 +120,8 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
 
       final workingDayKeys = PayrollEngine.workingDayKeysForMonth(
           year, monthNum, settings.workingDays);
+      final holidayKeys = PayrollEngine.holidayWorkingDayKeysForMonth(
+          year, monthNum, settings.workingDays);
 
       // Load all attendance for the month
       final attSnap = await FirebaseService.attendanceRef(companyId)
@@ -180,6 +182,7 @@ class PayrollNotifier extends StateNotifier<PayrollState> {
           attendanceMap: attModelMap,
           approvedLeaveKeys: approvedLeaveByEmployee[emp.id] ?? {},
           workingDayKeys: workingDayKeys,
+          holidayKeys: holidayKeys,
           settings: settings,
         );
         payslips.add(payslip);

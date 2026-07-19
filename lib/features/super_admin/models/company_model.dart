@@ -17,6 +17,12 @@ class CompanyModel {
   final DateTime? createdAt;
   final String? lastPaymentDate;
   final int? lastPaymentAmount;
+  /// Manually-set billing status ('pending' | 'not_paid') for
+  /// [billingStatusPeriod] (a "MMM yyyy" period key, e.g. "Jul 2026"). Stale
+  /// once the period no longer matches the current month — a recorded
+  /// payment for the current period always takes precedence over this.
+  final String? billingStatus;
+  final String? billingStatusPeriod;
 
   const CompanyModel({
     required this.id,
@@ -35,6 +41,8 @@ class CompanyModel {
     this.createdAt,
     this.lastPaymentDate,
     this.lastPaymentAmount,
+    this.billingStatus,
+    this.billingStatusPeriod,
   });
 
   bool get isMulti  => companyType == 'multi_branch';
@@ -59,6 +67,8 @@ class CompanyModel {
       createdAt:          (d['createdAt'] as Timestamp?)?.toDate(),
       lastPaymentDate:     d['lastPaymentDate']    as String?,
       lastPaymentAmount:   d['lastPaymentAmount']  as int?,
+      billingStatus:       d['billingStatus']       as String?,
+      billingStatusPeriod: d['billingStatusPeriod'] as String?,
     );
   }
 

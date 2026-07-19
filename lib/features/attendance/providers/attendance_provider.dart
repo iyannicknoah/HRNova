@@ -4,6 +4,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firebase_service.dart';
+import '../../../core/utils/working_day_utils.dart';
 import '../models/attendance_model.dart';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -120,6 +121,34 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
       final workStartStr = settings?.workStartTime ?? '08:00';
       final workEndStr   = settings?.workEndTime   ?? '17:00';
       final gracePeriod  = settings?.gracePeriodMinutes ?? 10;
+
+      // On a day the company isn't scheduled to work (configured off-day or
+      // a Rwanda public holiday) there is no start/end time to be late or
+      // absent against — record the check-in neutrally instead of judging
+      // it by a schedule that doesn't apply that day.
+      final isWorkingDay = isCompanyWorkingDay(now, settings?.workingDays);
+
+      if (!isWorkingDay) {
+        final data = <String, dynamic>{
+          'companyId': companyId,
+          'employeeId': employeeId,
+          if (branchId != null) 'branchId': branchId,
+          'date': dateStr,
+          'checkInTime': now.toIso8601String(),
+          'verificationType': isManual ? 'manual' : 'qr_scan',
+          'isLate': false,
+          'lateMinutes': 0,
+          'isAbsent': false,
+          'isOnLeave': false,
+          'notes': notes ?? 'Checked in on a non-working day',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        await FirebaseService.attendanceRef(companyId)
+            .doc(docId)
+            .set(data, SetOptions(merge: true));
+        state = const AsyncValue.data(null);
+        return AttendanceModel.fromMap(docId, data);
+      }
 
       final (sh, sm) = _parseHHMM(workStartStr, defaultH: 8);
       final (eh, em) = _parseHHMM(workEndStr,   defaultH: 17);

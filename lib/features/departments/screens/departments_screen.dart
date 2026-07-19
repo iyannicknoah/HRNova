@@ -57,65 +57,53 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
     ),
   );
 
-  void _showEdit(int i) => AppDialogShell.show(
-    context: context,
-    alignment: Alignment.center,
-    child: _DeptDialog(
-      title: context.tr('Edit Department'),
-      initial: _depts![i],
-      existing: (_depts ?? []).where((d) => d != _depts![i]).toList(),
-      onConfirm: (name) async {
-        final copy = List<String>.from(_depts!);
-        copy[i] = name;
-        await _persist(copy);
-      },
-    ),
-  );
-
-  void _confirmDelete(int i) {
-    final name = _depts![i];
+  void _showEdit(int i) {
+    final current = _depts;
+    if (current == null || i < 0 || i >= current.length) return;
     AppDialogShell.show(
       context: context,
       alignment: Alignment.center,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(context.tr('Delete Department'),
-                style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 15),
-            Text(
-              'Remove "$name"?\n\nEmployees already assigned to this department will keep their current assignment — update them manually in the Employees section.',
-              style: TextStyle(color: context.appSubtext, fontSize: 14, height: 1.6),
-            ),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                HRNovaButton.text(
-                  label: context.tr('Cancel'),
-                  onPressed: () => Navigator.pop(context),
-                  textColor: context.appSubtext,
-                ),
-                HRNovaButton(
-                  label: context.tr('Delete'),
-                  isFullWidth: false,
-                  backgroundColor: AppColors.errorRed,
-                  onPressed: () {
-                    Navigator.pop(context);
-                    final copy = List<String>.from(_depts!);
-                    copy.removeAt(i);
-                    _persist(copy);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
+      child: _DeptDialog(
+        title: context.tr('Edit Department'),
+        initial: current[i],
+        existing: current.where((d) => d != current[i]).toList(),
+        onConfirm: (name) async {
+          // Re-read _depts at submit time — the list may have changed
+          // (another edit/delete) while this dialog was open.
+          final latest = _depts;
+          if (latest == null || i < 0 || i >= latest.length) return;
+          final copy = List<String>.from(latest);
+          copy[i] = name;
+          await _persist(copy);
+        },
       ),
     );
+  }
+
+  /// Removes department [i] from the list and persists it. Every list
+  /// read happens right before it's used (never captured ahead of time),
+  /// and every index is bounds-checked, so a stale index — from a dialog
+  /// left open while the list changed underneath it — can never throw.
+  Future<void> _delete(int i) async {
+    final current = _depts;
+    if (current == null || i < 0 || i >= current.length) return;
+    final name = current[i];
+
+    final confirmed = await AppDialogShell.show<bool>(
+      context: context,
+      alignment: Alignment.center,
+      child: _DeleteDeptDialog(name: name),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // Re-read _depts — it may have changed while the confirm dialog was
+    // open (another edit/delete, or a real-time update from elsewhere).
+    final latest = _depts;
+    if (latest == null || i < 0 || i >= latest.length || latest[i] != name) {
+      return;
+    }
+    final copy = List<String>.from(latest)..removeAt(i);
+    await _persist(copy);
   }
 
   @override
@@ -187,7 +175,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
                         name: depts[i],
                         index: i + 1,
                         onEdit: () => _showEdit(i),
-                        onDelete: () => _confirmDelete(i),
+                        onDelete: () => _delete(i),
                       ),
                     ),
                   ),
@@ -249,6 +237,53 @@ class _DeptTile extends StatelessWidget {
           RowAction(label: context.tr('Delete'), icon: AppIcons.deleteOutlineRounded, onTap: onDelete, danger: true),
         ]),
       ]),
+    );
+  }
+}
+
+// ── Delete confirmation ───────────────────────────────────────────────────────
+class _DeleteDeptDialog extends StatelessWidget {
+  const _DeleteDeptDialog({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(context.tr('Delete Department'),
+              style: TextStyle(color: context.appText, fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 15),
+          Text(
+            context.trp(
+              'Remove "{name}"? Employees already assigned to this department keep their current assignment — update them manually in the Employees section.',
+              {'name': name},
+            ),
+            style: TextStyle(color: context.appSubtext, fontSize: 14, height: 1.6),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              HRNovaButton.text(
+                label: context.tr('Cancel'),
+                onPressed: () => Navigator.pop(context, false),
+                textColor: context.appSubtext,
+              ),
+              const SizedBox(width: 8),
+              HRNovaButton(
+                label: context.tr('Delete'),
+                isFullWidth: false,
+                backgroundColor: AppColors.errorRed,
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1586,18 +1586,40 @@ class _BillingView extends ConsumerStatefulWidget {
 }
 
 class _BillingViewState extends ConsumerState<_BillingView> {
-  final Map<String, _PayStatus> _status = {};
   String _chip = 'all';
 
-  _PayStatus _getStatus(String id) => _status[id] ?? _PayStatus.pending;
+  static const _shortMonths = [
+    'Jan','Feb','Mar','Apr','May','Jun',
+    'Jul','Aug','Sep','Oct','Nov','Dec'
+  ];
 
-  List<CompanyModel> _filtered(List<CompanyModel> all) {
+  /// "MMM yyyy" key matching the format `_AddPaymentDialog` writes to each
+  /// payment's `date` field (e.g. "Jul 2026").
+  String get _currentPeriod {
+    final now = DateTime.now();
+    return '${_shortMonths[now.month - 1]} ${now.year}';
+  }
+
+  /// A recorded payment for the current period is the ground truth for
+  /// "Paid" — it always wins over any manually-set billing status. Absent
+  /// a payment, fall back to the persisted override if it's still for the
+  /// current period (a stale override from a past month reverts to Pending).
+  _PayStatus _statusFor(CompanyModel co, List<dynamic> payments) {
+    if (payments.any((p) => p.date == _currentPeriod)) return _PayStatus.paid;
+    if (co.billingStatusPeriod == _currentPeriod) {
+      return co.billingStatus == 'not_paid' ? _PayStatus.notPaid : _PayStatus.pending;
+    }
+    return _PayStatus.pending;
+  }
+
+  List<CompanyModel> _filtered(
+      List<CompanyModel> all, Map<String, _PayStatus> statusById) {
     return all.where((c) {
       final q = widget.searchQuery.toLowerCase();
       final matchQ = q.isEmpty ||
         c.name.toLowerCase().contains(q) ||
         c.industry.toLowerCase().contains(q);
-      final ps = _getStatus(c.id);
+      final ps = statusById[c.id] ?? _PayStatus.pending;
       final matchChip = _chip == 'all' ||
         (_chip == 'paid'     && ps == _PayStatus.paid) ||
         (_chip == 'pending'  && ps == _PayStatus.pending) ||
@@ -1610,14 +1632,25 @@ class _BillingViewState extends ConsumerState<_BillingView> {
 
   Future<void> _onStatusChange(CompanyModel co, _PayStatus newStatus) async {
     if (newStatus == _PayStatus.paid) {
-      final confirmed = await AppDialogShell.show<bool>(
+      // Recording the payment IS the status change — the payments stream
+      // updates status reactively once saved, nothing else to persist.
+      await AppDialogShell.show<bool>(
         context: context,
         alignment: Alignment.center,
         child: _AddPaymentDialog(co: co),
       );
-      if (confirmed != true) return;
+      return;
     }
-    if (mounted) setState(() => _status[co.id] = newStatus);
+    try {
+      await SuperAdminService().updateCompany(co.id, {
+        'billingStatus': newStatus == _PayStatus.notPaid ? 'not_paid' : 'pending',
+        'billingStatusPeriod': _currentPeriod,
+      });
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackbar(context, e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
   }
 
   @override
@@ -1637,11 +1670,18 @@ class _BillingViewState extends ConsumerState<_BillingView> {
         ];
         final period = '${monthNames[now.month - 1]} ${now.year}';
 
+        // Live status per company — payment stream + persisted override.
+        final statusById = <String, _PayStatus>{
+          for (final co in companies)
+            co.id: _statusFor(
+                co, ref.watch(paymentsProvider(co.id)).value ?? const []),
+        };
+
         final active  = companies.where((c) => c.isActive).toList();
         final revenue = active.fold(0, (s, c) => s + c.monthlyPrice);
-        final paid    = active.where((c) => _getStatus(c.id) == _PayStatus.paid).length;
-        final pending = active.where((c) => _getStatus(c.id) == _PayStatus.pending).length;
-        final notPaid = active.where((c) => _getStatus(c.id) == _PayStatus.notPaid).length;
+        final paid    = active.where((c) => statusById[c.id] == _PayStatus.paid).length;
+        final pending = active.where((c) => statusById[c.id] == _PayStatus.pending).length;
+        final notPaid = active.where((c) => statusById[c.id] == _PayStatus.notPaid).length;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -1697,7 +1737,7 @@ class _BillingViewState extends ConsumerState<_BillingView> {
             const SizedBox(height: 16),
 
             Builder(builder: (context) {
-              final filtered = _filtered(companies);
+              final filtered = _filtered(companies, statusById);
               return Container(
               decoration: p.card16,
               child: Column(children: [
@@ -1719,7 +1759,7 @@ class _BillingViewState extends ConsumerState<_BillingView> {
                       style: TextStyle(color: p.subText, fontSize: 15))))
                 else
                   ...filtered.map((co) {
-                    final ps = _getStatus(co.id);
+                    final ps = statusById[co.id] ?? _PayStatus.pending;
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 14),

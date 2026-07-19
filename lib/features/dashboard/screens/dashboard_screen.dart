@@ -15,6 +15,7 @@ import '../../leave/providers/leave_provider.dart';
 import '../../leave/models/leave_request_model.dart';
 import '../../performance/providers/performance_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../core/utils/working_day_utils.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../reports/providers/reports_provider.dart';
@@ -124,12 +125,17 @@ class _KpiRow extends ConsumerWidget {
     final employeesAsync = ref.watch(employeesProvider);
     final recordsAsync = ref.watch(attendanceByDateProvider(today));
     final onLeave = ref.watch(approvedLeavesTodayProvider).value ?? 0;
+    final isWorkingDay =
+        isCompanyWorkingDay(today, ref.watch(companySettingsProvider).value?.workingDays);
 
     final totalEmployees = employeesAsync.value?.where((e) => e.isActive).length ?? 0;
     final records = recordsAsync.value ?? [];
     final present = records.where((r) => r.checkInTime != null && !r.isLate && !r.isOnLeave).length;
     final late    = records.where((r) => r.isLate && r.checkInTime != null).length;
-    final absent  = (totalEmployees - present - late - onLeave).clamp(0, totalEmployees);
+    // Nobody is "absent" on a day the company isn't scheduled to work.
+    final absent  = isWorkingDay
+        ? (totalEmployees - present - late - onLeave).clamp(0, totalEmployees)
+        : 0;
 
     final kpis = [
       _KpiData(context.tr('Total Employees'), '$totalEmployees', null),
@@ -706,11 +712,17 @@ class _ManagerKpiRow extends ConsumerWidget {
     final recordsAsync = ref.watch(attendanceByDateProvider(today));
     final onLeave = ref.watch(approvedLeavesTodayProvider).value ?? 0;
 
+    final isWorkingDay =
+        isCompanyWorkingDay(today, ref.watch(companySettingsProvider).value?.workingDays);
+
     final totalActive = employeesAsync.value?.where((e) => e.isActive).length ?? 0;
     final records = recordsAsync.value ?? [];
     final present = records.where((r) => r.checkInTime != null && !r.isLate && !r.isOnLeave).length;
     final late    = records.where((r) => r.isLate && r.checkInTime != null).length;
-    final absent  = (totalActive - present - late - onLeave).clamp(0, totalActive);
+    // Nobody is "absent" on a day the company isn't scheduled to work.
+    final absent  = isWorkingDay
+        ? (totalActive - present - late - onLeave).clamp(0, totalActive)
+        : 0;
 
     final kpis = [
       _KpiData(context.tr('Present'), '${present + late}', null),

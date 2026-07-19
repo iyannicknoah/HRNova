@@ -674,6 +674,8 @@ const Map<String, String> frDictionary = {
       'Ajoutez les départements de votre entreprise pour organiser les employés.',
   'Edit Department': 'Modifier le département',
   'Delete Department': 'Supprimer le département',
+  'Remove "{name}"? Employees already assigned to this department keep their current assignment — update them manually in the Employees section.':
+      'Supprimer « {name} » ? Les employés déjà affectés à ce département conservent leur affectation actuelle — mettez-les à jour manuellement dans la section Employés.',
   'Department Name *': 'Nom du département *',
   'e.g. Human Resources': 'ex. Ressources humaines',
 

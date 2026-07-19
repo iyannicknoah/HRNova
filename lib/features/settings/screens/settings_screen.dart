@@ -96,13 +96,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   static const _shortToLong = {
     'Mon': 'monday', 'Tue': 'tuesday', 'Wed': 'wednesday',
-    'Thu': 'thursday', 'Fri': 'friday', 'Sat': 'saturday',
+    'Thu': 'thursday', 'Fri': 'friday', 'Sat': 'saturday', 'Sun': 'sunday',
   };
   static const _longToShort = {
     'monday': 'Mon', 'tuesday': 'Tue', 'wednesday': 'Wed',
-    'thursday': 'Thu', 'friday': 'Fri', 'saturday': 'Sat',
+    'thursday': 'Thu', 'friday': 'Fri', 'saturday': 'Sat', 'sunday': 'Sun',
   };
-  static const _allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  static const _allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   void dispose() {
