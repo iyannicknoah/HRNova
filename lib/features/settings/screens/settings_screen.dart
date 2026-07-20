@@ -9,7 +9,6 @@ import '../../../core/services/firebase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
-import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/company_settings_model.dart';
@@ -79,7 +78,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // Payroll
   final _payDayCtrl  = TextEditingController(text: '28');
-  String _overtime   = '1.5x';
   final _lateCtrl    = TextEditingController(text: '500');
   final _maxLateCtrl = TextEditingController(text: '3');
   bool _deductAbsent = false;
@@ -129,9 +127,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _annualCtrl.text = s.annualLeaveDays.toString();
     _sickCtrl.text   = s.sickLeaveDays.toString();
     _payDayCtrl.text = s.salaryPaymentDay.toString();
-    _overtime = switch (s.overtimeMultiplier) {
-      1.0 => '1x', 2.0 => '2x', _ => '1.5x',
-    };
     _lateCtrl.text    = s.lateDeductionPerHourRwf.toString();
     _maxLateCtrl.text = s.maxLateBeforeWarning.toString();
     _deductAbsent     = s.deductAbsentDays;
@@ -211,10 +206,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return v;
   }
 
-  double _parseMultiplier(String val) => switch (val) {
-    '1x' => 1.0, '2x' => 2.0, _ => 1.5,
-  };
-
   Future<void> _save() async {
     final Map<String, dynamic> data;
     try {
@@ -240,7 +231,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'annualLeaveDays': _reqNum(_annualCtrl, 18),
         'sickLeaveDays': _reqNum(_sickCtrl, 10),
         'salaryPaymentDay': _reqNum(_payDayCtrl, 28),
-        'overtimeMultiplier': _parseMultiplier(_overtime),
         'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
         'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
         'deductAbsentDays': _deductAbsent,
@@ -460,22 +450,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Row(children: [
       Expanded(child: _field(context.tr('Salary Payment Day'), _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
       const SizedBox(width: 16),
-      Expanded(child: HRNovaDropdown<String>(
-        label: context.tr('Overtime Multiplier'),
-        value: _overtime,
-        items: const ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
-          value: v,
-          child: Text(v),
-        )).toList(),
-        onChanged: (v) => setState(() => _overtime = v!),
-      )),
+      Expanded(child: _field(context.tr('Late Deduction / Hour'), _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
     ]),
     const SizedBox(height: 14),
-    Row(children: [
-      Expanded(child: _field(context.tr('Late Deduction / Hour'), _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
-      const SizedBox(width: 16),
-      Expanded(child: _field(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
-    ]),
+    _field(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number),
     const SizedBox(height: 14),
     Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -65,6 +65,18 @@ async function fetchDailySums(projectId, metricType, startIso, endIso, token) {
   return daily;
 }
 
+const _SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/// Parse a payment's "MMM yyyy" date string (e.g. "Jul 2026") into a
+/// "YYYY-MM" key. Returns null if it doesn't match that format.
+function _parsePaymentMonth(date) {
+  const m = /^([A-Za-z]{3})\s+(\d{4})$/.exec((date || '').trim());
+  if (!m) return null;
+  const idx = _SHORT_MONTHS.findIndex((s) => s.toLowerCase() === m[1].toLowerCase());
+  if (idx === -1) return null;
+  return `${m[2]}-${String(idx + 1).padStart(2, '0')}`;
+}
+
 function estDailyCostUsd(reads, writes, deletes) {
   const billable = (n, free) => Math.max(0, n - free);
   return billable(reads, FREE_TIER_DAILY.reads) * PRICE_PER_100K.reads / 100000 +
@@ -116,12 +128,15 @@ router.get('/', async (req, res) => {
         { date: todayKey, reads: 0, writes: 0, deletes: 0, estCostUsd: 0 };
 
     // ── Earnings: all payments across companies, grouped by month ────────────
+    // Each payment's `date` field is written by the Billing page's Add
+    // Payment dialog as "MMM yyyy" (e.g. "Jul 2026"), not an ISO date —
+    // parse that exact format rather than assuming YYYY-MM-DD.
     const paySnap = await db().collectionGroup('payments').get();
     const earningsByMonth = {};
     paySnap.docs.forEach((doc) => {
       const p = doc.data();
-      const month = (p.date || '').slice(0, 7);
-      if (!/^\d{4}-\d{2}$/.test(month)) return;
+      const month = _parsePaymentMonth(p.date);
+      if (!month) return;
       earningsByMonth[month] = (earningsByMonth[month] || 0) + (parseInt(p.amount, 10) || 0);
     });
 

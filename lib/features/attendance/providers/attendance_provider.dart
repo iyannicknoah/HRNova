@@ -210,11 +210,65 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
           .doc(docId)
           .set(data, SetOptions(merge: true));
 
+      if (isLate) {
+        await _maybeSendLateWarning(
+          companyId: companyId,
+          employeeId: employeeId,
+          now: now,
+          maxLateBeforeWarning: settings?.maxLateBeforeWarning ?? 3,
+        );
+      }
+
       state = const AsyncValue.data(null);
       return AttendanceModel.fromMap(docId, data);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;
+    }
+  }
+
+  // Notify HR the moment an employee's late-arrival count for the current
+  // month first reaches the configured threshold. Fires exactly once per
+  // month per employee (count == threshold, not >=) so it doesn't re-alert
+  // on every late day after the warning already went out.
+  Future<void> _maybeSendLateWarning({
+    required String companyId,
+    required String employeeId,
+    required DateTime now,
+    required int maxLateBeforeWarning,
+  }) async {
+    if (maxLateBeforeWarning <= 0) return;
+    try {
+      final start = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
+      final endMonth = now.month == 12 ? 1 : now.month + 1;
+      final endYear = now.month == 12 ? now.year + 1 : now.year;
+      final end = '$endYear-${endMonth.toString().padLeft(2, '0')}-01';
+
+      final snap = await FirebaseService.attendanceRef(companyId)
+          .where('employeeId', isEqualTo: employeeId)
+          .where('date', isGreaterThanOrEqualTo: start)
+          .where('date', isLessThan: end)
+          .get();
+      final lateCount = snap.docs.where((d) => d.data()['isLate'] == true).length;
+      if (lateCount != maxLateBeforeWarning) return;
+
+      final empDoc = await FirebaseService.employeesRef(companyId).doc(employeeId).get();
+      final empName = empDoc.exists
+          ? '${empDoc.data()?['firstName'] ?? ''} ${empDoc.data()?['lastName'] ?? ''}'.trim()
+          : 'An employee';
+
+      await FirebaseService.notificationsRef(companyId).add({
+        'type': 'late_warning',
+        'title': 'Late Arrival Warning',
+        'body': '${empName.isEmpty ? 'An employee' : empName} has been late '
+            '$lateCount time(s) this month.',
+        'employeeId': employeeId,
+        'targetRole': 'hr_admin',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // Never let a notification failure block the check-in itself.
     }
   }
 
@@ -313,6 +367,15 @@ class AttendanceNotifier extends StateNotifier<AsyncValue<void>> {
         if (notes != null) 'notes': notes,
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      if (isLate) {
+        await _maybeSendLateWarning(
+          companyId: companyId,
+          employeeId: employeeId,
+          now: date,
+          maxLateBeforeWarning: settings?.maxLateBeforeWarning ?? 3,
+        );
+      }
 
       state = const AsyncValue.data(null);
     } catch (e, st) {

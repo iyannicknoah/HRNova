@@ -71,6 +71,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
   late final TextEditingController _bank;
 
   String _dept = '';
+  String _gender = '';
   String _contract = AppConstants.contractTypePermanent;
   String _salaryType = AppConstants.salaryTypeFixedMonthly;
   String _role = AppConstants.roleEmployee;
@@ -99,6 +100,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     _housing    = TextEditingController(text: e?.housingAllowance != 0 ? e!.housingAllowance.toStringAsFixed(0) : '');
     _bank       = TextEditingController(text: e?.bankAccount ?? '');
     _dept       = e?.department ?? (widget.departments.isNotEmpty ? widget.departments.first : '');
+    _gender     = e?.gender ?? '';
     _contract   = e?.contractType ?? AppConstants.contractTypePermanent;
     _salaryType = e?.salaryType ?? AppConstants.salaryTypeFixedMonthly;
     _role       = e?.role ?? AppConstants.roleEmployee;
@@ -132,6 +134,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
         'phone': _phone.text.trim(),
         'email': _email.text.trim(),
         'emergencyContact': _emergency.text.trim(),
+        'gender': _gender,
         'department': _dept,
         'jobTitle': _jobTitle.text.trim(),
         if (_branchId != null) 'branchId': _branchId,
@@ -278,8 +281,13 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                 const SizedBox(height: 12),
                 _Row2(
                   left: _DatePField(context.tr('Date of Birth'), _dob),
-                  right: _PField(context.tr('Emergency Contact'), _emergency, hint: context.tr('Name & phone')),
+                  right: _DropPField(context.tr('Gender'), _gender.isEmpty ? null : _gender, [
+                    DropdownMenuItem(value: 'male', child: Text(context.tr('Male'))),
+                    DropdownMenuItem(value: 'female', child: Text(context.tr('Female'))),
+                  ], (v) => setState(() => _gender = v ?? '')),
                 ),
+                const SizedBox(height: 12),
+                _PField(context.tr('Emergency Contact'), _emergency, hint: context.tr('Name & phone')),
                 const SizedBox(height: 20),
 
                 // Employment

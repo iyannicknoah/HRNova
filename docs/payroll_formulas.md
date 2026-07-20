@@ -98,13 +98,13 @@ totalEmployeeDeductionLines = sum of all employee-side rule amounts
 ```
 Company can edit/add/remove rules in Settings → Deductions.
 
-## 9. PAYE (Rwanda 2025 brackets, on Adjusted Gross)
+## 9. PAYE (Rwanda Law No. 027/2022, 4-bracket rates effective Nov 2023, on Adjusted Gross)
 
 ```
 gross ≤ 60,000            → PAYE = 0
-60,000 < gross ≤ 100,000  → PAYE = (gross - 60,000) × 20%
-100,000 < gross ≤ 200,000 → PAYE = 8,000 + (gross - 100,000) × 30%
-gross > 200,000           → PAYE = 38,000 + (gross - 200,000) × 30%
+60,000 < gross ≤ 100,000  → PAYE = (gross - 60,000) × 10%
+100,000 < gross ≤ 200,000 → PAYE = 4,000 + (gross - 100,000) × 20%
+gross > 200,000           → PAYE = 24,000 + (gross - 200,000) × 30%
 ```
 Company-defined deductions do NOT reduce the PAYE base — PAYE is always computed on the full `adjustedGross`.
 

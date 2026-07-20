@@ -3,7 +3,7 @@ const router = express.Router();
 const { getFirestore } = require('firebase-admin/firestore');
 const { getApp } = require('firebase-admin/app');
 const { verifyToken, requireRole } = require('../middleware/verifyToken');
-const { generateRRAPayeExport, generatePayrollExcelExport } = require('../services/rraExportService');
+const { generateRRAPayeExport, generatePayrollExcelExport, generateBankPaymentExport } = require('../services/rraExportService');
 const { sendPayslipEmail } = require('../services/emailService');
 
 const db = () => getFirestore(getApp(), 'default');
@@ -50,6 +50,25 @@ router.get('/payroll/:companyId/:month', ALLOWED, async (req, res) => {
     res.send(buffer);
   } catch (err) {
     console.error('[Exports] Payroll export error:', err);
+    res.status(500).json({ error: err.message || 'Export failed' });
+  }
+});
+
+// ── GET /api/exports/bank-payment/:companyId/:month ────────────────────────────
+// Minimal sheet for the bank: employee name, national ID, bank, account
+// number and net amount to pay — the document sent to the bank to run
+// bulk salary transfers.
+router.get('/bank-payment/:companyId/:month', ALLOWED, async (req, res) => {
+  try {
+    const { companyId, month } = req.params;
+    if (!_guardCompany(req, res, companyId)) return;
+
+    const buffer = await generateBankPaymentExport(companyId, month);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="Bank_Payment_${month}.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('[Exports] Bank payment export error:', err);
     res.status(500).json({ error: err.message || 'Export failed' });
   }
 });

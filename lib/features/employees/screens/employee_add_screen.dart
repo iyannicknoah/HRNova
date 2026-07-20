@@ -53,6 +53,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   late final TextEditingController _password;
 
   String _dept = '';
+  String _gender = '';
   String _contract = AppConstants.contractTypePermanent;
   String _salaryType = AppConstants.salaryTypeFixedMonthly;
   String _role = AppConstants.roleEmployee;
@@ -108,6 +109,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     _email.text      = e.email;
     _dob.text        = e.dateOfBirth != null ? EmployeeModel.fmtDate(e.dateOfBirth) : '';
     _emergency.text  = e.emergencyContact;
+    _gender          = e.gender;
     _jobTitle.text   = e.jobTitle;
     _rssb.text       = e.rssbNumber;
     _startDate.text  = EmployeeModel.fmtDate(e.startDate);
@@ -176,6 +178,7 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
         'phone': _phone.text.trim(),
         'email': _email.text.trim(),
         'emergencyContact': _emergency.text.trim(),
+        'gender': _gender,
         'department': _dept,
         'jobTitle': _jobTitle.text.trim(),
         'contractType': _contract,
@@ -366,8 +369,12 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                       _field(context.tr('Email Address'), _email, hint: 'employee@company.com'),
                       _row2(
                         _datefield(context.tr('Date of Birth'), _dob),
-                        _field(context.tr('Emergency Contact'), _emergency, hint: context.tr('Name & phone')),
+                        _dropField(context.tr('Gender'), _gender, [
+                          DropdownMenuItem(value: 'male', child: Text(context.tr('Male'))),
+                          DropdownMenuItem(value: 'female', child: Text(context.tr('Female'))),
+                        ], (v) => setState(() => _gender = v ?? '')),
                       ),
+                      _field(context.tr('Emergency Contact'), _emergency, hint: context.tr('Name & phone')),
                     ]),
                     const SizedBox(height: 24),
                     _buildSection(context.tr('Employment Details'), [

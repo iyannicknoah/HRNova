@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/hrnova_button.dart';
-import '../../../shared/widgets/hrnova_dropdown.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../models/company_settings_model.dart';
 import '../providers/settings_provider.dart';
@@ -39,7 +38,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   // Step 3 — Payroll Rules
   final _payDayCtrl = TextEditingController(text: '28');
-  String _overtime = '1.5x';
   final _lateCtrl = TextEditingController(text: '500');
   final _maxLateCtrl = TextEditingController(text: '3');
   bool _deductAbsent = false;
@@ -75,10 +73,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _tinCtrl.dispose();
     super.dispose();
   }
-
-  double _parseMultiplier(String val) => switch (val) {
-    '1x' => 1.0, '2x' => 2.0, _ => 1.5,
-  };
 
   String _fmtTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -143,7 +137,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'annualLeaveDays': _reqNum(_annualCtrl, 18),
         'sickLeaveDays': _reqNum(_sickCtrl, 10),
         'salaryPaymentDay': _reqNum(_payDayCtrl, 28),
-        'overtimeMultiplier': _parseMultiplier(_overtime),
         'lateDeductionPerHourRwf': _reqNum(_lateCtrl, 500),
         'maxLateBeforeWarning': _reqNum(_maxLateCtrl, 3),
         'deductAbsentDays': _deductAbsent,
@@ -378,22 +371,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       Row(children: [
         Expanded(child: _textField(context.tr('Salary Payment Day'), _payDayCtrl, hint: '28', suffix: 'of month', type: TextInputType.number)),
         const SizedBox(width: 16),
-        Expanded(child: HRNovaDropdown<String>(
-          label: context.tr('Overtime Multiplier'),
-          value: _overtime,
-          items: ['1x', '1.5x', '2x'].map((v) => DropdownMenuItem(
-            value: v,
-            child: Text(v),
-          )).toList(),
-          onChanged: (v) => setState(() => _overtime = v!),
-        )),
+        Expanded(child: _textField(context.tr('Late Deduction / Hour'), _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
       ]),
       const SizedBox(height: 20),
-      Row(children: [
-        Expanded(child: _textField(context.tr('Late Deduction / Hour'), _lateCtrl, hint: '500', suffix: 'RWF', type: TextInputType.number)),
-        const SizedBox(width: 16),
-        Expanded(child: _textField(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number)),
-      ]),
+      _textField(context.tr('Max Late Before Warning'), _maxLateCtrl, hint: '3', suffix: 'times', type: TextInputType.number),
       const SizedBox(height: 20),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -156,11 +156,14 @@ class AppRouterNotifier extends Notifier<GoRouter> {
       return '/mobile-home';
     }
 
-    // On mobile, HR roles stay in /guard (QR scanner)
+    // On mobile, HR roles stay in /guard (QR scanner). Exempt /onboarding
+    // so it doesn't fight with the onboarding-incomplete redirect above and
+    // create a /guard <-> /onboarding loop.
     if (!kIsWeb &&
         (role == AppConstants.roleHrAdmin ||
             role == AppConstants.roleBranchHrAdmin) &&
-        path != '/guard') {
+        path != '/guard' &&
+        path != '/onboarding') {
       return '/guard';
     }
 

@@ -377,6 +377,11 @@ class _ProfileTab extends ConsumerWidget {
                     _Field(context.tr('Phone'), employee.phone.isEmpty ? '—' : employee.phone),
                     _Field(context.tr('Email'), employee.email.isEmpty ? '—' : employee.email),
                     _Field(context.tr('Date of Birth'), EmployeeModel.fmtDate(employee.dateOfBirth)),
+                    _Field(context.tr('Gender'), switch (employee.gender) {
+                      'male' => context.tr('Male'),
+                      'female' => context.tr('Female'),
+                      _ => '—',
+                    }),
                     _Field(context.tr('Emergency Contact'), employee.emergencyContact.isEmpty ? '—' : employee.emergencyContact),
                   ],
                 ),
@@ -1481,11 +1486,13 @@ class _LeaveProfileTab extends ConsumerWidget {
   const _LeaveProfileTab({required this.employee});
   final EmployeeModel employee;
 
-  static const _balances = [
+  List<(String, String, Color, IconRef, int)> get _balances => [
     ('annual',    'Annual Leave',    AppColors.primaryBlue,   AppIcons.flightTakeoffRounded,  AppConstants.annualLeaveDaysPerYear),
     ('sick',      'Sick Leave',      AppColors.successGreen,  AppIcons.localHospitalRounded,  10),
-    ('maternity', 'Maternity Leave', Color(0xFF9C27B0),       AppIcons.childCareRounded,      AppConstants.maternityLeaveDays),
-    ('paternity', 'Paternity Leave', Color(0xFF00897B),       AppIcons.familyRestroomRounded, AppConstants.paternityLeaveDays),
+    if (employee.gender == 'female')
+      ('maternity', 'Maternity Leave', Color(0xFF9C27B0),       AppIcons.childCareRounded,      AppConstants.maternityLeaveDays),
+    if (employee.gender == 'male')
+      ('paternity', 'Paternity Leave', Color(0xFF00897B),       AppIcons.familyRestroomRounded, AppConstants.paternityLeaveDays),
   ];
 
   @override

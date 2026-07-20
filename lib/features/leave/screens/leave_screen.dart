@@ -520,6 +520,7 @@ class _MarkOnLeaveDialog extends ConsumerStatefulWidget {
 class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
   String? _selectedEmployeeId;
   String? _selectedEmployeeName;
+  String? _selectedEmployeeGender;
   String? _selectedBranchId;
   String _leaveType = 'annual';
   DateTime _startDate = DateTime.now();
@@ -529,15 +530,18 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
   bool _submitting = false;
   String _employeeSearch = '';
 
-  static const _types = [
-    ('annual', 'Annual Leave'),
-    ('sick', 'Sick Leave'),
-    ('maternity', 'Maternity Leave'),
-    ('paternity', 'Paternity Leave'),
-    ('unpaid', 'Unpaid Leave'),
-    ('emergency', 'Emergency Leave'),
-    ('compassionate', 'Compassionate Leave'),
-  ];
+  /// Maternity is only offered for female employees, paternity only for
+  /// male — gated on the selected employee's gender, unset until one is
+  /// picked, so neither shows up before then.
+  List<(String, String)> get _types => [
+        ('annual', 'Annual Leave'),
+        ('sick', 'Sick Leave'),
+        if (_selectedEmployeeGender == 'female') ('maternity', 'Maternity Leave'),
+        if (_selectedEmployeeGender == 'male') ('paternity', 'Paternity Leave'),
+        ('unpaid', 'Unpaid Leave'),
+        ('emergency', 'Emergency Leave'),
+        ('compassionate', 'Compassionate Leave'),
+      ];
 
   @override
   void dispose() {
@@ -651,6 +655,8 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                   onTap: () => setState(() {
                     _selectedEmployeeId = null;
                     _selectedEmployeeName = null;
+                    _selectedEmployeeGender = null;
+                    _leaveType = 'annual';
                     _searchCtrl.clear();
                     _employeeSearch = '';
                   }),
@@ -728,7 +734,16 @@ class _MarkOnLeaveDialogState extends ConsumerState<_MarkOnLeaveDialog> {
                           onTap: () => setState(() {
                             _selectedEmployeeId = e.id;
                             _selectedEmployeeName = e.fullName;
+                            _selectedEmployeeGender = e.gender;
                             _selectedBranchId = e.branchId;
+                            // Leave type may no longer be valid for this
+                            // employee's gender (e.g. maternity picked
+                            // before, now switching to a male employee).
+                            // _selectedEmployeeGender is already updated
+                            // above, so _types reflects the new gender.
+                            if (!_types.any((t) => t.$1 == _leaveType)) {
+                              _leaveType = 'annual';
+                            }
                             _searchCtrl.clear();
                             _employeeSearch = '';
                           }),

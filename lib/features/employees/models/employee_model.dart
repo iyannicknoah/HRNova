@@ -16,6 +16,7 @@ class EmployeeModel {
     this.phone = '',
     this.nationalId = '',
     this.emergencyContact = '',
+    this.gender = '',
     this.dateOfBirth,
     this.endDate,
     this.branchId,
@@ -52,6 +53,9 @@ class EmployeeModel {
   final String phone;
   final String nationalId;
   final String emergencyContact;
+  /// 'male' or 'female' — drives maternity/paternity leave eligibility.
+  /// Empty when not yet set.
+  final String gender;
   final DateTime? dateOfBirth;
   final DateTime? endDate;
   final String? branchId;
@@ -102,6 +106,7 @@ class EmployeeModel {
       phone: d['phone'] as String? ?? '',
       nationalId: d['nationalId'] as String? ?? '',
       emergencyContact: d['emergencyContact'] as String? ?? '',
+      gender: d['gender'] as String? ?? '',
       dateOfBirth: _toDate(d['dateOfBirth']),
       endDate: _toDate(d['endDate']),
       branchId: d['branchId'] as String?,
@@ -141,6 +146,7 @@ class EmployeeModel {
       phone: d['phone'] as String? ?? '',
       nationalId: d['nationalId'] as String? ?? '',
       emergencyContact: d['emergencyContact'] as String? ?? '',
+      gender: d['gender'] as String? ?? '',
       dateOfBirth: _toDate(d['dateOfBirth']),
       endDate: _toDate(d['endDate']),
       branchId: d['branchId'] as String?,
@@ -178,6 +184,7 @@ class EmployeeModel {
     'phone': phone,
     'nationalId': nationalId,
     'emergencyContact': emergencyContact,
+    'gender': gender,
     if (dateOfBirth != null) 'dateOfBirth': dateOfBirth!.toIso8601String(),
     if (endDate != null) 'endDate': endDate!.toIso8601String(),
     if (branchId != null) 'branchId': branchId,
@@ -201,7 +208,7 @@ class EmployeeModel {
   EmployeeModel copyWith({
     String? firstName, String? lastName, String? department, String? jobTitle,
     String? contractType, String? salaryType, DateTime? startDate, String? status,
-    String? email, String? phone, String? nationalId, String? emergencyContact,
+    String? email, String? phone, String? nationalId, String? emergencyContact, String? gender,
     DateTime? dateOfBirth, DateTime? endDate, String? branchId, String? role,
     double? salaryAmount, double? dailyRate, double? hourlyRate,
     double? transportAllowance, double? housingAllowance, String? bankAccount,
@@ -223,6 +230,7 @@ class EmployeeModel {
         phone: phone ?? this.phone,
         nationalId: nationalId ?? this.nationalId,
         emergencyContact: emergencyContact ?? this.emergencyContact,
+        gender: gender ?? this.gender,
         dateOfBirth: dateOfBirth ?? this.dateOfBirth,
         endDate: endDate ?? this.endDate,
         branchId: branchId ?? this.branchId,

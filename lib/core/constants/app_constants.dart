@@ -109,14 +109,14 @@ class AppConstants {
     '12-26', // Boxing Day
   ];
 
-  // Rwanda 2025 Tax Constants
+  // Rwanda Tax Constants (Law No. 027/2022, 4-bracket rates effective Nov 2023)
   // (Statutory contribution rates are now company-configurable — see
   // DeductionRule.rssbDefaults in company_settings_model.dart)
   static const double payeTaxFreeMonthly = 60000.0;
   static const double payeBracket1Max = 100000.0;
-  static const double payeBracket1Rate = 0.20;
+  static const double payeBracket1Rate = 0.10;
   static const double payeBracket2Max = 200000.0;
-  static const double payeBracket2Rate = 0.30;
+  static const double payeBracket2Rate = 0.20;
   static const double payeBracket3Rate = 0.30;
 
   static const int rraDeadlineDay = 15;

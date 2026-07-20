@@ -227,6 +227,7 @@ class _NotificationPanelCard extends StatelessWidget {
         'leave_request' => AppIcons.beachAccessRounded,
         'leave_approved' => AppIcons.checkCircleRounded,
         'leave_rejected' => AppIcons.cancelRounded,
+        'late_warning' => AppIcons.accessTimeRounded,
         _ => AppIcons.notificationsRounded,
       };
 
@@ -234,6 +235,7 @@ class _NotificationPanelCard extends StatelessWidget {
         'leave_request' => context.pillBlueBg,
         'leave_approved' => context.pillGreenBg,
         'leave_rejected' => context.pillRedBg,
+        'late_warning' => context.pillAmberBg,
         _ => context.pillNavyBg,
       };
 
@@ -241,6 +243,7 @@ class _NotificationPanelCard extends StatelessWidget {
         'leave_request' => AppColors.primaryBlue,
         'leave_approved' => AppColors.successGreen,
         'leave_rejected' => AppColors.errorRed,
+        'late_warning' => AppColors.warningAmber,
         _ => const Color(0xFF8A9BBC),
       };
 

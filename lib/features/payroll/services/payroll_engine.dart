@@ -8,14 +8,14 @@ import '../models/payroll_model.dart';
 class PayrollEngine {
   PayrollEngine._();
 
-  // ── Rwanda 2025 PAYE ─────────────────────────────────────────────────────────
+  // ── Rwanda PAYE (Law No. 027/2022, 4-bracket rates effective Nov 2023) ─────
   // Taxable income = adjustedGross (statutory — identical for all companies;
   // company-defined deductions do NOT reduce the PAYE base)
   static double calculatePaye(double gross) {
     if (gross <= 60000) return 0;
-    if (gross <= 100000) return _r((gross - 60000) * 0.20);
-    if (gross <= 200000) return _r(8000 + (gross - 100000) * 0.30);
-    return _r(38000 + (gross - 200000) * 0.30);
+    if (gross <= 100000) return _r((gross - 60000) * 0.10);
+    if (gross <= 200000) return _r(4000 + (gross - 100000) * 0.20);
+    return _r(24000 + (gross - 200000) * 0.30);
   }
 
   /// Applies the company's active deduction rules for [side] on
@@ -163,32 +163,10 @@ class PayrollEngine {
         presentDays += holidayKeys.length;
     }
 
-    // ── Step 1b — Overtime ──────────────────────────────────────────────────
-    double overtimeHours = 0;
-    double overtimePay = 0;
-
-    final workdayHours = _parseTimeH(settings.workEndTime) - _parseTimeH(settings.workStartTime);
-
-    if (workdayHours > 0 && employee.salaryType != 'hourly_rate') {
-      for (final rec in attendanceMap.values) {
-        // Absent/leave-flagged records never earn overtime
-        if (rec.isAbsent || rec.isOnLeave) continue;
-        if (rec.checkInTime != null && rec.checkOutTime != null) {
-          final hoursWorked = rec.checkOutTime!.difference(rec.checkInTime!).inMinutes / 60.0;
-          if (hoursWorked > workdayHours) {
-            overtimeHours += hoursWorked - workdayHours;
-          }
-        } else if (rec.workingHours != null && rec.workingHours! > workdayHours) {
-          overtimeHours += rec.workingHours! - workdayHours;
-        }
-      }
-      if (overtimeHours > 0) {
-        final hourlyRate = employee.salaryType == 'daily_rate'
-            ? employee.dailyRate / workdayHours
-            : employee.salaryAmount / (workingDayKeys.length * workdayHours);
-        overtimePay = _r(overtimeHours * hourlyRate * settings.overtimeMultiplier);
-      }
-    }
+    // Overtime is no longer auto-calculated from attendance check-out times —
+    // these stay at 0 (the payslip PDF/UI hide the row when overtimePay is 0).
+    const double overtimeHours = 0;
+    const double overtimePay = 0;
 
     // ── Step 2 — Gross ──────────────────────────────────────────────────────
     final transportAllowance = _r(employee.transportAllowance);
@@ -328,14 +306,6 @@ class PayrollEngine {
     return (total - paid).clamp(0.0, total);
   }
 
-  /// Parse a time string like "08:00" or "17:30" to decimal hours.
-  static double _parseTimeH(String t) {
-    final parts = t.split(':');
-    if (parts.isEmpty) return 0;
-    final h = double.tryParse(parts[0]) ?? 0;
-    final m = parts.length > 1 ? (double.tryParse(parts[1]) ?? 0) / 60.0 : 0;
-    return h + m;
-  }
 
   // Rwanda public holidays — same list as AppConstants but used internally here
   static const _rwandaHolidays = {

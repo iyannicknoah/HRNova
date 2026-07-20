@@ -958,20 +958,24 @@ class _LeaveContent extends ConsumerWidget {
                     used: sickUsed,
                     total: AppConstants.sickLeaveDays,
                     color: _green),
-                const SizedBox(height: 10),
-                _BalanceCard(
-                    label: context.tr('Maternity Leave'),
-                    icon: AppIcons.childFriendlyRounded,
-                    used: maternityUsed,
-                    total: AppConstants.maternityLeaveDays,
-                    color: _purple),
-                const SizedBox(height: 10),
-                _BalanceCard(
-                    label: context.tr('Paternity Leave'),
-                    icon: AppIcons.familyRestroomRounded,
-                    used: paternityUsed,
-                    total: AppConstants.paternityLeaveDays,
-                    color: _teal),
+                if (emp.gender == 'female') ...[
+                  const SizedBox(height: 10),
+                  _BalanceCard(
+                      label: context.tr('Maternity Leave'),
+                      icon: AppIcons.childFriendlyRounded,
+                      used: maternityUsed,
+                      total: AppConstants.maternityLeaveDays,
+                      color: _purple),
+                ],
+                if (emp.gender == 'male') ...[
+                  const SizedBox(height: 10),
+                  _BalanceCard(
+                      label: context.tr('Paternity Leave'),
+                      icon: AppIcons.familyRestroomRounded,
+                      used: paternityUsed,
+                      total: AppConstants.paternityLeaveDays,
+                      color: _teal),
+                ],
               ],
             );
           }),
@@ -1445,11 +1449,11 @@ class _LeaveRequestSheetState extends ConsumerState<_LeaveRequestSheet> {
           color: context.appSubtext, fontSize: 14, fontWeight: FontWeight.w400));
 
   Widget _typeDropdown(BuildContext context) {
-    const types = [
+    final types = [
       ('annual', 'Annual Leave'),
       ('sick', 'Sick Leave'),
-      ('maternity', 'Maternity Leave'),
-      ('paternity', 'Paternity Leave'),
+      if (widget.emp.gender == 'female') ('maternity', 'Maternity Leave'),
+      if (widget.emp.gender == 'male') ('paternity', 'Paternity Leave'),
     ];
     return HRNovaDropdown<String>(
       label: context.tr('Leave Type'),

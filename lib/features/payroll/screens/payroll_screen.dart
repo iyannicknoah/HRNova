@@ -95,6 +95,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         onApprove:    () => _approve(month),
                         onExportRra:  () => _export(month, 'rra-paye'),
                         onExportPayroll: () => _export(month, 'payroll'),
+                        onExportBank: () => _export(month, 'bank-payment'),
                         settings:     settings,
                         onRecalculate: null,
                       );
@@ -108,6 +109,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                       onApprove:     run?.status == 'draft' ? () => _approve(month) : null,
                       onExportRra:   () => _export(month, 'rra-paye'),
                       onExportPayroll: () => _export(month, 'payroll'),
+                      onExportBank: () => _export(month, 'bank-payment'),
                       settings:      settings,
                       onRecalculate: run?.status == 'draft'
                           ? () => _deleteDraftAndRecalc(month)
@@ -157,6 +159,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
       final label = switch (type) {
         'rra-paye' => 'RRA_PAYE',
         'payroll' => 'Payroll',
+        'bank-payment' => 'Bank_Payment',
         _ => type,
       };
       downloadBytes(bytes, 'HRNovva_${label}_$month.xlsx',
@@ -444,8 +447,8 @@ class _PreRunLayout extends ConsumerWidget {
                   // PAYE brackets
                   _RateSection('PAYE (Income Tax)', [
                     ('0 – 60,000 RWF', '0%', AppColors.successGreen),
-                    ('60,001 – 100,000 RWF', '20%', AppColors.warningAmber),
-                    ('100,001 – 200,000 RWF', '30%', AppColors.errorRed),
+                    ('60,001 – 100,000 RWF', '10%', AppColors.warningAmber),
+                    ('100,001 – 200,000 RWF', '20%', AppColors.warningAmber),
                     ('> 200,000 RWF', '30%', AppColors.errorRed),
                   ], context),
 
@@ -621,6 +624,7 @@ class _ResultLayout extends ConsumerWidget {
     required this.onApprove,
     required this.onExportRra,
     required this.onExportPayroll,
+    required this.onExportBank,
     required this.settings,
     this.onRecalculate,
   });
@@ -631,7 +635,7 @@ class _ResultLayout extends ConsumerWidget {
   final AsyncValue<List<PayslipModel>> payslipsAsync;
   final bool approving;
   final VoidCallback? onApprove;
-  final VoidCallback onExportRra, onExportPayroll;
+  final VoidCallback onExportRra, onExportPayroll, onExportBank;
   final dynamic settings;
   final VoidCallback? onRecalculate;
 
@@ -716,6 +720,11 @@ class _ResultLayout extends ConsumerWidget {
           if (isApproved) ...[
             _OutBtn(icon: AppIcons.downloadRounded, label: context.tr('RRA PAYE'),
                 onTap: canExport ? onExportRra : null,
+                tooltip: canExport ? null : noPermissionMsg),
+            const SizedBox(width: 8),
+            _OutBtn(icon: AppIcons.downloadRounded, label: context.tr('Bank Payment'),
+                onTap: canExport ? onExportBank : null,
+                color: AppColors.primaryBlue,
                 tooltip: canExport ? null : noPermissionMsg),
             const SizedBox(width: 8),
             _OutBtn(icon: AppIcons.downloadRounded, label: context.tr('Download Payroll Excel'),
@@ -1054,22 +1063,6 @@ class _PayslipRowState extends ConsumerState<_PayslipRow> {
                     fontSize: 15, fontWeight: FontWeight.w700))),
             // Actions
             Expanded(flex: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (widget.isLocked)
-                Tooltip(
-                  message: widget.ps.emailSent ? context.tr('Payslip emailed') : context.tr('Not emailed yet'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: AppIcon(
-                      widget.ps.emailSent
-                          ? AppIcons.markEmailReadRounded
-                          : AppIcons.mailOutlineRounded,
-                      size: 15,
-                      color: widget.ps.emailSent
-                          ? AppColors.successGreen
-                          : context.appSubtext,
-                    ),
-                  ),
-                ),
               RowActionsMenu(actions: [
                 if (!widget.isLocked)
                   RowAction(label: context.tr('Adjust'), icon: AppIcons.tuneRounded, onTap: _showAdjust),

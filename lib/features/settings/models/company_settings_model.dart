@@ -91,7 +91,6 @@ class CompanySettingsModel {
     this.maxLateBeforeWarning = 3,
     this.deductAbsentDays = false,
     this.salaryPaymentDay = 28,
-    this.overtimeMultiplier = 1.5,
     this.transportAllowanceRwf = 0,
     this.housingAllowanceRwf = 0,
     this.deductions = DeductionRule.rssbDefaults,
@@ -154,7 +153,6 @@ class CompanySettingsModel {
   /// absent day. Off by default — companies opt in.
   final bool deductAbsentDays;
   final int salaryPaymentDay;
-  final double overtimeMultiplier;
   final int transportAllowanceRwf;
   final int housingAllowanceRwf;
 
@@ -227,7 +225,6 @@ class CompanySettingsModel {
       maxLateBeforeWarning: map['maxLateBeforeWarning'] as int? ?? 3,
       deductAbsentDays: map['deductAbsentDays'] as bool? ?? false,
       salaryPaymentDay: map['salaryPaymentDay'] as int? ?? 28,
-      overtimeMultiplier: (map['overtimeMultiplier'] as num?)?.toDouble() ?? 1.5,
       transportAllowanceRwf: map['transportAllowanceRwf'] as int? ?? 0,
       housingAllowanceRwf: map['housingAllowanceRwf'] as int? ?? 0,
       deductions: map['deductions'] == null
@@ -292,7 +289,6 @@ class CompanySettingsModel {
     'maxLateBeforeWarning': maxLateBeforeWarning,
     'deductAbsentDays': deductAbsentDays,
     'salaryPaymentDay': salaryPaymentDay,
-    'overtimeMultiplier': overtimeMultiplier,
     'transportAllowanceRwf': transportAllowanceRwf,
     'housingAllowanceRwf': housingAllowanceRwf,
     'deductions': deductions.map((d) => d.toMap()).toList(),
@@ -336,7 +332,6 @@ class CompanySettingsModel {
     int? maxLateBeforeWarning,
     bool? deductAbsentDays,
     int? salaryPaymentDay,
-    double? overtimeMultiplier,
     int? transportAllowanceRwf,
     int? housingAllowanceRwf,
     List<DeductionRule>? deductions,
@@ -377,7 +372,6 @@ class CompanySettingsModel {
         maxLateBeforeWarning: maxLateBeforeWarning ?? this.maxLateBeforeWarning,
         deductAbsentDays: deductAbsentDays ?? this.deductAbsentDays,
         salaryPaymentDay: salaryPaymentDay ?? this.salaryPaymentDay,
-        overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
         transportAllowanceRwf: transportAllowanceRwf ?? this.transportAllowanceRwf,
         housingAllowanceRwf: housingAllowanceRwf ?? this.housingAllowanceRwf,
         deductions: deductions ?? this.deductions,

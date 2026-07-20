@@ -369,9 +369,9 @@ class PayslipModel {
 
   static double _calcPaye(double gross) {
     if (gross <= 60000) return 0;
-    if (gross <= 100000) return _r((gross - 60000) * 0.20);
-    if (gross <= 200000) return _r(8000 + (gross - 100000) * 0.30);
-    return _r(38000 + (gross - 200000) * 0.30);
+    if (gross <= 100000) return _r((gross - 60000) * 0.10);
+    if (gross <= 200000) return _r(4000 + (gross - 100000) * 0.20);
+    return _r(24000 + (gross - 200000) * 0.30);
   }
 }
 
