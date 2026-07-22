@@ -433,6 +433,21 @@ const Map<String, String> frDictionary = {
   'Sending {i} of {n}…': 'Envoi de {i} sur {n}…',
   'RRA PAYE': 'RRA PAYE',
   'Bank Payment': 'Paiement bancaire',
+  'Review bank details before sending': 'Vérifiez les coordonnées bancaires avant l\'envoi',
+  '{n} employee(s) have no bank details and will be left out of the file:':
+      '{n} employé(s) n\'ont pas de coordonnées bancaires et seront exclus du fichier :',
+  '{n} account number(s) look unusual — check before sending:':
+      '{n} numéro(s) de compte semblent inhabituels — vérifiez avant l\'envoi :',
+  'No bank or account number': 'Aucune banque ou numéro de compte',
+  'Download anyway': 'Télécharger quand même',
+  'Bank account number must be between 5 and 20 digits':
+      'Le numéro de compte bancaire doit comporter entre 5 et 20 chiffres',
+  "That doesn't look like a real account number":
+      'Cela ne ressemble pas à un vrai numéro de compte',
+  'Bank of Kigali accounts are usually 15 digits (5-digit branch + 10-digit account). Double-check this one.':
+      'Les comptes Bank of Kigali comportent généralement 15 chiffres (5 chiffres d\'agence + 10 chiffres de compte). Vérifiez celui-ci.',
+  'Equity Bank account numbers usually start with 40. Double-check this one.':
+      'Les numéros de compte Equity Bank commencent généralement par 40. Vérifiez celui-ci.',
   'Download Payroll Excel': 'Télécharger l\'Excel de paie',
   'Total Net Payout': 'Total net à payer',
   '{count} employee(s) this run': '{count} employé(s) dans ce calcul',

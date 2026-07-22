@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/utils/bank_account_validator.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
 import '../../../shared/widgets/app_table.dart';
 import '../../../shared/widgets/hrnova_button.dart';
@@ -95,7 +96,8 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         onApprove:    () => _approve(month),
                         onExportRra:  () => _export(month, 'rra-paye'),
                         onExportPayroll: () => _export(month, 'payroll'),
-                        onExportBank: () => _export(month, 'bank-payment'),
+                        onExportBank: () =>
+                            _exportBankPayment(month, calcState.payslips),
                         settings:     settings,
                         onRecalculate: null,
                       );
@@ -109,7 +111,8 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                       onApprove:     run?.status == 'draft' ? () => _approve(month) : null,
                       onExportRra:   () => _export(month, 'rra-paye'),
                       onExportPayroll: () => _export(month, 'payroll'),
-                      onExportBank: () => _export(month, 'bank-payment'),
+                      onExportBank: () => _exportBankPayment(
+                          month, payslipsAsync.value ?? []),
                       settings:      settings,
                       onRecalculate: run?.status == 'draft'
                           ? () => _deleteDraftAndRecalc(month)
@@ -167,6 +170,34 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     } catch (e) {
       if (mounted) _snack('Export failed: $e', AppColors.errorRed);
     }
+  }
+
+  /// The bank payment file is the point where money actually leaves, so bad
+  /// account details get one last review here — including records entered
+  /// before these checks existed, which form validation can't reach.
+  Future<void> _exportBankPayment(String month, List<PayslipModel> payslips) async {
+    final missing = <PayslipModel>[];
+    final suspect = <(PayslipModel, String)>[];
+
+    for (final p in payslips) {
+      if (p.bankCode.isEmpty || p.bankAccountNumber.trim().isEmpty) {
+        missing.add(p);
+        continue;
+      }
+      final check = checkBankAccount(p.bankAccountNumber, p.bankCode);
+      final issue = check.error ?? check.warning;
+      if (issue != null) suspect.add((p, issue));
+    }
+
+    if (missing.isNotEmpty || suspect.isNotEmpty) {
+      final proceed = await AppDialogShell.show<bool>(
+        context: context,
+        alignment: Alignment.center,
+        child: _BankReviewDialog(missing: missing, suspect: suspect),
+      );
+      if (proceed != true || !mounted) return;
+    }
+    await _export(month, 'bank-payment');
   }
 
   Future<void> _deleteDraftAndRecalc(String month) async {
@@ -1342,6 +1373,100 @@ class _DropFilter extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Last check before the bank file downloads: who will be left out, and whose
+/// account number looks wrong. Advisory only — HR can still proceed, since our
+/// per-bank format knowledge is partial and shouldn't hold up a payment run.
+class _BankReviewDialog extends StatelessWidget {
+  const _BankReviewDialog({required this.missing, required this.suspect});
+  final List<PayslipModel> missing;
+  final List<(PayslipModel, String)> suspect;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(24),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460, maxHeight: 520),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(context.tr('Review bank details before sending'),
+              style: TextStyle(color: context.appText,
+                  fontWeight: FontWeight.w600, fontSize: 17)),
+          const SizedBox(height: 12),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (missing.isNotEmpty) ...[
+                    Text(
+                      context.trp('{n} employee(s) have no bank details and will be left out of the file:',
+                          {'n': '${missing.length}'}),
+                      style: TextStyle(color: context.appSubtext, height: 1.5),
+                    ),
+                    const SizedBox(height: 6),
+                    ...missing.map((p) => _line(context,
+                        '${p.lastName} ${p.firstName}'.trim(),
+                        context.tr('No bank or account number'))),
+                    const SizedBox(height: 14),
+                  ],
+                  if (suspect.isNotEmpty) ...[
+                    Text(
+                      context.trp('{n} account number(s) look unusual — check before sending:',
+                          {'n': '${suspect.length}'}),
+                      style: TextStyle(color: context.appSubtext, height: 1.5),
+                    ),
+                    const SizedBox(height: 6),
+                    ...suspect.map((s) => _line(context,
+                        '${s.$1.lastName} ${s.$1.firstName}'.trim(),
+                        context.tr(s.$2))),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(onPressed: () => Navigator.pop(context, false),
+                  child: Text(context.tr('Cancel'))),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue),
+                child: Text(context.tr('Download anyway')),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _line(BuildContext context, String name, String issue) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const AppIcon(AppIcons.infoOutlineRounded,
+          size: 15, color: AppColors.warningAmber),
+      const SizedBox(width: 8),
+      Expanded(
+        child: RichText(
+          text: TextSpan(children: [
+            TextSpan(text: '$name — ',
+                style: TextStyle(color: context.appText, fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+            TextSpan(text: issue,
+                style: TextStyle(color: context.appSubtext, fontSize: 13)),
+          ]),
+        ),
+      ),
+    ]),
+  );
 }
 
 class _ConfirmDialog extends StatelessWidget {

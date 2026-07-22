@@ -1,16 +1,28 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart' show homeForRole;
 import '../../../core/theme/app_colors.dart';
+import '../../../features/auth/providers/auth_provider.dart';
 
-class MobileSplashScreen extends StatefulWidget {
+/// How long the brand animation stays up before navigating, so a fast
+/// session restore doesn't make the splash flicker past.
+const _minSplash = Duration(milliseconds: 2200);
+
+/// Cap on waiting for Firebase — offline, these can hang indefinitely and
+/// the app must still get past the splash.
+const _authTimeout = Duration(seconds: 6);
+
+class MobileSplashScreen extends ConsumerStatefulWidget {
   const MobileSplashScreen({super.key});
 
   @override
-  State<MobileSplashScreen> createState() => _MobileSplashScreenState();
+  ConsumerState<MobileSplashScreen> createState() => _MobileSplashScreenState();
 }
 
-class _MobileSplashScreenState extends State<MobileSplashScreen>
+class _MobileSplashScreenState extends ConsumerState<MobileSplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fade;
@@ -26,9 +38,45 @@ class _MobileSplashScreenState extends State<MobileSplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    Future.delayed(const Duration(milliseconds: 3000), () {
-      if (mounted) context.go('/mobile-onboarding');
-    });
+    _resumeSession();
+  }
+
+  /// Firebase restores a previous sign-in from device storage on startup, so
+  /// a returning user should land back in the app rather than on the sign-in
+  /// screen. Wait for that restore to settle, then route by role.
+  Future<void> _resumeSession() async {
+    final minSplash = Future<void>.delayed(_minSplash);
+
+    User? user;
+    try {
+      user = await ref.read(authStateProvider.future).timeout(_authTimeout);
+    } catch (_) {
+      // Stream error or timeout — fall back to whatever Firebase already
+      // restored synchronously.
+      user = FirebaseAuth.instance.currentUser;
+    }
+
+    if (!mounted) return;
+
+    String destination;
+    if (user == null) {
+      destination = '/mobile-onboarding';
+    } else {
+      try {
+        final claims =
+            await ref.read(userClaimsProvider.future).timeout(_authTimeout);
+        destination = homeForRole(claims?['role'] as String?);
+      } catch (_) {
+        // Signed in but claims unreachable (e.g. offline). Keep the session
+        // and land on the mobile home; the router re-routes by role once the
+        // claims resolve.
+        destination = '/mobile-home';
+      }
+    }
+
+    await minSplash;
+    if (!mounted) return;
+    context.go(destination);
   }
 
   @override

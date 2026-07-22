@@ -170,16 +170,20 @@ class AppRouterNotifier extends Notifier<GoRouter> {
     return null;
   }
 
-  String _homeForRole(String? role) {
-    if (role == AppConstants.roleSuperAdmin) return '/super-admin';
-    if (role == AppConstants.roleEmployee) return '/mobile-home';
-    if (!kIsWeb &&
-        (role == AppConstants.roleHrAdmin ||
-            role == AppConstants.roleBranchHrAdmin)) {
-      return '/guard';
-    }
-    return '/dashboard';
+  String _homeForRole(String? role) => homeForRole(role);
+}
+
+/// The landing route for a signed-in [role]. Shared with the mobile splash
+/// screen so a restored session lands in the same place a fresh sign-in does.
+String homeForRole(String? role) {
+  if (role == AppConstants.roleSuperAdmin) return '/super-admin';
+  if (role == AppConstants.roleEmployee) return '/mobile-home';
+  if (!kIsWeb &&
+      (role == AppConstants.roleHrAdmin ||
+          role == AppConstants.roleBranchHrAdmin)) {
+    return '/guard';
   }
+  return '/dashboard';
 }
 
 final appRouterProvider =

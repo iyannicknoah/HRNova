@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/rwanda_banks.dart';
+import '../../../core/utils/bank_account_validator.dart';
 import '../../../shared/widgets/hrnova_button.dart';
 import '../../../shared/widgets/hrnova_text_field.dart';
 import '../../../shared/widgets/hrnova_dropdown.dart';
@@ -106,6 +107,9 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     _role       = e?.role ?? AppConstants.roleEmployee;
     _bankCode   = (e?.bankCode.isNotEmpty ?? false) ? e!.bankCode : null;
     _branchId   = e?.branchId;
+
+    // Keep the bank-format warning in step with what's typed.
+    _bank.addListener(() => setState(() {}));
   }
 
   @override
@@ -183,14 +187,14 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
   }
 
   /// Bank account number must contain digits only.
+  /// Only the certain-junk errors block saving. Bank-specific rules surface
+  /// as a warning under the field instead — see [_bankWarning].
   String? _validateBankAccount(String? v) {
-    final value = (v ?? '').trim();
-    if (value.isEmpty) return null;
-    if (!RegExp(r'^\d+$').hasMatch(value)) {
-      return context.tr('Bank account number must contain digits only');
-    }
-    return null;
+    final error = checkBankAccount(v, _bankCode).error;
+    return error == null ? null : context.tr(error);
   }
+
+  String? get _bankWarning => checkBankAccount(_bank.text, _bankCode).warning;
 
   /// Validates a Rwandan National ID (Indangamuntu): exactly 16 digits,
   /// where digits 2–5 are a plausible birth year and digit 6 is the gender
@@ -361,6 +365,10 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                       keyboardType: TextInputType.number,
                       validator: _validateBankAccount),
                 ),
+                if (_bankWarning != null) ...[
+                  const SizedBox(height: 8),
+                  _BankWarning(message: context.tr(_bankWarning!)),
+                ],
                 const SizedBox(height: 20),
 
                 // System Access
@@ -495,6 +503,33 @@ class _DatePField extends StatelessWidget {
     },
     validator: required ? (v) => (v == null || v.isEmpty) ? context.tr('Required') : null : null,
   );
+}
+
+/// Non-blocking notice for a bank-specific format mismatch. Our knowledge of
+/// these formats is partial, so this warns without preventing the save.
+class _BankWarning extends StatelessWidget {
+  const _BankWarning({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: context.pillAmberBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.warningAmber.withAlpha(80)),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const AppIcon(AppIcons.infoOutline,
+              size: 16, color: AppColors.warningAmber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message,
+                style: const TextStyle(
+                    fontSize: 13, color: AppColors.warningAmber)),
+          ),
+        ]),
+      );
 }
 
 class _DropPField extends StatelessWidget {

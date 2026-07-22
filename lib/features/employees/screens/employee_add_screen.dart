@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/rwanda_banks.dart';
+import '../../../core/utils/bank_account_validator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../shared/widgets/app_dialog_shell.dart';
@@ -85,6 +86,9 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
     _bank       = TextEditingController();
     _notes      = TextEditingController();
     _password   = TextEditingController();
+
+    // Keep the bank-format warning in step with what's typed.
+    _bank.addListener(() => setState(() {}));
   }
 
   @override
@@ -429,6 +433,8 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
                             keyboard: TextInputType.number,
                             validator: _validateBankAccount),
                       ),
+                      if (_bankWarning != null)
+                        _BankWarning(message: context.tr(_bankWarning!)),
                     ]),
                     const SizedBox(height: 24),
                     _buildSection(context.tr('System Access'), _buildSystemAccessFields(isEdit)),
@@ -606,14 +612,14 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   }
 
   /// Bank account number must contain digits only.
+  /// Only the certain-junk errors block saving. Bank-specific rules surface
+  /// as a warning under the field instead — see [_bankWarning].
   String? _validateBankAccount(String? v) {
-    final value = (v ?? '').trim();
-    if (value.isEmpty) return null;
-    if (!RegExp(r'^\d+$').hasMatch(value)) {
-      return context.tr('Bank account number must contain digits only');
-    }
-    return null;
+    final error = checkBankAccount(v, _bankCode).error;
+    return error == null ? null : context.tr(error);
   }
+
+  String? get _bankWarning => checkBankAccount(_bank.text, _bankCode).warning;
 
   Widget _datefield(String label, TextEditingController ctrl, {bool required = false}) {
     return HRNovaTextField(
@@ -736,6 +742,33 @@ class _EmployeeAddScreenState extends ConsumerState<EmployeeAddScreen> {
   String _stLabel(String s) => switch (s) {
     'daily_rate' => 'Daily Rate', 'hourly_rate' => 'Hourly Rate', _ => 'Fixed Monthly',
   };
+}
+
+/// Non-blocking notice for a bank-specific format mismatch. Our knowledge of
+/// these formats is partial, so this warns without preventing the save.
+class _BankWarning extends StatelessWidget {
+  const _BankWarning({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: context.pillAmberBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.warningAmber.withAlpha(80)),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const AppIcon(AppIcons.infoOutlineRounded,
+              size: 16, color: AppColors.warningAmber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message,
+                style: const TextStyle(
+                    fontSize: 13, color: AppColors.warningAmber)),
+          ),
+        ]),
+      );
 }
 
 class _CredRow extends StatefulWidget {
